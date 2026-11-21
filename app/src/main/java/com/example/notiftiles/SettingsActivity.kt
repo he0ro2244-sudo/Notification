@@ -240,9 +240,18 @@ class SettingsActivity : Activity() {
         val noteOptions = ArrayList<Pair<String, String>>()
         noteOptions.add("auto" to "Auto")
         for (a in Notes.installedApps(this)) noteOptions.add(a)
+        val cur = Notes.mode(this)
+        if (cur !in listOf("auto", "ask", "inapp") && noteOptions.none { it.first == cur }) {
+            noteOptions.add(cur to Notes.label(this, cur))
+        }
         noteOptions.add("ask" to "Ask each time")
         noteOptions.add("inapp" to "Inside Notif Tiles")
-        col.addView(choiceRow(noteOptions, Notes.mode(this), false) { Notes.setMode(this, it); rebuild() })
+        col.addView(choiceRow(noteOptions, cur, false) { Notes.setMode(this, it); rebuild() })
+        val other = Button(this)
+        other.isAllCaps = false
+        other.text = "Choose any other app…"
+        other.setOnClickListener { Notes.pickDialog(this) { rebuild() } }
+        col.addView(other)
 
         // ---- Counts
         col.addView(title("Counts", 16f, 20))

@@ -57,3 +57,7 @@ NEW IN v0.9
 "+ Note" now sends what you type to the notes app on the phone (Google Keep, Samsung Notes, ...).
 Choose the app, "Ask each time" or "Inside Notif Tiles" in Look & colors > Notes. Notes you already
 saved inside Notif Tiles stay until you delete them.
+
+NEW IN v0.9.1
+Notes: if your notes app isn't one of the known ones, you pick it once from a list of every app that
+accepts text (also in Look & colors > Notes > "Choose any other app"), and notes then go straight to it.

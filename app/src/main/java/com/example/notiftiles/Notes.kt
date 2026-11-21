@@ -58,4 +58,40 @@ object Notes {
             }
         }
     }
+
+    fun label(c: Context, pkg: String): String = try {
+        c.packageManager.getApplicationLabel(c.packageManager.getApplicationInfo(pkg, 0)).toString()
+    } catch (e: Exception) {
+        pkg
+    }
+
+    /** Auto mode with no known notes app installed: the person has to pick one (once). */
+    fun needsPick(c: Context): Boolean = mode(c) == "auto" && installedApps(c).isEmpty()
+
+    /** Every app on the phone that accepts shared text. */
+    fun targets(c: Context): List<Pair<String, String>> {
+        val pm = c.packageManager
+        val i = Intent(Intent.ACTION_SEND).setType("text/plain")
+        return pm.queryIntentActivities(i, 0)
+            .map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
+            .filter { it.first != c.packageName }
+            .distinctBy { it.first }
+            .sortedBy { it.second.lowercase() }
+    }
+
+    /** Pick the app once; it is remembered and notes then go straight to it. */
+    fun pickDialog(a: android.app.Activity, onPicked: () -> Unit) {
+        val t = targets(a)
+        if (t.isEmpty()) {
+            android.widget.Toast.makeText(a, "No app on this phone accepts shared text", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        android.app.AlertDialog.Builder(a)
+            .setTitle("Always save notes to…")
+            .setItems(t.map { it.second }.toTypedArray()) { _, i ->
+                setMode(a, t[i].first)
+                onPicked()
+            }
+            .show()
+    }
 }

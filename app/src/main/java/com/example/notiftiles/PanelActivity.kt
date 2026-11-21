@@ -440,17 +440,20 @@ class PanelActivity : Activity() {
                 toast("Type something first")
             } else {
                 if (existing == null && !Notes.keepInApp(this)) {
-                    if (Notes.send(this, txt)) {
-                        et.setText("")
-                        expanded = null
-                        finish()
-                    } else {
-                        Prefs.addNote(this, txt)
-                        et.setText("")
-                        expanded = null
-                        refresh()
-                        toast("No notes app found, saved here")
+                    val sendNow = {
+                        if (Notes.send(this, txt)) {
+                            et.setText("")
+                            expanded = null
+                            finish()
+                        } else {
+                            Prefs.addNote(this, txt)
+                            et.setText("")
+                            expanded = null
+                            refresh()
+                            toast("No notes app found, saved here")
+                        }
                     }
+                    if (Notes.needsPick(this)) Notes.pickDialog(this) { sendNow() } else sendNow()
                 } else {
                     if (existing == null) Prefs.addNote(this, txt) else Prefs.updateNote(this, existing.id, txt)
                     et.setText("")
