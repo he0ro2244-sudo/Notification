@@ -20,15 +20,29 @@ class RecorderTapService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
-        if (System.currentTimeMillis() > pendingUntil) return
+        val now = System.currentTimeMillis()
+        if (now > pendingUntil) return
+        if (now - lastTap < 15000) return // never press twice (a second press would stop the recording)
         pendingUntil = 0L
         backs = 0
-        handler.postDelayed({ tap() }, 900)
+        Toast.makeText(this, "Notif Tiles: Recorder opened (" + (event.className ?: "?").toString().substringAfterLast('.') + ")", Toast.LENGTH_SHORT).show()
+        handler.postDelayed({ tap() }, 1200)
     }
 
     override fun onInterrupt() {}
 
     private var backs = 0
+    private var lastTap = 0L
+
+    private fun alreadyRecording(root: AccessibilityNodeInfo): Boolean {
+        val l = (root.contentDescription?.toString() ?: "") + " " + (root.text?.toString() ?: "")
+        if (Regex("stop|pause|resume", RegexOption.IGNORE_CASE).containsMatchIn(l) && root.isVisibleToUser) return true
+        for (i in 0 until root.childCount) {
+            val c = root.getChild(i) ?: continue
+            if (alreadyRecording(c)) return true
+        }
+        return false
+    }
 
     private fun tap() {
         // If the Recorder resumed on a saved recording's page (play button where the record button
@@ -43,6 +57,12 @@ class RecorderTapService : AccessibilityService() {
             handler.postDelayed({ tap() }, 900)
             return
         }
+        val r1 = rootInActiveWindow
+        if (r1 != null && alreadyRecording(r1)) {
+            Toast.makeText(this, "Notif Tiles: already recording, not pressing", Toast.LENGTH_SHORT).show()
+            return
+        }
+        lastTap = System.currentTimeMillis()
         // 1) Try to find the record button by its label / id and click it.
         val root = rootInActiveWindow
         if (root != null) {
