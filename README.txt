@@ -67,7 +67,12 @@ Notes: "Phone default" now asks Android for the phone's own default Notes app. T
 your apps (notes-like names first). If the app you pick can't take shared text, the note is copied
 and the app opens so you can paste it.
 
-NEW IN v0.9.3
-Panel header: a mic button next to "+ Note" opens the phone's voice recorder so you can record audio fast.
-It finds your recorder automatically (Google Recorder, Samsung Voice Recorder, ...). If none is found you
-pick it once from a list. Change it any time in Look & colors > Voice recorder.
+NEW IN v0.9.4
+Mic button in the panel header (next to "+ Note"): one tap starts recording straight away (first time it
+asks for microphone permission). The button turns red and shows the time; tap it again, or "Stop & save"
+in the notification, to stop. Files go to Recordings/NotifTiles as .m4a. It keeps recording if you close
+the panel.
+Fast dial: Look & colors > Fast-dial contacts lets you change or clear any circle. Turn on "Ask before
+calling" and tapping a circle on the widget offers Call / Change contact / Remove.
+Borders: Look & colors > Borders (thickness, colour) around the panel and the message tiles.
+Text size per part of the panel: Look & colors > Font > "Text size per part of the panel".

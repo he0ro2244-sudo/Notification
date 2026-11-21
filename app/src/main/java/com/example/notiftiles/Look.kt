@@ -83,7 +83,9 @@ object Look {
                 o = floatArrayOf(v.textSize, if (v.typeface?.isBold == true) 1f else 0f)
                 v.setTag(R.id.nt_orig, o)
             }
-            v.setTextSize(TypedValue.COMPLEX_UNIT_PX, o[0] * scale(ctx))
+            val g = v.getTag(R.id.nt_grp) as? String
+            val gs = if (g == null) 1f else Prefs.grpSize(ctx, g) / 100f
+            v.setTextSize(TypedValue.COMPLEX_UNIT_PX, o[0] * scale(ctx) * gs)
             v.typeface = Typeface.create(Prefs.fontFamily(ctx), styleFor(ctx, o[1] == 1f))
         }
         if (v is ViewGroup) {
@@ -175,11 +177,29 @@ object Look {
             setColor(color)
             cornerRadius = radiusPx.toFloat()
         }
-        val bmp = bitmap(ctx, "panel") ?: return base
-        val img = CropDrawable(bmp, radiusPx.toFloat())
-        img.setAlpha(Prefs.imgAlpha(ctx, "panel") * 255 / 100)
-        return LayerDrawable(arrayOf(base, img))
+        val layers = ArrayList<Drawable>()
+        layers.add(base)
+        val bmp = bitmap(ctx, "panel")
+        if (bmp != null) {
+            val img = CropDrawable(bmp, radiusPx.toFloat())
+            img.setAlpha(Prefs.imgAlpha(ctx, "panel") * 255 / 100)
+            layers.add(img)
+        }
+        if (Prefs.borderPanel(ctx) && Prefs.borderWidth(ctx) > 0) {
+            layers.add(GradientDrawable().apply {
+                setColor(0)
+                cornerRadius = radiusPx.toFloat()
+                setStroke(
+                    (Prefs.borderWidth(ctx) * ctx.resources.displayMetrics.density).toInt().coerceAtLeast(1),
+                    borderColor(ctx, contrast(color) and 0xFFFFFF or 0x99000000.toInt())
+                )
+            })
+        }
+        return if (layers.size == 1) base else LayerDrawable(layers.toTypedArray())
     }
+
+    /** Border colour: the chosen one, or [auto] when set to automatic. */
+    fun borderColor(ctx: Context, auto: Int): Int = Prefs.borderColor(ctx).let { if (it != 0) it else auto }
 
     fun contrast(color: Int): Int =
         if (Color.luminance(color) < 0.5f) 0xFFF2F2F5.toInt() else 0xFF1B1B1F.toInt()

@@ -40,6 +40,10 @@ class SettingsActivity : Activity() {
         0, c(0xFF000000), c(0xFF1C1C20), c(0xFFFFFFFF), c(0xFFF2F2F5), c(0xFF1E3A8A),
         c(0xFF0F766E), c(0xFF166534), c(0xFF7C3AED), c(0xFFB91C1C), c(0xFFEA580C), c(0xFFDB2777)
     )
+    private val borderColors = intArrayOf(
+        0, c(0xFFFFFFFF), c(0xFF000000), c(0xFF3B82F6), c(0xFF22D3EE), c(0xFF4ADE80),
+        c(0xFFFACC15), c(0xFFFB923C), c(0xFFEF4444), c(0xFFDB2777), c(0xFFA78BFA)
+    )
     private val scrimColors = intArrayOf(
         c(0xFF000000), c(0xFF1C1C20), c(0xFF1E3A8A), c(0xFF7C3AED), c(0xFF0F766E), c(0xFF3E2723)
     )
@@ -79,6 +83,11 @@ class SettingsActivity : Activity() {
         scroll.addView(col)
         setContentView(scroll)
         build()
+    }
+
+    override fun onRestart() {
+        super.onRestart()
+        rebuild()
     }
 
     private fun rebuild() {
@@ -149,6 +158,12 @@ class SettingsActivity : Activity() {
         fontPreview = sample
         col.addView(sample)
 
+        col.addView(title("Text size per part of the panel", 14f, 12))
+        col.addView(hint("On top of the overall text size above. 100% = as designed."))
+        for ((g, label) in Prefs.PANEL_GROUPS) {
+            col.addView(seekRange(label, Prefs.grpSize(this, g), 60, 220, "%") { Prefs.setGrpSize(this, g, it) })
+        }
+
         // ---- Colours of text and shapes
         col.addView(title("Text colour (widget)", 16f, 20))
         col.addView(swatchRow(textColors, Prefs.textColor(this)) { Prefs.setTextColor(this, it); applyLook(); rebuild() })
@@ -165,6 +180,50 @@ class SettingsActivity : Activity() {
         col.addView(seekRange("Clock / weather / date circles", Prefs.topSize(this), 36, 72, " dp") { Prefs.setTopSize(this, it) })
         col.addView(seekRange("Fast-dial circles", Prefs.dialSize(this), 30, 64, " dp") { Prefs.setDialSize(this, it) })
         col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
+
+        // ---- Fast dial contacts
+        col.addView(title("Fast-dial contacts", 16f, 20))
+        col.addView(toggleRaw("Ask before calling (Call / Change / Remove)", Prefs.dialAsk(this)) { Prefs.setDialAsk(this, it) })
+        col.addView(hint("Put a wrong person on a circle? Change or clear it here. With the switch above on, tapping a circle on the widget also offers Change and Remove."))
+        for (i in 0 until Prefs.DIAL_SLOTS) {
+            val nm = Prefs.dialName(this, i)
+            val num = Prefs.dialNumber(this, i)
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+            val label = TextView(this)
+            label.text = "${i + 1}.  " + (if (num.isEmpty()) "Empty" else if (nm.isNotBlank()) nm else num)
+            label.textSize = 15f
+            row.addView(label, LinearLayout.LayoutParams(0, WRAP, 1f))
+            val ch = Button(this)
+            ch.isAllCaps = false
+            ch.text = if (num.isEmpty()) "Pick" else "Change"
+            ch.setOnClickListener {
+                startActivity(Intent(this, DialActivity::class.java).putExtra("slot", i).putExtra("pick", true))
+            }
+            row.addView(ch)
+            if (num.isNotEmpty()) {
+                val cl = Button(this)
+                cl.isAllCaps = false
+                cl.text = "Clear"
+                cl.setOnClickListener {
+                    Prefs.clearDial(this, i)
+                    applyLook()
+                    rebuild()
+                }
+                row.addView(cl)
+            }
+            col.addView(row)
+        }
+
+        // ---- Borders
+        col.addView(title("Borders", 16f, 20))
+        col.addView(hint("A line around the panel and the message tiles. Thickness 0 = no border."))
+        col.addView(seekRange("Thickness", Prefs.borderWidth(this), 0, 6, " dp") { Prefs.setBorderWidth(this, it) })
+        col.addView(hint("Colour (first one = automatic)"))
+        col.addView(swatchRow(borderColors, Prefs.borderColor(this)) { Prefs.setBorderColor(this, it); rebuild() })
+        col.addView(toggleRaw("Border around the panel", Prefs.borderPanel(this)) { Prefs.setBorderPanel(this, it) })
+        col.addView(toggleRaw("Border around message tiles", Prefs.borderTiles(this)) { Prefs.setBorderTiles(this, it) })
 
         // ---- Background pictures
         col.addView(title("Background pictures", 16f, 20))
@@ -252,23 +311,6 @@ class SettingsActivity : Activity() {
         other.text = "Choose any other app…"
         other.setOnClickListener { Notes.pickDialog(this) { rebuild() } }
         col.addView(other)
-
-        // ---- Voice recorder
-        col.addView(title("Voice recorder", 16f, 20))
-        col.addView(hint("Which app the mic button next to \"+ Note\" opens."))
-        val recOptions = ArrayList<Pair<String, String>>()
-        recOptions.add("auto" to "Phone's recorder")
-        for (a in Recorder.installedApps(this)) recOptions.add(a)
-        val recCur = Recorder.mode(this)
-        if (recCur != "auto" && recOptions.none { it.first == recCur }) {
-            recOptions.add(recCur to Recorder.label(this, recCur))
-        }
-        col.addView(choiceRow(recOptions, recCur, false) { Recorder.setMode(this, it); rebuild() })
-        val recOther = Button(this)
-        recOther.isAllCaps = false
-        recOther.text = "Choose any other app…"
-        recOther.setOnClickListener { Recorder.pickDialog(this) { rebuild() } }
-        col.addView(recOther)
 
         // ---- Counts
         col.addView(title("Counts", 16f, 20))

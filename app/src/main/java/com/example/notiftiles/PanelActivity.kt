@@ -50,6 +50,70 @@ class PanelActivity : Activity() {
         cornerRadius = dp(r).toFloat()
     }
 
+    private fun tileBg(bg: Int, fg: Int, r: Int): GradientDrawable {
+        val d = rounded(bg, r)
+        if (Prefs.borderTiles(this) && Prefs.borderWidth(this) > 0) {
+            d.setStroke(dp(Prefs.borderWidth(this)).coerceAtLeast(1), Look.borderColor(this, Feed.alpha(fg, 0x99)))
+        }
+        return d
+    }
+
+    // ---- Voice recording: one tap starts recording straight away, tap again to stop and save ----
+    private lateinit var recBtn: TextView
+    private val tickHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val ticker = object : Runnable {
+        override fun run() {
+            updateRec()
+            tickHandler.postDelayed(this, 500)
+        }
+    }
+
+    private fun updateRec() {
+        if (!::recBtn.isInitialized) return
+        if (RecordService.running()) {
+            val sec = (android.os.SystemClock.elapsedRealtime() - RecordService.startedAt) / 1000
+            recBtn.text = "\u23FA %d:%02d".format(sec / 60, sec % 60)
+            recBtn.setTextColor(0xFFEF4444.toInt())
+        } else {
+            recBtn.text = "\uD83C\uDF99"
+            recBtn.setTextColor(Prefs.accent(this))
+        }
+    }
+
+    private fun toggleRecording() {
+        if (RecordService.running()) {
+            RecordService.stop(this)
+            tickHandler.postDelayed({ updateRec() }, 400)
+            return
+        }
+        val need = ArrayList<String>()
+        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            need.add(android.Manifest.permission.RECORD_AUDIO)
+        }
+        if (Build.VERSION.SDK_INT >= 33 &&
+            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            need.add(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+        if (need.isEmpty()) {
+            RecordService.start(this)
+            tickHandler.postDelayed({ updateRec() }, 400)
+        } else {
+            requestPermissions(need.toTypedArray(), 77)
+        }
+    }
+
+    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
+        super.onRequestPermissionsResult(code, perms, results)
+        if (code != 77) return
+        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            RecordService.start(this)
+            tickHandler.postDelayed({ updateRec() }, 400)
+        } else {
+            toast("Microphone permission is needed to record")
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         dark = Feed.isDark(this)
@@ -85,6 +149,7 @@ class PanelActivity : Activity() {
         back = TextView(this)
         back.text = "‹ Back"
         back.textSize = 15f
+        back.setTag(R.id.nt_grp, "head")
         back.setTextColor(Prefs.accent(this))
         back.setTypeface(null, Typeface.BOLD)
         back.setPadding(0, dp(6), dp(12), dp(6))
@@ -99,12 +164,14 @@ class PanelActivity : Activity() {
         val title = TextView(this)
         title.text = "Inbox"
         title.textSize = 20f
+        title.setTag(R.id.nt_grp, "head")
         title.setTypeface(null, Typeface.BOLD)
         title.setTextColor(cText)
         header.addView(title)
 
         badge = TextView(this)
         badge.textSize = 12f
+        badge.setTag(R.id.nt_grp, "small")
         badge.setTypeface(null, Typeface.BOLD)
         badge.setTextColor(0xFFFFFFFF.toInt())
         badge.background = rounded(Prefs.accent(this), 10)
@@ -115,22 +182,18 @@ class PanelActivity : Activity() {
 
         header.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
 
-        val rec = TextView(this)
-        rec.text = "\uD83C\uDF99"
-        rec.textSize = 18f
-        rec.setPadding(dp(8), dp(4), dp(8), dp(4))
-        rec.setOnClickListener {
-            val go = {
-                if (Recorder.open(this)) finish()
-                else toast("No recorder app found")
-            }
-            if (Recorder.needsPick(this)) Recorder.pickDialog(this) { go() } else go()
-        }
-        header.addView(rec)
+        recBtn = TextView(this)
+        recBtn.text = "\uD83C\uDF99"
+        recBtn.textSize = 18f
+        recBtn.setTag(R.id.nt_grp, "hdr")
+        recBtn.setPadding(dp(8), dp(4), dp(8), dp(4))
+        recBtn.setOnClickListener { toggleRecording() }
+        header.addView(recBtn)
 
         val addNote = TextView(this)
         addNote.text = "+ Note"
         addNote.textSize = 14f
+        addNote.setTag(R.id.nt_grp, "hdr")
         addNote.setTypeface(null, Typeface.BOLD)
         addNote.setTextColor(Prefs.accent(this))
         addNote.setPadding(dp(8), dp(6), dp(8), dp(6))
@@ -143,6 +206,7 @@ class PanelActivity : Activity() {
         val clear = TextView(this)
         clear.text = "Clear all"
         clear.textSize = 14f
+        clear.setTag(R.id.nt_grp, "hdr")
         clear.setTextColor(cSub)
         clear.setPadding(dp(8), dp(6), dp(8), dp(6))
         clear.setOnClickListener { clearAll() }
@@ -151,6 +215,7 @@ class PanelActivity : Activity() {
         val gear = TextView(this)
         gear.text = "⚙"
         gear.textSize = 18f
+        gear.setTag(R.id.nt_grp, "hdr")
         gear.setTextColor(cSub)
         gear.setPadding(dp(8), dp(4), dp(4), dp(4))
         gear.setOnClickListener {
@@ -180,6 +245,8 @@ class PanelActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        tickHandler.removeCallbacks(ticker)
+        tickHandler.post(ticker)
         Access.rebindIfNeeded(this)
         NotifListener.onChange = { runOnUiThread { if (!hasDraft()) refresh() } }
         refresh()
@@ -187,6 +254,7 @@ class PanelActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
+        tickHandler.removeCallbacks(ticker)
         finishViewing()
         NotifListener.onChange = null
     }
@@ -204,6 +272,7 @@ class PanelActivity : Activity() {
         val t = TextView(this)
         t.text = msg
         t.textSize = 14f
+        t.setTag(R.id.nt_grp, "text")
         t.setTextColor(cSub)
         t.setPadding(dp(8), dp(12), dp(8), dp(16))
         return t
@@ -306,6 +375,7 @@ class PanelActivity : Activity() {
         val t = TextView(this)
         t.text = count.toString()
         t.textSize = 11f
+        t.setTag(R.id.nt_grp, "small")
         t.setTypeface(null, Typeface.BOLD)
         t.setTextColor(bg)
         t.background = rounded(fg, 10)
@@ -319,7 +389,7 @@ class PanelActivity : Activity() {
         val fg = st.fg(dark)
         val card = LinearLayout(this)
         card.orientation = LinearLayout.VERTICAL
-        card.background = rounded(bg, 16)
+        card.background = tileBg(bg, fg, 16)
         card.setPadding(dp(10), dp(10), dp(10), dp(10))
         card.minimumHeight = dp(104)
 
@@ -335,6 +405,7 @@ class PanelActivity : Activity() {
         val t = TextView(this)
         t.text = Feed.title(sbn)
         t.textSize = 14f
+        t.setTag(R.id.nt_grp, "title")
         t.setTypeface(null, Typeface.BOLD)
         t.setTextColor(fg)
         t.maxLines = 1
@@ -345,6 +416,7 @@ class PanelActivity : Activity() {
         val m = TextView(this)
         m.text = Feed.text(sbn)
         m.textSize = 13f
+        m.setTag(R.id.nt_grp, "text")
         m.setTextColor(Feed.alpha(fg, 0xDD))
         m.maxLines = 2
         m.ellipsize = TextUtils.TruncateAt.END
@@ -363,13 +435,14 @@ class PanelActivity : Activity() {
         val fg = st.fg(dark)
         val card = LinearLayout(this)
         card.orientation = LinearLayout.VERTICAL
-        card.background = rounded(bg, 16)
+        card.background = tileBg(bg, fg, 16)
         card.setPadding(dp(10), dp(10), dp(10), dp(10))
         card.minimumHeight = dp(104)
 
         val label = TextView(this)
         label.text = "Note"
         label.textSize = 12f
+        label.setTag(R.id.nt_grp, "small")
         label.setTypeface(null, Typeface.BOLD)
         label.setTextColor(Feed.alpha(fg, 0xCC))
         card.addView(label)
@@ -377,6 +450,7 @@ class PanelActivity : Activity() {
         val m = TextView(this)
         m.text = n.text
         m.textSize = 14f
+        m.setTag(R.id.nt_grp, "text")
         m.setTextColor(fg)
         m.maxLines = 4
         m.ellipsize = TextUtils.TruncateAt.END
@@ -395,6 +469,7 @@ class PanelActivity : Activity() {
         b.text = label
         b.isAllCaps = false
         b.textSize = 13f
+        b.setTag(R.id.nt_grp, "buttons")
         b.minHeight = 0
         b.minimumHeight = 0
         b.setPadding(dp(14), dp(8), dp(14), dp(8))
@@ -416,7 +491,7 @@ class PanelActivity : Activity() {
 
         val card = LinearLayout(this)
         card.orientation = LinearLayout.VERTICAL
-        card.background = rounded(bg, 18)
+        card.background = tileBg(bg, fg, 18)
         card.setPadding(dp(12), dp(10), dp(12), dp(12))
         val clp = LinearLayout.LayoutParams(MATCH, WRAP)
         clp.bottomMargin = dp(8)
@@ -425,6 +500,7 @@ class PanelActivity : Activity() {
         val label = TextView(this)
         label.text = if (existing == null) "New note" else "Note"
         label.textSize = 13f
+        label.setTag(R.id.nt_grp, "small")
         label.setTypeface(null, Typeface.BOLD)
         label.setTextColor(Feed.alpha(fg, 0xCC))
         card.addView(label)
@@ -434,6 +510,7 @@ class PanelActivity : Activity() {
         et.setHintTextColor(Feed.alpha(fg, 0x99))
         et.setTextColor(fg)
         et.textSize = 15f
+        et.setTag(R.id.nt_grp, "text")
         et.minLines = 4
         et.gravity = Gravity.TOP or Gravity.START
         et.background = rounded(if (dark) 0x33FFFFFF else 0xAAFFFFFF.toInt(), 12)
@@ -504,7 +581,7 @@ class PanelActivity : Activity() {
 
         val card = LinearLayout(this)
         card.orientation = LinearLayout.VERTICAL
-        card.background = rounded(bg, 18)
+        card.background = tileBg(bg, fg, 18)
         card.setPadding(dp(12), dp(10), dp(12), dp(12))
         val clp = LinearLayout.LayoutParams(MATCH, WRAP)
         clp.bottomMargin = dp(8)
@@ -519,12 +596,14 @@ class PanelActivity : Activity() {
         val label = Feed.label(this, sbn.packageName)
         name.text = if (count > 1) "$label · $count" else label
         name.textSize = 13f
+        name.setTag(R.id.nt_grp, "small")
         name.setTextColor(Feed.alpha(fg, 0xCC))
         name.setPadding(dp(8), 0, 0, 0)
         head.addView(name, LinearLayout.LayoutParams(0, WRAP, 1f))
         val x = TextView(this)
         x.text = "×"
         x.textSize = 26f
+        x.setTag(R.id.nt_grp, "title")
         x.setTextColor(fg)
         x.setPadding(dp(14), 0, dp(2), 0)
         x.setOnClickListener {
@@ -540,6 +619,7 @@ class PanelActivity : Activity() {
             val t = TextView(this)
             t.text = tt
             t.textSize = 16f
+            t.setTag(R.id.nt_grp, "title")
             t.setTypeface(null, Typeface.BOLD)
             t.setTextColor(fg)
             t.setPadding(0, dp(8), 0, 0)
@@ -550,6 +630,7 @@ class PanelActivity : Activity() {
             val m = TextView(this)
             m.text = tx
             m.textSize = 14f
+            m.setTag(R.id.nt_grp, "text")
             m.setTextColor(Feed.alpha(fg, 0xEE))
             m.maxLines = 8
             m.ellipsize = TextUtils.TruncateAt.END
@@ -572,6 +653,7 @@ class PanelActivity : Activity() {
             et.setHintTextColor(Feed.alpha(fg, 0x99))
             et.setTextColor(fg)
             et.textSize = 14f
+            et.setTag(R.id.nt_grp, "buttons")
             et.maxLines = 3
             et.background = rounded(if (dark) 0x33FFFFFF else 0xAAFFFFFF.toInt(), 12)
             et.setPadding(dp(12), dp(10), dp(12), dp(10))

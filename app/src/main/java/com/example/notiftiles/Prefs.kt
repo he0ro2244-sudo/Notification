@@ -171,6 +171,32 @@ object Prefs {
     fun autoLocation(c: Context): Boolean = sp(c).getBoolean("dest_auto_loc", true)
     fun setAutoLocation(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_auto_loc", v).apply()
 
+    // ---- Borders (0 thickness = none; colour 0 = automatic) ----
+    fun borderWidth(c: Context): Int = sp(c).getInt("look_bw", 0)
+    fun setBorderWidth(c: Context, v: Int) = sp(c).edit().putInt("look_bw", v).apply()
+    fun borderColor(c: Context): Int = sp(c).getInt("look_bc", 0)
+    fun setBorderColor(c: Context, v: Int) = sp(c).edit().putInt("look_bc", v).apply()
+    fun borderPanel(c: Context): Boolean = sp(c).getBoolean("look_bpanel", true)
+    fun setBorderPanel(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_bpanel", v).apply()
+    fun borderTiles(c: Context): Boolean = sp(c).getBoolean("look_btiles", true)
+    fun setBorderTiles(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_btiles", v).apply()
+
+    // ---- Panel text sizes per part (percent, on top of the overall text size) ----
+    val PANEL_GROUPS = listOf(
+        "head" to "Header title (Inbox, Back)",
+        "hdr" to "Header buttons (mic, + Note, Clear all)",
+        "title" to "Message titles",
+        "text" to "Message text and notes",
+        "small" to "Small labels (app name, counts)",
+        "buttons" to "Buttons and reply box"
+    )
+    fun grpSize(c: Context, g: String): Int = sp(c).getInt("look_grp_$g", 100)
+    fun setGrpSize(c: Context, g: String, v: Int) = sp(c).edit().putInt("look_grp_$g", v).apply()
+
+    // ---- Fast dial: ask before calling ----
+    fun dialAsk(c: Context): Boolean = sp(c).getBoolean("dial_ask", false)
+    fun setDialAsk(c: Context, v: Boolean) = sp(c).edit().putBoolean("dial_ask", v).apply()
+
     // ---- Fonts ----
     fun fontFamily(c: Context): String = sp(c).getString("look_font", "sans-serif") ?: "sans-serif"
     fun setFontFamily(c: Context, v: String) = sp(c).edit().putString("look_font", v).apply()

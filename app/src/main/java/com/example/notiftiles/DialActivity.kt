@@ -22,9 +22,31 @@ class DialActivity : Activity() {
         val number = Prefs.dialNumber(this, slot)
         if (number.isEmpty() || intent.getBooleanExtra("pick", false)) {
             pick()
+        } else if (Prefs.dialAsk(this)) {
+            ask(number)
         } else {
             call(number)
         }
+    }
+
+    // "Ask before calling" is on: Call, Change contact or Remove.
+    private fun ask(number: String) {
+        val name = Prefs.dialName(this, slot).ifBlank { number }
+        android.app.AlertDialog.Builder(this)
+            .setTitle(name)
+            .setItems(arrayOf("Call $name", "Change contact", "Remove from fast dial")) { _, i ->
+                when (i) {
+                    0 -> call(number)
+                    1 -> pick()
+                    else -> {
+                        Prefs.clearDial(this, slot)
+                        TilesWidget.refresh(applicationContext)
+                        finish()
+                    }
+                }
+            }
+            .setOnCancelListener { finish() }
+            .show()
     }
 
     private fun pick() {
@@ -86,6 +108,7 @@ class DialActivity : Activity() {
                         val num = (c.getString(1) ?: "").filter { it.isDigit() || it == '+' || it == '#' || it == '*' }
                         if (num.isNotEmpty()) {
                             Prefs.setDial(this, slot, name, num)
+                            Toast.makeText(this, "Saved: " + name.ifBlank { num }, Toast.LENGTH_SHORT).show()
                             TilesWidget.refresh(applicationContext)
                         }
                     }
