@@ -80,13 +80,23 @@ object Look {
         if (v is TextView) {
             var o = v.getTag(R.id.nt_orig) as? FloatArray
             if (o == null) {
-                o = floatArrayOf(v.textSize, if (v.typeface?.isBold == true) 1f else 0f)
+                val oc = v.currentTextColor
+                o = floatArrayOf(v.textSize, if (v.typeface?.isBold == true) 1f else 0f, (oc ushr 16).toFloat(), (oc and 0xFFFF).toFloat(), 0f)
                 v.setTag(R.id.nt_orig, o)
             }
             val g = v.getTag(R.id.nt_grp) as? String
             val gs = if (g == null) 1f else Prefs.grpSize(ctx, g) / 100f
             v.setTextSize(TypedValue.COMPLEX_UNIT_PX, o[0] * scale(ctx) * gs)
             v.typeface = Typeface.create(Prefs.fontFamily(ctx), styleFor(ctx, o[1] == 1f))
+            // Separate colour per part of the panel (restored to the original when set back to automatic)
+            val gc = if (g == null) 0 else Prefs.grpColor(ctx, g)
+            if (gc != 0) {
+                v.setTextColor(gc)
+                o[4] = 1f
+            } else if (o[4] == 1f) {
+                v.setTextColor((o[2].toInt() shl 16) or o[3].toInt())
+                o[4] = 0f
+            }
         }
         if (v is ViewGroup) {
             for (i in 0 until v.childCount) applyTree(v.getChildAt(i), ctx)

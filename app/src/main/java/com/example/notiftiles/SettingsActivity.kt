@@ -167,6 +167,16 @@ class SettingsActivity : Activity() {
         // ---- Colours of text and shapes
         col.addView(title("Text colour (widget)", 16f, 20))
         col.addView(swatchRow(textColors, Prefs.textColor(this)) { Prefs.setTextColor(this, it); applyLook(); rebuild() })
+        col.addView(title("Text colour per part", 14f, 12))
+        col.addView(hint("Each part can have its own colour. The first swatch (automatic) follows the overall text colour above."))
+        for ((k, label) in Prefs.WIDGET_PARTS) {
+            col.addView(hint(label))
+            col.addView(swatchRow(textColors, Prefs.partColor(this, k)) { Prefs.setPartColor(this, k, it); applyLook(); rebuild() })
+        }
+        for ((g, label) in Prefs.PANEL_GROUPS) {
+            col.addView(hint("Panel: $label"))
+            col.addView(swatchRow(textColors, Prefs.grpColor(this, g)) { Prefs.setGrpColor(this, g, it); applyLook(); rebuild() })
+        }
         col.addView(title("Circle colour (clock, weather, date, Where to?)", 14f, 12))
         col.addView(swatchRow(bgColors, Prefs.circleColor(this)) { Prefs.setCircleColor(this, it); applyLook(); rebuild() })
         col.addView(title("Fast-dial circle colour", 14f, 12))

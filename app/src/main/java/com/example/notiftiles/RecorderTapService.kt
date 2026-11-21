@@ -37,7 +37,7 @@ class RecorderTapService : AccessibilityService() {
         attempts = 0
         backs = 0
         tapped = false
-        handler.postDelayed({ attempt() }, 1000)
+        handler.postDelayed({ attempt() }, 500)
     }
 
     override fun onInterrupt() {}
@@ -72,7 +72,7 @@ class RecorderTapService : AccessibilityService() {
                 tapped = true
             }
         }
-        handler.postDelayed({ attempt() }, 1600)
+        handler.postDelayed({ attempt() }, 1300)
     }
 
     // A saved recording's page has these buttons; the red play button there is not "record".

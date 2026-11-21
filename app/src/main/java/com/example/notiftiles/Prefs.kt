@@ -190,6 +190,19 @@ object Prefs {
         "small" to "Small labels (app name, counts)",
         "buttons" to "Buttons and reply box"
     )
+    // Separate text colour per part (0 = automatic / the overall text colour)
+    val WIDGET_PARTS = listOf(
+        "title" to "Widget: Inbox title",
+        "clock" to "Widget: clock",
+        "weather" to "Widget: weather",
+        "date" to "Widget: date",
+        "where" to "Widget: Where to?",
+        "dialnames" to "Widget: fast-dial names"
+    )
+    fun partColor(c: Context, k: String): Int = sp(c).getInt("look_pc_$k", 0)
+    fun setPartColor(c: Context, k: String, v: Int) = sp(c).edit().putInt("look_pc_$k", v).apply()
+    fun grpColor(c: Context, g: String): Int = sp(c).getInt("look_gc_$g", 0)
+    fun setGrpColor(c: Context, g: String, v: Int) = sp(c).edit().putInt("look_gc_$g", v).apply()
     fun grpSize(c: Context, g: String): Int = sp(c).getInt("look_grp_$g", 100)
     fun setGrpSize(c: Context, g: String, v: Int) = sp(c).edit().putInt("look_grp_$g", v).apply()
 

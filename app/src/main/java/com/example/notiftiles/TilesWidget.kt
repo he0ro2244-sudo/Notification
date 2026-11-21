@@ -181,7 +181,7 @@ class TilesWidget : AppWidgetProvider() {
             val main = if (ov != 0) ov else if (lightText) 0xFFF2F2F5.toInt() else if (darkText) 0xFF1B1B1F.toInt() else ctx.getColor(R.color.nt_text)
             val sub = if (ov != 0) Feed.alpha(ov, 0xB3) else if (lightText) 0xFFB4B4BC.toInt() else if (darkText) 0xFF55555C.toInt() else ctx.getColor(R.color.nt_sub)
             txt(rv, ctx, R.id.hdr_title, "Inbox", 16f, true)
-            rv.setTextColor(R.id.hdr_title, main)
+            rv.setTextColor(R.id.hdr_title, Prefs.partColor(ctx, "title").let { if (it != 0) it else main })
             txt(rv, ctx, R.id.wnote, "+ Note", 13f, true)
             txt(rv, ctx, R.id.wclear, "Clear all", 13f, false)
             rv.setTextColor(R.id.wclear, sub)
@@ -209,6 +209,10 @@ class TilesWidget : AppWidgetProvider() {
                     rv.setViewLayoutWidth(id, topSize, TypedValue.COMPLEX_UNIT_DIP)
                     rv.setViewLayoutHeight(id, topSize, TypedValue.COMPLEX_UNIT_DIP)
                 }
+                for ((k, ids) in listOf("clock" to W_CLOCK, "weather" to W_WEATHER, "date" to W_DATE)) {
+                    val pc = Prefs.partColor(ctx, k)
+                    if (pc != 0) rv.setTextColor(ids[slot], pc)
+                }
                 val clock = W_CLOCK[slot]
                 rv.setCharSequence(clock, "setFormat12Hour", Look.span(ctx, f12, true))
                 rv.setCharSequence(clock, "setFormat24Hour", Look.span(ctx, f24, true))
@@ -223,8 +227,9 @@ class TilesWidget : AppWidgetProvider() {
             }
             txt(rv, ctx, R.id.wwA, "Where to?", 12f, false)
             txt(rv, ctx, R.id.wwB, "Where to?", 12f, false)
-            rv.setTextColor(R.id.wwA, circleSub)
-            rv.setTextColor(R.id.wwB, circleSub)
+            val wc = Prefs.partColor(ctx, "where")
+            rv.setTextColor(R.id.wwA, if (wc != 0) wc else circleSub)
+            rv.setTextColor(R.id.wwB, if (wc != 0) wc else circleSub)
 
             // ---- Fast-dial circles
             val dark = Feed.isDark(ctx)
@@ -248,7 +253,8 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setViewLayoutWidth(DIAL_CIRCLE[i], dsize, TypedValue.COMPLEX_UNIT_DIP)
                 rv.setViewLayoutHeight(DIAL_CIRCLE[i], dsize, TypedValue.COMPLEX_UNIT_DIP)
                 txt(rv, ctx, DIAL_NAME[i], if (has) label else "Add", 10f, false)
-                rv.setTextColor(DIAL_NAME[i], sub)
+                val dn = Prefs.partColor(ctx, "dialnames")
+                rv.setTextColor(DIAL_NAME[i], if (dn != 0) dn else sub)
                 rv.setViewVisibility(DIAL_NAME[i], if (showNames) View.VISIBLE else View.GONE)
             }
         }
