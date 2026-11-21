@@ -69,9 +69,6 @@ object Recorder {
         }
     }
 
-    // Components of the recorder that look like "start recording" entry points.
-    private val START_NAME = Regex("(start|quick|shortcut|direct|fast).*(record|rec)|(record|rec).*(start|quick|shortcut|direct|fast)", RegexOption.IGNORE_CASE)
-
     @Suppress("DEPRECATION")
     private fun components(c: Context, pkg: String): List<Triple<String, String, Boolean>> = try {
         val pi = c.packageManager.getPackageInfo(
@@ -95,17 +92,25 @@ object Recorder {
         return installedApps(c).firstOrNull()?.first
     }
 
-    /** Tries to start recording right away in the phone's Recorder; falls back to just opening it. */
+    // Start-recording actions found in the ColorOS Recorder's own manifest (TransparentActivity).
+    private const val TRANSPARENT = "oplus.multimedia.soundrecorder.slidebar.TransparentActivity"
+    val START_ACTIONS = listOf(
+        "oplus.intent.action.START_RECORD_FROM_CUBE_BUTTON" to "Cube button (tap again to save)",
+        "oplus.intent.action.START_RECORD_FROM_BREENO" to "Voice assistant",
+        "com.oplus.soundrecorder.open_quick_recording" to "Quick recording",
+        "com.soundrecorder.dragonfly.startRecordActivity" to "Dragonfly start"
+    )
+
+    fun startAction(c: Context): String =
+        sp(c).getString("rec_action", START_ACTIONS[0].first) ?: START_ACTIONS[0].first
+
+    fun setStartAction(c: Context, v: String) = sp(c).edit().putString("rec_action", v).apply()
+
+    /** Starts recording right away in the phone's Recorder; falls back to just opening it. */
     fun startRecording(c: Context): Boolean {
         val pkg = recorderPkg(c)
-        if (pkg != null) {
-            // 1) the standard Android "record sound" request, aimed at the recorder
-            if (start(c, recordIntent().setPackage(pkg))) return true
-            // 2) an exported activity of the recorder named like a start-recording shortcut
-            for ((kind, name, exported) in components(c, pkg)) {
-                if (kind != "activity" || !exported || !START_NAME.containsMatchIn(name)) continue
-                if (start(c, Intent().setClassName(pkg, name))) return true
-            }
+        if (pkg == "com.coloros.soundrecorder") {
+            if (start(c, Intent(startAction(c)).setClassName(pkg, TRANSPARENT))) return true
         }
         return open(c)
     }

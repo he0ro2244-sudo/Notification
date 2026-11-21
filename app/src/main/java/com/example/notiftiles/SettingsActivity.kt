@@ -326,6 +326,13 @@ class SettingsActivity : Activity() {
         recOther.text = "Choose any other app…"
         recOther.setOnClickListener { Recorder.pickDialog(this, { rebuild() }) }
         col.addView(recOther)
+        col.addView(hint("How the mic starts recording. If the mic only opens the Recorder, try another one and use the test button."))
+        col.addView(choiceRow(Recorder.START_ACTIONS, Recorder.startAction(this), false) { Recorder.setStartAction(this, it); rebuild() })
+        val recTest = Button(this)
+        recTest.isAllCaps = false
+        recTest.text = "Test: start recording now"
+        recTest.setOnClickListener { Recorder.startRecording(this) }
+        col.addView(recTest)
         val recCheck = Button(this)
         recCheck.isAllCaps = false
         recCheck.text = "Check recorder entry points"
