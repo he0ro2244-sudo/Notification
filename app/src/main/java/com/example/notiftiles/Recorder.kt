@@ -106,8 +106,22 @@ object Recorder {
 
     fun setStartAction(c: Context, v: String) = sp(c).edit().putString("rec_action", v).apply()
 
+    // Where the red record button sits on the Recorder's screen (percent of width / height).
+    fun tapX(c: Context): Int = sp(c).getInt("rec_tap_x", 50)
+    fun tapY(c: Context): Int = sp(c).getInt("rec_tap_y", 86)
+    fun setTapX(c: Context, v: Int) = sp(c).edit().putInt("rec_tap_x", v).apply()
+    fun setTapY(c: Context, v: Int) = sp(c).edit().putInt("rec_tap_y", v).apply()
+
     /** Starts recording right away in the phone's Recorder; falls back to just opening it. */
     fun startRecording(c: Context): Boolean {
+        // The Recorder ignores start requests from other apps, so when the helper is on we open it
+        // and let the helper press the red button.
+        if (RecorderTapService.enabled(c)) {
+            RecorderTapService.pendingUntil = System.currentTimeMillis() + 8000
+            if (open(c)) return true
+            RecorderTapService.pendingUntil = 0L
+            return false
+        }
         val pkg = recorderPkg(c)
         if (pkg == "com.coloros.soundrecorder") {
             if (start(c, Intent(startAction(c)).setClassName(pkg, TRANSPARENT))) return true

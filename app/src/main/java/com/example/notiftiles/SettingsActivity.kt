@@ -333,6 +333,16 @@ class SettingsActivity : Activity() {
         recTest.text = "Test: start recording now"
         recTest.setOnClickListener { Recorder.startRecording(this) }
         col.addView(recTest)
+        col.addView(title("Auto-press the red button", 14f, 12))
+        col.addView(hint("This phone's Recorder ignores start requests from other apps. This helper opens the Recorder and presses its red record button for you. Turn on \"Notif Tiles recorder button\" in Accessibility. If the switch is greyed out: App info > ⋮ > Allow restricted settings."))
+        col.addView(hint("Helper is " + (if (RecorderTapService.enabled(this)) "ON" else "OFF")))
+        val accBtn = Button(this)
+        accBtn.isAllCaps = false
+        accBtn.text = "Open Accessibility settings"
+        accBtn.setOnClickListener { startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+        col.addView(accBtn)
+        col.addView(seekRange("Red button position: across", Recorder.tapX(this), 20, 80, "%") { Recorder.setTapX(this, it) })
+        col.addView(seekRange("Red button position: down", Recorder.tapY(this), 60, 95, "%") { Recorder.setTapY(this, it) })
         val recCheck = Button(this)
         recCheck.isAllCaps = false
         recCheck.text = "Check recorder entry points"

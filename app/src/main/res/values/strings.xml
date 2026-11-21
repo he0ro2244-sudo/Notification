@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="widget_desc">Notification tiles from the apps you choose</string>
+    <string name="rec_tap_desc">Presses the red record button in your phone's Recorder after the Notif Tiles mic opens it. It only watches the Recorder app and does nothing else.</string>
 </resources>

@@ -75,3 +75,8 @@ Fast dial: Look & colors > Fast-dial contacts lets you change or clear any circl
 calling" and tapping a circle on the widget offers Call / Change contact / Remove.
 Borders: Look & colors > Borders (thickness, colour) around the panel and the message tiles.
 Text size per part of the panel: Look & colors > Font > "Text size per part of the panel".
+
+NEW IN v0.9.6
+The phone's Recorder ignores start requests from other apps, so the mic now has a helper: turn on
+"Notif Tiles recorder button" in Accessibility and the mic opens the Recorder and presses its red record
+button for you. Adjust where it taps in Look & colors > Voice recorder > Red button position.
