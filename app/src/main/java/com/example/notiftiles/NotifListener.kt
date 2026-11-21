@@ -19,7 +19,7 @@ class NotifListener : NotificationListenerService() {
             activeNotifications?.forEach { Prefs.addSeen(this, it.packageName) }
         } catch (e: Exception) {
         }
-        onChange?.invoke()
+        changed()
     }
 
     override fun onListenerDisconnected() {
@@ -28,11 +28,19 @@ class NotifListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         Prefs.addSeen(this, sbn.packageName)
-        onChange?.invoke()
+        changed()
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        changed()
+    }
+
+    private fun changed() {
         onChange?.invoke()
+        try {
+            TilesWidget.refresh(applicationContext)
+        } catch (e: Exception) {
+        }
     }
 }
 

@@ -61,9 +61,11 @@ class MainActivity : Activity() {
         })
 
         val help = TextView(this)
-        help.text = "Then add the \"Notif Tiles\" icon (not \"setup\") to your Nova home screen. " +
-            "Tap it any time to open the panel. If an app is missing below, make it send a " +
-            "notification once and it will appear here."
+        help.text = "Home screen: long-press Nova > Widgets > Notif Tiles, and drop the widget " +
+            "on an empty page. Tapping a tile opens the panel with reply and action buttons. " +
+            "You can also add the \"Notif Tiles\" app icon (not \"setup\") as a shortcut.\n\n" +
+            "Your apps are listed first below. If an app is missing, make it send a " +
+            "notification once and it will appear."
         help.textSize = 14f
         help.setPadding(0, dp(12), 0, dp(12))
         col.addView(help)
@@ -91,11 +93,15 @@ class MainActivity : Activity() {
         return b
     }
 
-    private fun labelOf(pkg: String): String = try {
-        packageManager.getApplicationLabel(packageManager.getApplicationInfo(pkg, 0)).toString()
-    } catch (e: Exception) {
-        pkg
+    private fun heading(t: String): TextView {
+        val h = TextView(this)
+        h.text = t
+        h.textSize = 13f
+        h.setPadding(0, dp(12), 0, dp(4))
+        return h
     }
+
+    private fun labelOf(pkg: String): String = Feed.label(this, pkg)
 
     private fun renderList() {
         listBox.removeAllViews()
@@ -109,13 +115,24 @@ class MainActivity : Activity() {
         (Prefs.seen(this) + enabled).forEach { if (!map.containsKey(it)) map[it] = labelOf(it) }
         map.remove(packageName)
 
-        for ((pkg, label) in map.entries.sortedBy { it.value.lowercase() }) {
+        val sorted = map.entries.sortedWith(
+            compareByDescending<Map.Entry<String, String>> { it.key in enabled }
+                .thenBy { it.value.lowercase() }
+        )
+        var sectionShown = ""
+        for ((pkg, label) in sorted) {
+            val on = pkg in enabled
+            val section = if (on) "Your apps" else "Other apps"
+            if (section != sectionShown) {
+                listBox.addView(heading(section))
+                sectionShown = section
+            }
             val sw = Switch(this)
             sw.text = if (label == pkg) pkg else label
             sw.textSize = 16f
-            sw.isChecked = pkg in enabled
+            sw.isChecked = on
             sw.setPadding(0, dp(10), 0, dp(10))
-            sw.setOnCheckedChangeListener { _, on -> Prefs.setEnabled(this, pkg, on) }
+            sw.setOnCheckedChangeListener { _, checked -> Prefs.setEnabled(this, pkg, checked) }
             listBox.addView(sw)
         }
     }

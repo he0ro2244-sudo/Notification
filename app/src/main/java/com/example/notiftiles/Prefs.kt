@@ -4,16 +4,21 @@ import android.content.Context
 
 object Prefs {
     val USUAL = listOf(
+        // WhatsApp
         "com.whatsapp", "com.whatsapp.w4b",
-        "com.facebook.katana", "com.facebook.orca",
-        "com.google.android.dialer", "com.samsung.android.dialer",
-        "com.samsung.android.incallui", "com.android.server.telecom", "com.android.dialer",
+        // Facebook
+        "com.facebook.katana", "com.facebook.orca", "com.facebook.lite",
+        // Phone / calls
+        "com.google.android.dialer", "com.samsung.android.dialer", "com.samsung.android.incallui",
+        "com.android.server.telecom", "com.android.dialer", "com.android.incallui",
+        "com.android.phone", "com.android.contacts",
+        // Messages / SMS
         "com.google.android.apps.messaging", "com.samsung.android.messaging",
-        "com.google.android.gm",
-        "com.microsoft.office.outlook",
-        "com.microsoft.teams",
-        "com.instagram.android",
-        "com.snapchat.android"
+        "com.android.mms", "com.android.messaging",
+        // Mail and work
+        "com.google.android.gm", "com.microsoft.office.outlook", "com.microsoft.teams",
+        // Social
+        "com.instagram.android", "com.snapchat.android"
     )
 
     private fun sp(c: Context) = c.getSharedPreferences("nt", Context.MODE_PRIVATE)
