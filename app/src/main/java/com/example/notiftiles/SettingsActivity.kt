@@ -150,6 +150,26 @@ class SettingsActivity : Activity() {
         col.addView(toggleRaw("Maps search box at the start (left)", Prefs.pillFirst(this)) { Prefs.setPillFirst(this, it); applyLook() })
         col.addView(toggle("Fast-dial circles", "dial"))
 
+        // ---- "Where to?" search
+        col.addView(title("\"Where to?\" search", 16f, 20))
+        col.addView(hint("Travel mode used when you search"))
+        col.addView(modeRow())
+        col.addView(toggleRaw("Drive: start navigation straight away", Prefs.navNow(this)) { Prefs.setNavNow(this, it) })
+        col.addView(toggleRaw("Turn on Location when I open it", Prefs.autoLocation(this)) { Prefs.setAutoLocation(this, it) })
+        col.addView(toggleRaw("Voice (mic) button", Prefs.voiceButton(this)) { Prefs.setVoiceButton(this, it) })
+        col.addView(toggleRaw("Place suggestions while typing", Prefs.suggestions(this)) { Prefs.setSuggestions(this, it) })
+        col.addView(toggleRaw("Remember recent places", Prefs.rememberPlaces(this)) { Prefs.setRememberPlaces(this, it) })
+        col.addView(placeField("Home address", "home"))
+        col.addView(placeField("Work address", "work"))
+        val clr = Button(this)
+        clr.text = "Clear recent places"
+        clr.isAllCaps = false
+        clr.setOnClickListener {
+            Prefs.clearRecents(this)
+            Toast.makeText(this, "Cleared", Toast.LENGTH_SHORT).show()
+        }
+        col.addView(clr)
+
         val reset = Button(this)
         reset.text = "Reset everything to automatic"
         reset.isAllCaps = false
@@ -163,6 +183,45 @@ class SettingsActivity : Activity() {
         col.addView(reset, lp)
 
         updatePreviews()
+    }
+
+    private fun modeRow(): View {
+        val hs = HorizontalScrollView(this)
+        hs.isHorizontalScrollBarEnabled = false
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        hs.addView(row)
+        for ((key, label) in DestinationActivity.MODES) {
+            val b = Button(this)
+            b.isAllCaps = false
+            b.text = if (key == Prefs.travelMode(this)) "✓ $label" else label
+            b.setOnClickListener {
+                Prefs.setTravelMode(this, key)
+                rebuild()
+            }
+            row.addView(b)
+        }
+        return hs
+    }
+
+    private fun placeField(label: String, key: String): View {
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        val et = EditText(this)
+        et.hint = label
+        et.setSingleLine(true)
+        et.setText(Prefs.fav(this, key))
+        row.addView(et, LinearLayout.LayoutParams(0, WRAP, 1f))
+        val b = Button(this)
+        b.text = "Save"
+        b.isAllCaps = false
+        b.setOnClickListener {
+            Prefs.setFav(this, key, et.text.toString())
+            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
+        }
+        row.addView(b)
+        return row
     }
 
     private fun panelPreview(): View {

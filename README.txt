@@ -32,3 +32,10 @@ Look & colors: tap the gear on the widget header or on the panel header (or the 
 in Notif Tiles setup). Control panel background, shadow behind the panel, widget background
 and opacity. "Reset" goes back to automatic light/dark.
 Themes + accent colour + "Arrange the widget" (move/hide clock, weather, date, Maps box, fast-dial) are in Look & colors.
+
+NEW IN v0.6
+"Where to?" pill now turns Location on (one-tap prompt), then opens its own search box with the
+keyboard already up: type or use the mic, pick Home/Work/recent places or suggestions, choose
+Drive/Walk/Bike/Transit, and Google Maps opens straight to that destination.
+Customise it in Look & colors > "Where to?" search (default mode, Home/Work addresses, voice button,
+suggestions, recents, auto-start navigation, auto Location).

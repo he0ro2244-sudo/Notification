@@ -138,6 +138,38 @@ object Prefs {
     fun pillFirst(c: Context): Boolean = sp(c).getBoolean("lay_pill_first", false)
     fun setPillFirst(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_pill_first", v).apply()
 
+    // ---- "Where to?" ----
+    fun travelMode(c: Context): String = sp(c).getString("dest_mode", "driving") ?: "driving"
+    fun setTravelMode(c: Context, v: String) = sp(c).edit().putString("dest_mode", v).apply()
+
+    fun fav(c: Context, key: String): String = sp(c).getString("dest_fav_$key", "") ?: ""
+    fun setFav(c: Context, key: String, v: String) = sp(c).edit().putString("dest_fav_$key", v.trim()).apply()
+
+    fun recents(c: Context): List<String> =
+        (sp(c).getString("dest_recent", "") ?: "").split("\n").filter { it.isNotBlank() }
+
+    fun addRecent(c: Context, q: String) {
+        val l = listOf(q) + recents(c).filter { !it.equals(q, ignoreCase = true) }
+        sp(c).edit().putString("dest_recent", l.take(10).joinToString("\n")).apply()
+    }
+
+    fun clearRecents(c: Context) = sp(c).edit().remove("dest_recent").apply()
+
+    fun rememberPlaces(c: Context): Boolean = sp(c).getBoolean("dest_remember", true)
+    fun setRememberPlaces(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_remember", v).apply()
+
+    fun suggestions(c: Context): Boolean = sp(c).getBoolean("dest_suggest", true)
+    fun setSuggestions(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_suggest", v).apply()
+
+    fun voiceButton(c: Context): Boolean = sp(c).getBoolean("dest_voice", true)
+    fun setVoiceButton(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_voice", v).apply()
+
+    fun navNow(c: Context): Boolean = sp(c).getBoolean("dest_nav_now", true)
+    fun setNavNow(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_nav_now", v).apply()
+
+    fun autoLocation(c: Context): Boolean = sp(c).getBoolean("dest_auto_loc", true)
+    fun setAutoLocation(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_auto_loc", v).apply()
+
     /** Panel sheet colour actually used. */
     fun panelBgColor(c: Context): Int {
         val v = panelBg(c)
