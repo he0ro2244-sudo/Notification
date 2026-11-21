@@ -3,10 +3,6 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <queries>
         <intent>
@@ -28,6 +24,21 @@
         <package android:name="com.evernote" />
         <package android:name="com.automattic.simplenote" />
         <package android:name="md.obsidian" />
+        <intent>
+            <action android:name="android.provider.MediaStore.RECORD_SOUND" />
+        </intent>
+        <package android:name="com.coloros.soundrecorder" />
+        <package android:name="com.oplus.soundrecorder" />
+        <package android:name="com.oneplus.soundrecorder" />
+        <package android:name="com.google.android.apps.recorder" />
+        <package android:name="com.sec.android.app.voicenote" />
+        <package android:name="com.android.soundrecorder" />
+        <package android:name="com.miui.soundrecorder" />
+        <package android:name="com.huawei.soundrecorder" />
+        <package android:name="com.motorola.soundrecorder" />
+        <package android:name="com.sonymobile.androidapp.audiorecorder" />
+        <package android:name="com.nothing.soundrecorder" />
+        <package android:name="com.lge.voicerecorder" />
     </queries>
 
     <application
@@ -107,11 +118,6 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/tiles_widget_info" />
         </receiver>
-
-        <service
-            android:name=".RecordService"
-            android:exported="false"
-            android:foregroundServiceType="microphone" />
 
         <service
             android:name=".TilesService"

@@ -312,6 +312,21 @@ class SettingsActivity : Activity() {
         other.setOnClickListener { Notes.pickDialog(this) { rebuild() } }
         col.addView(other)
 
+        // ---- Voice recorder (mic next to + Note)
+        col.addView(title("Voice recorder", 16f, 20))
+        col.addView(hint("The blue mic next to \"+ Note\" opens this app."))
+        val recOptions = ArrayList<Pair<String, String>>()
+        recOptions.add("auto" to "Phone's recorder")
+        for (a in Recorder.installedApps(this)) recOptions.add(a)
+        val recCur = Recorder.mode(this)
+        if (recCur != "auto" && recOptions.none { it.first == recCur }) recOptions.add(recCur to Recorder.label(this, recCur))
+        col.addView(choiceRow(recOptions, recCur, false) { Recorder.setMode(this, it); rebuild() })
+        val recOther = Button(this)
+        recOther.isAllCaps = false
+        recOther.text = "Choose any other app…"
+        recOther.setOnClickListener { Recorder.pickDialog(this) { rebuild() } }
+        col.addView(recOther)
+
         // ---- Counts
         col.addView(title("Counts", 16f, 20))
         col.addView(toggleRaw("Count drops after I read a message here", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })

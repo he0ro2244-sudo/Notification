@@ -5,15 +5,15 @@ import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 
-// Opens the phone's voice recorder app so you can record audio fast.
+// Opens the phone's own Recorder app (the one you already use) from the panel.
 object Recorder {
     val KNOWN = listOf(
+        "com.coloros.soundrecorder" to "Recorder",
+        "com.oplus.soundrecorder" to "Recorder",
+        "com.oneplus.soundrecorder" to "Recorder",
         "com.google.android.apps.recorder" to "Recorder",
         "com.sec.android.app.voicenote" to "Voice Recorder",
         "com.android.soundrecorder" to "Sound Recorder",
-        "com.oneplus.soundrecorder" to "Sound Recorder",
-        "com.coloros.soundrecorder" to "Recorder",
-        "com.oplus.soundrecorder" to "Recorder",
         "com.miui.soundrecorder" to "Recorder",
         "com.huawei.soundrecorder" to "Recorder",
         "com.motorola.soundrecorder" to "Sound Recorder",
@@ -26,7 +26,7 @@ object Recorder {
 
     private fun sp(c: Context) = c.getSharedPreferences("nt", Context.MODE_PRIVATE)
 
-    /** "auto" (phone's recorder) or a package name picked once. */
+    /** "auto" (the phone's recorder) or a package picked once. */
     fun mode(c: Context): String = sp(c).getString("rec_app", "auto") ?: "auto"
     fun setMode(c: Context, v: String) = sp(c).edit().putString("rec_app", v).apply()
 
@@ -59,7 +59,6 @@ object Recorder {
 
     private fun recordIntent() = Intent(RECORD_SOUND)
 
-    /** Auto mode and no known recorder and nothing answers the system record intent: pick one (once). */
     fun needsPick(c: Context): Boolean {
         if (mode(c) != "auto") return false
         if (installedApps(c).isNotEmpty()) return false
@@ -70,19 +69,13 @@ object Recorder {
         }
     }
 
-    /** Opens the recorder. Returns false if nothing could be opened. */
     fun open(c: Context): Boolean {
         val m = mode(c)
-        if (m != "auto") {
-            if (launchPkg(c, m)) return true
-            Toast.makeText(c, "Couldn't open ${label(c, m)}", Toast.LENGTH_SHORT).show()
-            return false
-        }
+        if (m != "auto") return launchPkg(c, m)
         for ((pkg, _) in installedApps(c)) if (launchPkg(c, pkg)) return true
         return start(c, recordIntent())
     }
 
-    /** Every app you can open from the launcher, recorder-like names first. */
     fun targets(c: Context): List<Pair<String, String>> {
         val pm = c.packageManager
         val launch = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
@@ -92,13 +85,11 @@ object Recorder {
             .distinctBy { it.first }
         fun recLike(p: Pair<String, String>): Boolean {
             val s = (p.first + " " + p.second).lowercase()
-            return s.contains("record") || s.contains("voice") || s.contains("sound") ||
-                s.contains("audio") || s.contains("dictaphone")
+            return s.contains("record") || s.contains("voice") || s.contains("sound") || s.contains("audio")
         }
         return all.sortedWith(compareBy({ !recLike(it) }, { it.second.lowercase() }))
     }
 
-    /** Pick the app once; it is remembered and the mic button then opens it directly. */
     fun pickDialog(a: Activity, onPicked: () -> Unit) {
         val t = targets(a)
         if (t.isEmpty()) {
@@ -106,7 +97,7 @@ object Recorder {
             return
         }
         android.app.AlertDialog.Builder(a)
-            .setTitle("Always record with…")
+            .setTitle("Open this recorder…")
             .setItems(t.map { it.second }.toTypedArray()) { _, i ->
                 setMode(a, t[i].first)
                 onPicked()

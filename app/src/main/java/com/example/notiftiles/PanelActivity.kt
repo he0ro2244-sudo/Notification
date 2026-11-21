@@ -58,62 +58,6 @@ class PanelActivity : Activity() {
         return d
     }
 
-    // ---- Voice recording: one tap starts recording straight away, tap again to stop and save ----
-    private lateinit var recBtn: TextView
-    private val tickHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val ticker = object : Runnable {
-        override fun run() {
-            updateRec()
-            tickHandler.postDelayed(this, 500)
-        }
-    }
-
-    private fun updateRec() {
-        if (!::recBtn.isInitialized) return
-        if (RecordService.running()) {
-            val sec = (android.os.SystemClock.elapsedRealtime() - RecordService.startedAt) / 1000
-            recBtn.text = "\u23FA %d:%02d".format(sec / 60, sec % 60)
-            recBtn.setTextColor(0xFFEF4444.toInt())
-        } else {
-            recBtn.text = "\uD83C\uDF99"
-            recBtn.setTextColor(Prefs.accent(this))
-        }
-    }
-
-    private fun toggleRecording() {
-        if (RecordService.running()) {
-            RecordService.stop(this)
-            tickHandler.postDelayed({ updateRec() }, 400)
-            return
-        }
-        val need = ArrayList<String>()
-        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            need.add(android.Manifest.permission.RECORD_AUDIO)
-        }
-        if (Build.VERSION.SDK_INT >= 33 &&
-            checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
-        ) {
-            need.add(android.Manifest.permission.POST_NOTIFICATIONS)
-        }
-        if (need.isEmpty()) {
-            RecordService.start(this)
-            tickHandler.postDelayed({ updateRec() }, 400)
-        } else {
-            requestPermissions(need.toTypedArray(), 77)
-        }
-    }
-
-    override fun onRequestPermissionsResult(code: Int, perms: Array<out String>, results: IntArray) {
-        super.onRequestPermissionsResult(code, perms, results)
-        if (code != 77) return
-        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            RecordService.start(this)
-            tickHandler.postDelayed({ updateRec() }, 400)
-        } else {
-            toast("Microphone permission is needed to record")
-        }
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         dark = Feed.isDark(this)
@@ -182,13 +126,7 @@ class PanelActivity : Activity() {
 
         header.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
 
-        recBtn = TextView(this)
-        recBtn.text = "\uD83C\uDF99"
-        recBtn.textSize = 18f
-        recBtn.setTag(R.id.nt_grp, "hdr")
-        recBtn.setPadding(dp(8), dp(4), dp(8), dp(4))
-        recBtn.setOnClickListener { toggleRecording() }
-        header.addView(recBtn)
+
 
         val addNote = TextView(this)
         addNote.text = "+ Note"
@@ -202,6 +140,17 @@ class PanelActivity : Activity() {
             refresh()
         }
         header.addView(addNote)
+        val mic = ImageView(this)
+        mic.setImageResource(R.drawable.ic_mic)
+        mic.setColorFilter(Prefs.accent(this))
+        mic.setPadding(dp(6), dp(4), dp(6), dp(4))
+        mic.setOnClickListener {
+            val go = {
+                if (Recorder.open(this)) finish() else toast("No recorder app found")
+            }
+            if (Recorder.needsPick(this)) Recorder.pickDialog(this) { go() } else go()
+        }
+        header.addView(mic, LinearLayout.LayoutParams(dp(34), dp(30)))
 
         val clear = TextView(this)
         clear.text = "Clear all"
@@ -245,8 +194,6 @@ class PanelActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
-        tickHandler.removeCallbacks(ticker)
-        tickHandler.post(ticker)
         Access.rebindIfNeeded(this)
         NotifListener.onChange = { runOnUiThread { if (!hasDraft()) refresh() } }
         refresh()
@@ -254,7 +201,6 @@ class PanelActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
-        tickHandler.removeCallbacks(ticker)
         finishViewing()
         NotifListener.onChange = null
     }
