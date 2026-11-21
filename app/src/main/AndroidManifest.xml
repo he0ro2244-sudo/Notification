@@ -49,6 +49,20 @@
             android:taskAffinity=""
             android:theme="@style/NtPanelTheme" />
 
+        <activity
+            android:name=".OpenWeatherActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".DestinationActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
         <receiver
             android:name=".TilesWidget"
             android:exported="true"
