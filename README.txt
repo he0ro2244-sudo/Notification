@@ -7,6 +7,8 @@ LATEST CHANGES: Weather city box now shows the current city and a small list of 
 Mic: with the Accessibility helper ON it still uses your phone's recorder. With the helper OFF it now records inside this
 app (asks for microphone permission once), saved as m4a in Recordings/NotifTiles; tap the mic again, or "Stop & save" in the
 notification, to finish. Switch it off in Look & colors > Voice recorder to get the old behaviour back.
+While recording the widget mic turns into a red stop square and the phone buzzes; a message says it started and, when you
+stop, the saved file name. Files: Internal storage > Recordings > NotifTiles.
 
 NEW IN v0.9.15
 Settings icon is now a real icon (not a text character), so its colour and size follow Look & colors

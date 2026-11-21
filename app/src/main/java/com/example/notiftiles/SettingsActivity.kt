@@ -439,7 +439,7 @@ class SettingsActivity : Activity() {
         section("Voice recorder") {
         // ---- Voice recorder (mic next to + Note)
         col.addView(title("Voice recorder", 16f, 20))
-        col.addView(hint("The blue mic at the start of the widget header starts recording. With the Accessibility helper ON it uses your phone's recorder; with the helper OFF it records inside this app (switch below). Tap the mic again to stop and save."))
+        col.addView(hint("The blue mic at the start of the widget header starts recording. With the Accessibility helper ON it uses your phone's recorder; with the helper OFF it records inside this app (switch below). While recording, the widget mic turns into a red stop square and the phone buzzes: tap it again to stop and save. Recordings are saved as m4a in Internal storage > Recordings > NotifTiles."))
         val recOptions = ArrayList<Pair<String, String>>()
         recOptions.add("auto" to "Phone's recorder")
         for (a in Recorder.installedApps(this)) recOptions.add(a)

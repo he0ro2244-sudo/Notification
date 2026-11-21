@@ -29,6 +29,7 @@ class RecordService : Service() {
     private var rec: MediaRecorder? = null
     private var uri: Uri? = null
     private var pfd: ParcelFileDescriptor? = null
+    private var fileName = ""
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -62,7 +63,7 @@ class RecordService : Service() {
         return Notification.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("Recording…")
-            .setContentText("Tap Stop to save")
+            .setContentText("Tap Stop, or the red stop square on the widget, to save")
             .setOngoing(true)
             .setUsesChronometer(true)
             .setContentIntent(open)
@@ -84,6 +85,7 @@ class RecordService : Service() {
                 put(MediaStore.Audio.Media.IS_PENDING, 1)
             }
             val u = contentResolver.insert(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, cv) ?: return fail("Could not create the file")
+            fileName = "$name.m4a"
             uri = u
             val p = contentResolver.openFileDescriptor(u, "w") ?: return fail("Could not open the file")
             pfd = p
@@ -98,6 +100,8 @@ class RecordService : Service() {
             r.start()
             rec = r
             startedAt = SystemClock.elapsedRealtime()
+            announce(true)
+            toast("● Recording started. The mic on the widget is now a red stop square: tap it to stop and save.")
             true
         } catch (e: Exception) {
             fail("Could not start recording")
@@ -119,7 +123,8 @@ class RecordService : Service() {
             ok = false // stopped too quickly: nothing recorded
         }
         cleanup(delete = !ok)
-        toast(if (ok) "Recording saved (Recordings/NotifTiles)" else "Recording was too short")
+        announce(false)
+        toast(if (ok) "Saved: $fileName\nInternal storage > Recordings > NotifTiles" else "Recording was too short")
     }
 
     private fun cleanup(delete: Boolean) {
@@ -141,6 +146,19 @@ class RecordService : Service() {
                 }
             } catch (e: Exception) { }
         }
+    }
+
+    /** Buzz and redraw the widget so the mic icon switches between mic and red stop square. */
+    private fun announce(started: Boolean) {
+        try {
+            val v = getSystemService(android.os.Vibrator::class.java)
+            if (started) {
+                v?.vibrate(android.os.VibrationEffect.createOneShot(80, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                v?.vibrate(android.os.VibrationEffect.createWaveform(longArrayOf(0, 60, 90, 60), -1))
+            }
+        } catch (e: Exception) { }
+        try { TilesWidget.refresh(applicationContext) } catch (e: Exception) { }
     }
 
     private fun toast(m: String) {
