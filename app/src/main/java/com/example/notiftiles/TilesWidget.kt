@@ -66,6 +66,28 @@ class TilesWidget : AppWidgetProvider() {
     }
 
     companion object {
+        private const val WEATHER_EVERY_MS = 15 * 60 * 1000L
+
+        private fun weatherPending(ctx: Context): PendingIntent {
+            val i = Intent(ctx, TilesWidget::class.java).setAction(ACTION_WEATHER)
+            return PendingIntent.getBroadcast(ctx, 99, i, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+        }
+
+        /** Refreshes the weather about every 15 minutes, even when nothing else updates the widget. */
+        fun scheduleWeather(ctx: Context) {
+            try {
+                val am = ctx.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+                am.setInexactRepeating(
+                    android.app.AlarmManager.ELAPSED_REALTIME,
+                    android.os.SystemClock.elapsedRealtime() + WEATHER_EVERY_MS,
+                    WEATHER_EVERY_MS,
+                    weatherPending(ctx)
+                )
+            } catch (e: Exception) {
+                // widget still updates on its normal schedule
+            }
+        }
+
         const val ACTION_CLEAR = "com.example.notiftiles.CLEAR_ALL"
         const val ACTION_REFRESH_ALL = "com.example.notiftiles.REFRESH_ALL"
         const val ACTION_WEATHER = "com.example.notiftiles.REFRESH_WEATHER"
