@@ -185,8 +185,10 @@ class TilesWidget : AppWidgetProvider() {
             txt(rv, ctx, R.id.wnote, "+ Note", 13f, true)
             txt(rv, ctx, R.id.wclear, "Clear all", 13f, false)
             rv.setTextColor(R.id.wclear, Prefs.partColor(ctx, "clear").let { if (it != 0) it else sub })
-            txt(rv, ctx, R.id.wset, "⚙", 16f, false)
-            rv.setTextColor(R.id.wset, Prefs.partColor(ctx, "gear").let { if (it != 0) it else sub })
+            rv.setInt(R.id.wset, "setColorFilter", Prefs.partColor(ctx, "gear").let { if (it != 0) it else sub })
+            val gs = Prefs.gearSize(ctx).toFloat()
+            rv.setViewLayoutWidth(R.id.wset, gs + 6f, TypedValue.COMPLEX_UNIT_DIP)
+            rv.setViewLayoutHeight(R.id.wset, gs + 4f, TypedValue.COMPLEX_UNIT_DIP)
             txt(rv, ctx, R.id.empty, "Nothing new from your apps", 13f, false)
             rv.setTextColor(R.id.empty, sub)
 
@@ -281,6 +283,9 @@ class TilesWidget : AppWidgetProvider() {
             val accent = Prefs.accent(ctx)
             rv.setTextColor(R.id.wnote, Prefs.partColor(ctx, "note").let { if (it != 0) it else accent })
             rv.setInt(R.id.wmic, "setColorFilter", Prefs.partColor(ctx, "mic").let { if (it != 0) it else accent })
+            val ms = Prefs.micSize(ctx).toFloat()
+            rv.setViewLayoutWidth(R.id.wmic, ms + 12f, TypedValue.COMPLEX_UNIT_DIP)
+            rv.setViewLayoutHeight(R.id.wmic, ms + 4f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setColorStateList(R.id.count, "setBackgroundTintList", ColorStateList.valueOf(accent))
         }
 

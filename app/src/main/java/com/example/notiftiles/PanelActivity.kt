@@ -150,17 +150,16 @@ class PanelActivity : Activity() {
         clear.setOnClickListener { clearAll() }
         header.addView(clear)
 
-        val gear = TextView(this)
-        gear.text = "⚙"
-        gear.textSize = 18f
-        gear.setTag(R.id.nt_grp, "gear")
-        gear.setTextColor(cSub)
-        gear.setPadding(dp(8), dp(4), dp(4), dp(4))
+        val gear = ImageView(this)
+        gear.setImageResource(R.drawable.ic_gear)
+        val gsz = dp((22 * Prefs.grpSize(this, "gear") / 100f).toInt().coerceAtLeast(10))
+        gear.setColorFilter(Prefs.grpColor(this, "gear").let { if (it != 0) it else cSub })
+        gear.setPadding(dp(4), dp(2), dp(2), dp(2))
         gear.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
             finish()
         }
-        header.addView(gear)
+        header.addView(gear, LinearLayout.LayoutParams(gsz + dp(6), gsz + dp(4)))
         sheet.addView(header)
 
         val scroll = ScrollView(this)

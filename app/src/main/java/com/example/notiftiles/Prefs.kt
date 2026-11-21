@@ -186,7 +186,7 @@ object Prefs {
         "head" to "Header title (Inbox, Back)",
         "hdr" to "+ Note button",
         "clear" to "Clear all button",
-        "gear" to "Settings icon (⚙)",
+        "gear" to "Settings icon",
         "title" to "Message titles",
         "text" to "Message text and notes",
         "small" to "Small labels (app name, counts)",
@@ -198,7 +198,7 @@ object Prefs {
         "mic" to "Widget: mic icon",
         "note" to "Widget: + Note",
         "clear" to "Widget: Clear all",
-        "gear" to "Widget: settings icon (⚙)",
+        "gear" to "Widget: settings icon",
         "clock" to "Widget: clock",
         "weather" to "Widget: weather",
         "date" to "Widget: date",
@@ -242,6 +242,10 @@ object Prefs {
     fun setDialCircle(c: Context, v: Int) = sp(c).edit().putInt("look_dialcircle", v).apply()
     fun squareShape(c: Context): Boolean = sp(c).getBoolean("look_square", false)
     fun setSquareShape(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_square", v).apply()
+    fun gearSize(c: Context): Int = sp(c).getInt("look_szgear", 22)
+    fun setGearSize(c: Context, v: Int) = sp(c).edit().putInt("look_szgear", v).apply()
+    fun micSize(c: Context): Int = sp(c).getInt("look_szmic", 22)
+    fun setMicSize(c: Context, v: Int) = sp(c).edit().putInt("look_szmic", v).apply()
     fun topSize(c: Context): Int = sp(c).getInt("look_sztop", 50)
     fun setTopSize(c: Context, v: Int) = sp(c).edit().putInt("look_sztop", v).apply()
     fun dialSize(c: Context): Int = sp(c).getInt("look_szdial", 42)
