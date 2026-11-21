@@ -71,6 +71,12 @@ class MainActivity : Activity() {
         help.setPadding(0, dp(12), 0, dp(12))
         col.addView(help)
 
+        val look = Button(this)
+        look.text = "⚙  Look & colors (panel, shadow, widget)"
+        look.isAllCaps = false
+        look.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
+        col.addView(look)
+
         col.addView(heading("Fast dial (5 circles on the widget)"))
         dialBox = LinearLayout(this)
         dialBox.orientation = LinearLayout.VERTICAL

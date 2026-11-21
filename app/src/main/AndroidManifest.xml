@@ -9,6 +9,7 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <package android:name="com.google.android.apps.maps" />
     </queries>
 
     <application
@@ -44,6 +45,19 @@
 
         <activity
             android:name=".DialActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="Look &amp; colors"
+            android:theme="@style/NtTheme" />
+
+        <activity
+            android:name=".OpenClockActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:taskAffinity=""

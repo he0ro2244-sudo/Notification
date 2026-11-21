@@ -4,8 +4,10 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
 import android.view.Gravity
 import android.view.ViewGroup
 import android.view.WindowManager
@@ -20,6 +22,23 @@ class DestinationActivity : Activity() {
 
     private lateinit var input: EditText
     private var dialog: AlertDialog? = null
+    private var banner: TextView? = null
+
+    private fun locationOn(): Boolean =
+        (getSystemService(Context.LOCATION_SERVICE) as LocationManager).isLocationEnabled
+
+    private fun openLocationSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+        } catch (e: Exception) {
+            Toast.makeText(this, "Open Settings > Location", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        banner?.visibility = if (locationOn()) android.view.View.GONE else android.view.View.VISIBLE
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,6 +47,16 @@ class DestinationActivity : Activity() {
         val box = LinearLayout(this)
         box.orientation = LinearLayout.VERTICAL
         box.setPadding(pad, pad / 2, pad, 0)
+
+        val b = TextView(this)
+        b.text = "📍 Location is off. Tap to turn it on"
+        b.textSize = 13f
+        b.setTextColor(0xFFEA580C.toInt())
+        b.setPadding(0, pad / 2, 0, pad / 2)
+        b.setOnClickListener { openLocationSettings() }
+        b.visibility = if (locationOn()) android.view.View.GONE else android.view.View.VISIBLE
+        banner = b
+        box.addView(b)
 
         input = EditText(this)
         input.hint = "Place or address (e.g. Abdali Mall)"
@@ -69,6 +98,16 @@ class DestinationActivity : Activity() {
         // Keep the dialog open if the box is empty.
         dialog!!.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener { go(input.text.toString()) }
         input.requestFocus()
+
+        // Android doesn't let an app switch Location on by itself, so ask once and jump straight to the switch.
+        if (savedInstanceState == null && !locationOn()) {
+            AlertDialog.Builder(this)
+                .setTitle("Turn on location?")
+                .setMessage("Maps needs location to start directions from where you are.")
+                .setPositiveButton("Turn on") { _, _ -> openLocationSettings() }
+                .setNegativeButton("Not now", null)
+                .show()
+        }
     }
 
     private fun go(raw: String) {

@@ -97,10 +97,16 @@ class TilesWidget : AppWidgetProvider() {
                 R.id.wweather,
                 PendingIntent.getActivity(ctx, 4, wx, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             )
-            val clock = Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            val clock = Intent(ctx, OpenClockActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             rv.setOnClickPendingIntent(
                 R.id.wclock,
                 PendingIntent.getActivity(ctx, 6, clock, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            )
+            mapsIcon(rv, ctx)
+            val look = Intent(ctx, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            rv.setOnClickPendingIntent(
+                R.id.wset,
+                PendingIntent.getActivity(ctx, 8, look, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             )
             val cal = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -117,9 +123,36 @@ class TilesWidget : AppWidgetProvider() {
             return rv
         }
 
+        // Show the real Google Maps icon from this phone; the built-in red pin stays if Maps isn't installed.
+        private fun mapsIcon(rv: RemoteViews, ctx: Context) {
+            try {
+                val d = ctx.packageManager.getApplicationIcon("com.google.android.apps.maps")
+                val size = 96
+                val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+                val canvas = android.graphics.Canvas(bmp)
+                d.setBounds(0, 0, size, size)
+                d.draw(canvas)
+                rv.setImageViewBitmap(R.id.wpin, bmp)
+            } catch (e: Exception) {
+                // keep the default pin
+            }
+        }
+
         private fun setDynamic(rv: RemoteViews, ctx: Context) {
             setCount(rv, ctx)
             rv.setTextViewText(R.id.wweather, Weather.text(ctx))
+            // Background colour + opacity chosen in Look & colors.
+            rv.setColorStateList(R.id.root, "setBackgroundTintList", ColorStateList.valueOf(Prefs.widgetBgArgb(ctx)))
+            val custom = Prefs.widgetBg(ctx)
+            val lightText = custom != 0 && android.graphics.Color.luminance(custom) < 0.5f
+            val darkText = custom != 0 && !lightText
+            val main = if (lightText) 0xFFF2F2F5.toInt() else if (darkText) 0xFF1B1B1F.toInt() else ctx.getColor(R.color.nt_text)
+            val sub = if (lightText) 0xFFB4B4BC.toInt() else if (darkText) 0xFF55555C.toInt() else ctx.getColor(R.color.nt_sub)
+            rv.setTextColor(R.id.hdr_title, main)
+            rv.setTextColor(R.id.wclear, sub)
+            rv.setTextColor(R.id.wset, sub)
+            rv.setTextColor(R.id.empty, sub)
+            for (n in DIAL_NAME) rv.setTextColor(n, sub)
             val dark = Feed.isDark(ctx)
             val filled = Feed.style("com.whatsapp")
             val empty = Feed.style("")

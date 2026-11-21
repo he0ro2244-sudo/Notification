@@ -52,13 +52,14 @@ class PanelActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         dark = Feed.isDark(this)
-        cBg = if (dark) 0xFF1C1C20.toInt() else 0xFFF2F2F5.toInt()
+        if (Prefs.panelBg(this) != 0) dark = android.graphics.Color.luminance(Prefs.panelBg(this)) < 0.5f
+        cBg = Prefs.panelBgColor(this)
         cText = if (dark) 0xFFECECEF.toInt() else 0xFF1B1B1F.toInt()
         cSub = if (dark) 0xFFA8A8B0.toInt() else 0xFF5E5E66.toInt()
         expanded = intent?.getStringExtra("key")
 
         val root = FrameLayout(this)
-        root.setBackgroundColor(0x66000000)
+        root.setBackgroundColor(Prefs.scrimArgb(this))
         root.setOnClickListener { finish() }
         root.setOnApplyWindowInsetsListener { v, insets ->
             val b = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime())
@@ -131,6 +132,17 @@ class PanelActivity : Activity() {
         clear.setPadding(dp(8), dp(6), dp(8), dp(6))
         clear.setOnClickListener { clearAll() }
         header.addView(clear)
+
+        val gear = TextView(this)
+        gear.text = "⚙"
+        gear.textSize = 18f
+        gear.setTextColor(cSub)
+        gear.setPadding(dp(8), dp(4), dp(4), dp(4))
+        gear.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+            finish()
+        }
+        header.addView(gear)
         sheet.addView(header)
 
         val scroll = ScrollView(this)

@@ -27,5 +27,9 @@ The first call asks for phone permission; if you refuse it opens the dialer inst
 The new widget is taller: if your existing widget looks cramped, resize it or re-add it.
 Tap the Amman pin: type where you want to go (recent places are kept), Go opens
 Google Maps with the route from your current location.
-Widget taps: clock opens the Clock app, date opens Calendar, weather circle opens your
+Widget taps: clock opens the Clock app, date circle opens Calendar, weather circle opens your
 installed weather app (and refreshes the temperature), pin asks where to go.
+Look & colors: tap the gear on the widget header or on the panel header (or the button
+in Notif Tiles setup). Control panel background, shadow behind the panel, widget background
+and opacity. "Reset" goes back to automatic light/dark.
+When you open "Where to?" and Location is off, it asks to turn it on (opens the Location switch).

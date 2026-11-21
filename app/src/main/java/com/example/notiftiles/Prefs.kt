@@ -97,4 +97,40 @@ object Prefs {
     fun clearDial(c: Context, i: Int) {
         sp(c).edit().remove("dial_name_$i").remove("dial_num_$i").apply()
     }
+
+    // ---- Look & colors (0 = automatic / follow the phone's light or dark mode) ----
+    fun panelBg(c: Context): Int = sp(c).getInt("look_panel_bg", 0)
+    fun scrimColor(c: Context): Int = sp(c).getInt("look_scrim_color", 0xFF000000.toInt())
+    fun scrimAlpha(c: Context): Int = sp(c).getInt("look_scrim_alpha", 40)
+    fun widgetBg(c: Context): Int = sp(c).getInt("look_widget_bg", 0)
+    fun widgetAlpha(c: Context): Int = sp(c).getInt("look_widget_alpha", 93)
+
+    fun setPanelBg(c: Context, v: Int) = sp(c).edit().putInt("look_panel_bg", v).apply()
+    fun setScrimColor(c: Context, v: Int) = sp(c).edit().putInt("look_scrim_color", v).apply()
+    fun setScrimAlpha(c: Context, v: Int) = sp(c).edit().putInt("look_scrim_alpha", v).apply()
+    fun setWidgetBg(c: Context, v: Int) = sp(c).edit().putInt("look_widget_bg", v).apply()
+    fun setWidgetAlpha(c: Context, v: Int) = sp(c).edit().putInt("look_widget_alpha", v).apply()
+
+    fun resetLook(c: Context) {
+        sp(c).edit().remove("look_panel_bg").remove("look_scrim_color").remove("look_scrim_alpha")
+            .remove("look_widget_bg").remove("look_widget_alpha").apply()
+    }
+
+    /** Panel sheet colour actually used. */
+    fun panelBgColor(c: Context): Int {
+        val v = panelBg(c)
+        if (v != 0) return v
+        return if (Feed.isDark(c)) 0xFF1C1C20.toInt() else 0xFFF2F2F5.toInt()
+    }
+
+    /** The dim ("shadow") drawn behind the panel. */
+    fun scrimArgb(c: Context): Int =
+        ((scrimAlpha(c) * 255 / 100) shl 24) or (scrimColor(c) and 0xFFFFFF)
+
+    /** Widget background colour including its opacity. */
+    fun widgetBgArgb(c: Context): Int {
+        val v = widgetBg(c)
+        val base = if (v != 0) v else c.getColor(R.color.nt_bg)
+        return ((widgetAlpha(c) * 255 / 100) shl 24) or (base and 0xFFFFFF)
+    }
 }
