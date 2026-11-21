@@ -116,9 +116,128 @@ object Recorder {
         val sb = StringBuilder("Recorder: $pkg (${label(c, pkg)})\n")
         sb.append("RECORD_SOUND answered: ")
             .append(try { recordIntent().setPackage(pkg).resolveActivity(c.packageManager) != null } catch (e: Exception) { false })
-            .append("\n\nExported entry points:\n")
-        for ((kind, name, exported) in components(c, pkg)) if (exported) sb.append("$kind $name\n")
+            .append("\n\n")
+        val dump = manifestDump(c, pkg)
+        if (dump.isNotEmpty()) {
+            sb.append("Entry points and their actions:\n").append(dump)
+        } else {
+            sb.append("Exported entry points:\n")
+            for ((kind, name, exported) in components(c, pkg)) if (exported) sb.append("$kind $name\n")
+        }
         return sb.toString()
+    }
+
+    // ---- Reads the recorder's AndroidManifest.xml (binary XML) and lists components with their intent filters ----
+    private fun manifestDump(c: Context, pkg: String): String = try {
+        val apk = c.packageManager.getApplicationInfo(pkg, 0).sourceDir
+        val bytes = java.util.zip.ZipFile(apk).use { z ->
+            z.getInputStream(z.getEntry("AndroidManifest.xml")).readBytes()
+        }
+        parseManifest(bytes)
+    } catch (e: Throwable) {
+        "(could not read manifest: $e)\n"
+    }
+
+    private fun readStrings(bb: java.nio.ByteBuffer, start: Int): List<String> {
+        val count = bb.getInt(start + 8)
+        val flags = bb.getInt(start + 16)
+        val strStart = bb.getInt(start + 20)
+        val utf8 = (flags and 0x100) != 0
+        val out = ArrayList<String>()
+        for (i in 0 until count) {
+            var p = start + strStart + bb.getInt(start + 28 + i * 4)
+            if (utf8) {
+                val l0 = bb.get(p).toInt() and 0xFF
+                p += if ((l0 and 0x80) != 0) 2 else 1
+                var bl = bb.get(p).toInt() and 0xFF
+                if ((bl and 0x80) != 0) {
+                    bl = ((bl and 0x7F) shl 8) or (bb.get(p + 1).toInt() and 0xFF)
+                    p += 2
+                } else {
+                    p += 1
+                }
+                val arr = ByteArray(bl)
+                for (j in 0 until bl) arr[j] = bb.get(p + j)
+                out.add(String(arr, Charsets.UTF_8))
+            } else {
+                var l = bb.getShort(p).toInt() and 0xFFFF
+                p += 2
+                if ((l and 0x8000) != 0) {
+                    l = ((l and 0x7FFF) shl 16) or (bb.getShort(p).toInt() and 0xFFFF)
+                    p += 2
+                }
+                val t = StringBuilder()
+                for (j in 0 until l) t.append(bb.getShort(p + j * 2).toInt().toChar())
+                out.add(t.toString())
+            }
+        }
+        return out
+    }
+
+    private fun parseManifest(b: ByteArray): String {
+        val bb = java.nio.ByteBuffer.wrap(b).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        var strings: List<String> = emptyList()
+        val comps = setOf("activity", "activity-alias", "service", "receiver", "provider")
+        val out = StringBuilder()
+        var cur: StringBuilder? = null
+        var keep = false
+        var pos = 8
+        while (pos + 8 <= b.size) {
+            val type = bb.getShort(pos).toInt() and 0xFFFF
+            val size = bb.getInt(pos + 4)
+            if (size <= 0) break
+            when (type) {
+                0x0001 -> strings = readStrings(bb, pos)
+                0x0102 -> {
+                    val name = strings.getOrElse(bb.getInt(pos + 20)) { "" }
+                    val attrStart = bb.getShort(pos + 24).toInt() and 0xFFFF
+                    val attrCount = bb.getShort(pos + 28).toInt() and 0xFFFF
+                    val base = pos + 16 + attrStart
+                    val attrs = LinkedHashMap<String, String>()
+                    for (i in 0 until attrCount) {
+                        val o = base + i * 20
+                        val an = strings.getOrElse(bb.getInt(o + 4)) { "" }
+                        val raw = bb.getInt(o + 8)
+                        val dtype = bb.get(o + 15).toInt() and 0xFF
+                        val data = bb.getInt(o + 16)
+                        val v = when {
+                            raw != -1 -> strings.getOrElse(raw) { "" }
+                            dtype == 0x12 -> if (data != 0) "true" else "false"
+                            dtype == 0x03 -> strings.getOrElse(data) { "" }
+                            else -> data.toString()
+                        }
+                        attrs[an] = v
+                    }
+                    val open = cur
+                    if (name in comps) {
+                        val nb = StringBuilder("\n$name ${attrs["name"] ?: ""}")
+                        val ta = attrs["targetActivity"]
+                        if (ta != null) nb.append(" -> ").append(ta)
+                        val ex = attrs["exported"]
+                        if (ex != null) nb.append(" exported=").append(ex)
+                        cur = nb
+                        keep = ex == "true"
+                    } else if (open != null) {
+                        when (name) {
+                            "intent-filter" -> { keep = true; open.append("\n  [filter]") }
+                            "action" -> open.append("\n    action ").append(attrs["name"] ?: "")
+                            "category" -> open.append("\n    category ").append(attrs["name"] ?: "")
+                            "data" -> open.append("\n    data ").append(attrs.entries.joinToString(" ") { it.key + "=" + it.value })
+                        }
+                    }
+                }
+                0x0103 -> {
+                    val name = strings.getOrElse(bb.getInt(pos + 20)) { "" }
+                    val done = cur
+                    if (name in comps && done != null) {
+                        if (keep) out.append(done).append("\n")
+                        cur = null
+                    }
+                }
+            }
+            pos += size
+        }
+        return out.toString()
     }
 
     fun open(c: Context): Boolean {
