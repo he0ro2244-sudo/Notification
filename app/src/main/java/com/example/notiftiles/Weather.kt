@@ -244,7 +244,8 @@ object Weather {
     }
 
     /** Blocking. One reading from the given source, or null when it fails. Nothing is saved. */
-    fun read(c: Context, src: String): Reading? = try {
+    fun read(c: Context, src: String): Reading? {
+    return try {
         val f = unit(c) == "f"
         when (src) {
             "metno" -> {
@@ -288,6 +289,7 @@ object Weather {
         }
     } catch (e: Exception) {
         null
+    }
     }
 
     /** Blocking. Reads every source once, for the "Compare sources" picker. */
