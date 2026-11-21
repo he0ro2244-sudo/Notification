@@ -221,6 +221,38 @@ object Prefs {
     fun dateFmt(c: Context): Int = sp(c).getInt("lay_datefmt", 0).coerceIn(0, DATE_FORMATS.size - 1)
     fun setDateFmt(c: Context, v: Int) = sp(c).edit().putInt("lay_datefmt", v).apply()
 
+    // ---- Counts: what counts as "handled" (read or replied) ----
+    fun countRead(c: Context): Boolean = sp(c).getBoolean("cnt_read", true)
+    fun setCountRead(c: Context, v: Boolean) = sp(c).edit().putBoolean("cnt_read", v).apply()
+    fun countReply(c: Context): Boolean = sp(c).getBoolean("cnt_reply", true)
+    fun setCountReply(c: Context, v: Boolean) = sp(c).edit().putBoolean("cnt_reply", v).apply()
+
+    /** notification key -> time up to which it no longer counts (a newer post counts again). */
+    fun handledMap(c: Context): Map<String, Long> {
+        val raw = sp(c).getString("handled", "") ?: ""
+        if (raw.isEmpty()) return emptyMap()
+        return try {
+            val o = org.json.JSONObject(raw)
+            val m = HashMap<String, Long>()
+            for (k in o.keys()) m[k] = o.getLong(k)
+            m
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    fun markHandled(c: Context, key: String, until: Long) {
+        val m = HashMap(handledMap(c))
+        m[key] = maxOf(until, m[key] ?: 0L)
+        while (m.size > 60) {
+            val oldest = m.minByOrNull { it.value }?.key ?: break
+            m.remove(oldest)
+        }
+        val o = org.json.JSONObject()
+        for ((k, v) in m) o.put(k, v)
+        sp(c).edit().putString("handled", o.toString()).apply()
+    }
+
     /** Panel sheet colour actually used. */
     fun panelBgColor(c: Context): Int {
         val v = panelBg(c)

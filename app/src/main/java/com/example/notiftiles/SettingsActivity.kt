@@ -234,6 +234,12 @@ class SettingsActivity : Activity() {
         }
         col.addView(clr)
 
+        // ---- Counts
+        col.addView(title("Counts", 16f, 20))
+        col.addView(toggleRaw("Count drops after I read a message here", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
+        col.addView(toggleRaw("Count drops after I reply here", Prefs.countReply(this)) { Prefs.setCountReply(this, it) })
+        col.addView(hint("A new message from the same chat counts again."))
+
         val reset = Button(this)
         reset.text = "Reset everything to automatic"
         reset.isAllCaps = false

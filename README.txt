@@ -46,3 +46,9 @@ Where to? box; text colour; circle and fast-dial circle colours; round or rounde
 circle sizes; names under fast-dial on/off; background PICTURES for the widget, the fast-dial strip
 and the panel (with strength slider); fast-dial strip colour + opacity; 12/24-hour clock; date
 format; weather city and C/F.
+
+NEW IN v0.8
+The count now goes down when you read a message in the panel (leave it or press Back) and when you
+reply from the panel (the notification is also tidied away). A newer message from the same chat
+counts again. Turn either off in Look & colors > Counts. The widget also re-counts a moment after
+any notification is removed, so reading a chat in its own app updates the count more reliably.

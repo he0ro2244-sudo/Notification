@@ -74,6 +74,7 @@ object Feed {
     fun items(c: Context): List<StatusBarNotification> {
         val svc = NotifListener.instance ?: return emptyList()
         val enabled = Prefs.enabled(c)
+        val handled = Prefs.handledMap(c)
         val all: List<StatusBarNotification> = try {
             svc.activeNotifications?.toList() ?: emptyList()
         } catch (e: Exception) {
@@ -86,6 +87,7 @@ object Feed {
         return all
             .filter { it.packageName in enabled && it.packageName != c.packageName }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
+            .filter { it.postTime > (handled[it.key] ?: 0L) }
             .filter { title(it).isNotEmpty() || text(it).isNotEmpty() }
             .filter {
                 val summary = (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0

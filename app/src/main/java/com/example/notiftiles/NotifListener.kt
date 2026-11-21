@@ -35,12 +35,23 @@ class NotifListener : NotificationListenerService() {
         changed()
     }
 
-    private fun changed() {
-        onChange?.invoke()
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    private fun refreshWidget() {
         try {
             TilesWidget.refresh(applicationContext)
         } catch (e: Exception) {
         }
+    }
+
+    private fun changed() {
+        onChange?.invoke()
+        refreshWidget()
+        // The system can still list a just-removed notification for a moment: count again shortly after.
+        handler.postDelayed({
+            onChange?.invoke()
+            refreshWidget()
+        }, 800)
     }
 }
 

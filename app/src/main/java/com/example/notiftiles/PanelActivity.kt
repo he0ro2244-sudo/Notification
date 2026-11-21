@@ -38,6 +38,7 @@ class PanelActivity : Activity() {
     private var cBg = 0
     private var cText = 0
     private var cSub = 0
+    private var viewing: StatusBarNotification? = null
 
     private val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
     private val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -89,6 +90,7 @@ class PanelActivity : Activity() {
         back.setPadding(0, dp(6), dp(12), dp(6))
         back.visibility = View.GONE
         back.setOnClickListener {
+            finishViewing()
             expanded = null
             refresh()
         }
@@ -158,6 +160,7 @@ class PanelActivity : Activity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        finishViewing()
         expanded = intent.getStringExtra("key")
         refresh()
     }
@@ -171,6 +174,7 @@ class PanelActivity : Activity() {
 
     override fun onPause() {
         super.onPause()
+        finishViewing()
         NotifListener.onChange = null
     }
 
@@ -192,6 +196,16 @@ class PanelActivity : Activity() {
         return t
     }
 
+    // Leaving an opened message counts it as read: it stops being counted until something newer arrives.
+    private fun finishViewing() {
+        val v = viewing ?: return
+        viewing = null
+        if (Prefs.countRead(this)) {
+            Prefs.markHandled(this, v.key, v.postTime)
+            TilesWidget.refresh(applicationContext)
+        }
+    }
+
     private fun refresh() {
         refreshInner()
         Look.applyTree(list, this)
@@ -207,6 +221,7 @@ class PanelActivity : Activity() {
 
         val key = expanded
         if (key != null) {
+            viewing = if (key.startsWith("note:")) null else items.firstOrNull { it.key == key }
             val view: View? = when {
                 key == "note:new" -> composer(null)
                 key.startsWith("note:") ->
@@ -221,6 +236,7 @@ class PanelActivity : Activity() {
                 return
             }
             expanded = null
+            viewing = null
         }
         back.visibility = View.GONE
 
@@ -573,6 +589,20 @@ class PanelActivity : Activity() {
             a.actionIntent.send(this, 0, intent)
             et.setText("")
             toast("Sent")
+            val v = viewing
+            if (v != null && Prefs.countReply(this)) {
+                // Ignore the app's own "you replied" update, and tidy the notification away.
+                Prefs.markHandled(this, v.key, System.currentTimeMillis() + 4000)
+                if (v.isClearable) {
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        NotifListener.instance?.cancelNotification(v.key)
+                    }, 1500)
+                }
+                viewing = null
+                expanded = null
+                refresh()
+                TilesWidget.refresh(applicationContext)
+            }
         } catch (e: PendingIntent.CanceledException) {
             toast("Couldn't send. Open the app to reply.")
         }
@@ -616,6 +646,8 @@ class PanelActivity : Activity() {
     }
 
     private fun open(sbn: StatusBarNotification) {
+        if (Prefs.countRead(this)) Prefs.markHandled(this, sbn.key, sbn.postTime)
+        viewing = null
         try {
             val pi = sbn.notification.contentIntent
             if (pi != null) {
