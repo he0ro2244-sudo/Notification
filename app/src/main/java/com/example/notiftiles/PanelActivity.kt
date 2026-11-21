@@ -66,6 +66,7 @@ class PanelActivity : Activity() {
         cText = if (dark) 0xFFECECEF.toInt() else 0xFF1B1B1F.toInt()
         cSub = if (dark) 0xFFA8A8B0.toInt() else 0xFF5E5E66.toInt()
         expanded = intent?.getStringExtra("key")
+        if (expanded == "note:new" && openNotesDirect()) expanded = null
 
         val root = FrameLayout(this)
         root.setBackgroundColor(Prefs.scrimArgb(this))
@@ -136,6 +137,7 @@ class PanelActivity : Activity() {
         addNote.setTextColor(Prefs.accent(this))
         addNote.setPadding(dp(8), dp(6), dp(8), dp(6))
         addNote.setOnClickListener {
+            if (openNotesDirect()) return@setOnClickListener
             expanded = "note:new"
             refresh()
         }
@@ -177,7 +179,22 @@ class PanelActivity : Activity() {
         setIntent(intent)
         finishViewing()
         expanded = intent.getStringExtra("key")
+        if (expanded == "note:new" && openNotesDirect()) expanded = null
         refresh()
+    }
+
+    /** "+ Note" with the straight-to-notes-app option on: opens the notes app and closes the panel. */
+    private fun openNotesDirect(): Boolean {
+        if (!Notes.direct(this) || Notes.keepInApp(this)) return false
+        if (Notes.needsPick(this)) {
+            Notes.pickDialog(this) { if (Notes.openNew(this)) finish() }
+            return true
+        }
+        if (Notes.openNew(this)) {
+            finish()
+            return true
+        }
+        return false
     }
 
     override fun onResume() {

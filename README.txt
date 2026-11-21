@@ -9,6 +9,7 @@ app (asks for microphone permission once), saved as m4a in Recordings/NotifTiles
 notification, to finish. Switch it off in Look & colors > Voice recorder to get the old behaviour back.
 While recording the widget mic turns into a red stop square and the phone buzzes; a message says it started and, when you
 stop, the saved file name. Files: Internal storage > Recordings > NotifTiles.
+Notes: new switch in Look & colors > Notes, "+ Note opens the notes app straight away". Off (default) keeps the type-here box.
 
 NEW IN v0.9.15
 Settings icon is now a real icon (not a text character), so its colour and size follow Look & colors

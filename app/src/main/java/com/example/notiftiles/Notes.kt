@@ -37,6 +37,30 @@ object Notes {
 
     fun keepInApp(c: Context): Boolean = mode(c) == "inapp"
 
+    /** On: "+ Note" opens the notes app straight away with a new empty note, instead of the type-here box. */
+    fun direct(c: Context): Boolean = sp(c).getBoolean("note_direct", false)
+    fun setDirect(c: Context, v: Boolean) = sp(c).edit().putBoolean("note_direct", v).apply()
+
+    private fun newIntent() = Intent(CREATE_NOTE).setType("text/plain")
+
+    private fun launchApp(c: Context, pkg: String): Boolean {
+        val i = c.packageManager.getLaunchIntentForPackage(pkg) ?: return false
+        return start(c, i)
+    }
+
+    /** Opens a new empty note in the chosen notes app. Returns false if nothing could open. */
+    fun openNew(c: Context): Boolean {
+        val m = mode(c)
+        if (m == "inapp") return false
+        if (m == "ask") return start(c, Intent.createChooser(newIntent(), "New note in"))
+        if (m == "auto") {
+            if (start(c, newIntent())) return true
+            val known = installedApps(c).firstOrNull()?.first
+            return known != null && launchApp(c, known)
+        }
+        return start(c, newIntent().setPackage(m)) || launchApp(c, m)
+    }
+
     fun label(c: Context, pkg: String): String = try {
         c.packageManager.getApplicationLabel(c.packageManager.getApplicationInfo(pkg, 0)).toString()
     } catch (e: Exception) {

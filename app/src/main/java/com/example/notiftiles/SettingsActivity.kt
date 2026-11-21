@@ -418,6 +418,8 @@ class SettingsActivity : Activity() {
         // ---- Notes app
         col.addView(title("Notes", 16f, 20))
         col.addView(hint("Where \"+ Note\" saves what you type."))
+        col.addView(toggleRaw("+ Note opens the notes app straight away (no box here)", Notes.direct(this)) { Notes.setDirect(this, it) })
+        col.addView(hint("Off: you type in a box here, then tap Send to notes app. On: your notes app opens with a new empty note and you type there. The app below is chosen once and used every time."))
         val noteOptions = ArrayList<Pair<String, String>>()
         noteOptions.add("auto" to "Phone default")
         for (a in Notes.installedApps(this)) noteOptions.add(a)
