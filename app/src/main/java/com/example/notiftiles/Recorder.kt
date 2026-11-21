@@ -52,8 +52,10 @@ object Recorder {
         false
     }
 
-    private fun launchPkg(c: Context, pkg: String): Boolean {
+    private fun launchPkg(c: Context, pkg: String, fresh: Boolean = false): Boolean {
         val i = c.packageManager.getLaunchIntentForPackage(pkg) ?: return false
+        // fresh = restart the Recorder from its main screen instead of resuming an old recording's page
+        if (fresh) i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
         return start(c, i)
     }
 
@@ -118,7 +120,7 @@ object Recorder {
         // and let the helper press the red button.
         if (RecorderTapService.enabled(c)) {
             RecorderTapService.pendingUntil = System.currentTimeMillis() + 8000
-            if (open(c)) return true
+            if (open(c, true)) return true
             RecorderTapService.pendingUntil = 0L
             return false
         }
@@ -259,10 +261,10 @@ object Recorder {
         return out.toString()
     }
 
-    fun open(c: Context): Boolean {
+    fun open(c: Context, fresh: Boolean = false): Boolean {
         val m = mode(c)
-        if (m != "auto") return launchPkg(c, m)
-        for ((pkg, _) in installedApps(c)) if (launchPkg(c, pkg)) return true
+        if (m != "auto") return launchPkg(c, m, fresh)
+        for ((pkg, _) in installedApps(c)) if (launchPkg(c, pkg, fresh)) return true
         return start(c, recordIntent())
     }
 

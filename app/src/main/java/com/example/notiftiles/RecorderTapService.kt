@@ -22,12 +22,27 @@ class RecorderTapService : AccessibilityService() {
         if (event == null) return
         if (System.currentTimeMillis() > pendingUntil) return
         pendingUntil = 0L
+        backs = 0
         handler.postDelayed({ tap() }, 900)
     }
 
     override fun onInterrupt() {}
 
+    private var backs = 0
+
     private fun tap() {
+        // If the Recorder resumed on a saved recording's page (play button where the record button
+        // should be), go back to its main screen first instead of pressing play.
+        val r0 = rootInActiveWindow
+        if (r0 != null && backs < 2 &&
+            (r0.findAccessibilityNodeInfosByText("Transcribe").isNotEmpty() ||
+                r0.findAccessibilityNodeInfosByText("AI Summary").isNotEmpty())
+        ) {
+            backs++
+            performGlobalAction(GLOBAL_ACTION_BACK)
+            handler.postDelayed({ tap() }, 900)
+            return
+        }
         // 1) Try to find the record button by its label / id and click it.
         val root = rootInActiveWindow
         if (root != null) {
