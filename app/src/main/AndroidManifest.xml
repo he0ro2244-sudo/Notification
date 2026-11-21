@@ -14,6 +14,10 @@
             <action android:name="android.intent.action.SEND" />
             <data android:mimeType="text/plain" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.CREATE_NOTE" />
+            <data android:mimeType="text/plain" />
+        </intent>
         <package android:name="com.google.android.keep" />
         <package android:name="com.samsung.android.app.notes" />
         <package android:name="com.microsoft.office.onenote" />

@@ -238,7 +238,7 @@ class SettingsActivity : Activity() {
         col.addView(title("Notes", 16f, 20))
         col.addView(hint("Where \"+ Note\" saves what you type."))
         val noteOptions = ArrayList<Pair<String, String>>()
-        noteOptions.add("auto" to "Auto")
+        noteOptions.add("auto" to "Phone default")
         for (a in Notes.installedApps(this)) noteOptions.add(a)
         val cur = Notes.mode(this)
         if (cur !in listOf("auto", "ask", "inapp") && noteOptions.none { it.first == cur }) {

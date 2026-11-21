@@ -61,3 +61,8 @@ saved inside Notif Tiles stay until you delete them.
 NEW IN v0.9.1
 Notes: if your notes app isn't one of the known ones, you pick it once from a list of every app that
 accepts text (also in Look & colors > Notes > "Choose any other app"), and notes then go straight to it.
+
+NEW IN v0.9.2
+Notes: "Phone default" now asks Android for the phone's own default Notes app. The pick list shows all
+your apps (notes-like names first). If the app you pick can't take shared text, the note is copied
+and the app opens so you can paste it.
