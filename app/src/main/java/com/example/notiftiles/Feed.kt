@@ -6,6 +6,9 @@ import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.service.notification.StatusBarNotification
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class Style(private val bgL: Long, private val fgL: Long, private val bgD: Long, private val fgD: Long) {
     fun bg(dark: Boolean): Int = (if (dark) bgD else bgL).toInt()
@@ -54,6 +57,47 @@ object Feed {
         return (ex.getCharSequence(Notification.EXTRA_BIG_TEXT)
             ?: ex.getCharSequence(Notification.EXTRA_TEXT))?.toString().orEmpty()
     }
+
+    /**
+     * Every message of the chat, oldest first, one line each like the app shows them:
+     * "[11/21, 10:54 PM] Name: text". Falls back to inbox lines, then to the single text.
+     */
+    @Suppress("DEPRECATION")
+    fun lines(n: StatusBarNotification): List<String> {
+        val ex = n.notification.extras
+        val out = ArrayList<String>()
+        try {
+            val msgs = ArrayList<Notification.MessagingStyle.Message>()
+            ex.getParcelableArray(Notification.EXTRA_HISTORIC_MESSAGES)?.let {
+                msgs.addAll(Notification.MessagingStyle.Message.getMessagesFromBundleArray(it))
+            }
+            ex.getParcelableArray(Notification.EXTRA_MESSAGES)?.let {
+                msgs.addAll(Notification.MessagingStyle.Message.getMessagesFromBundleArray(it))
+            }
+            val fmt = SimpleDateFormat("M/d, h:mm a", Locale.getDefault())
+            val seen = HashSet<String>()
+            for (m in msgs.sortedBy { it.timestamp }) {
+                val t = m.text?.toString().orEmpty()
+                if (t.isEmpty()) continue
+                val who = m.senderPerson?.name?.toString().orEmpty()
+                val line = "[" + fmt.format(Date(m.timestamp)) + "] " + (if (who.isNotEmpty()) "$who: " else "") + t
+                if (seen.add(line)) out.add(line)
+            }
+        } catch (e: Exception) {
+        }
+        if (out.isNotEmpty()) return out
+        val inbox = ex.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+            ?.map { it.toString() }?.filter { it.isNotEmpty() }.orEmpty()
+        if (inbox.isNotEmpty()) return inbox
+        val t = text(n)
+        return if (t.isEmpty()) emptyList() else listOf(t)
+    }
+
+    /** All messages, one per line. */
+    fun fullText(n: StatusBarNotification): String = lines(n).joinToString("\n")
+
+    /** The latest [k] messages, one per line (newest at the bottom). */
+    fun recentText(n: StatusBarNotification, k: Int): String = lines(n).takeLast(k).joinToString("\n")
 
     fun label(c: Context, pkg: String): String = try {
         c.packageManager.getApplicationLabel(c.packageManager.getApplicationInfo(pkg, 0)).toString()

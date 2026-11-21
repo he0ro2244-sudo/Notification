@@ -184,7 +184,9 @@ object Prefs {
     // ---- Panel text sizes per part (percent, on top of the overall text size) ----
     val PANEL_GROUPS = listOf(
         "head" to "Header title (Inbox, Back)",
-        "hdr" to "Header buttons (+ Note, Clear all)",
+        "hdr" to "+ Note button",
+        "clear" to "Clear all button",
+        "gear" to "Settings icon (⚙)",
         "title" to "Message titles",
         "text" to "Message text and notes",
         "small" to "Small labels (app name, counts)",
@@ -193,6 +195,10 @@ object Prefs {
     // Separate text colour per part (0 = automatic / the overall text colour)
     val WIDGET_PARTS = listOf(
         "title" to "Widget: Inbox title",
+        "mic" to "Widget: mic icon",
+        "note" to "Widget: + Note",
+        "clear" to "Widget: Clear all",
+        "gear" to "Widget: settings icon (⚙)",
         "clock" to "Widget: clock",
         "weather" to "Widget: weather",
         "date" to "Widget: date",

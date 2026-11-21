@@ -144,7 +144,7 @@ class PanelActivity : Activity() {
         val clear = TextView(this)
         clear.text = "Clear all"
         clear.textSize = 14f
-        clear.setTag(R.id.nt_grp, "hdr")
+        clear.setTag(R.id.nt_grp, "clear")
         clear.setTextColor(cSub)
         clear.setPadding(dp(8), dp(6), dp(8), dp(6))
         clear.setOnClickListener { clearAll() }
@@ -153,7 +153,7 @@ class PanelActivity : Activity() {
         val gear = TextView(this)
         gear.text = "⚙"
         gear.textSize = 18f
-        gear.setTag(R.id.nt_grp, "hdr")
+        gear.setTag(R.id.nt_grp, "gear")
         gear.setTextColor(cSub)
         gear.setPadding(dp(8), dp(4), dp(4), dp(4))
         gear.setOnClickListener {
@@ -349,11 +349,11 @@ class PanelActivity : Activity() {
         card.addView(t)
 
         val m = TextView(this)
-        m.text = Feed.text(sbn)
+        m.text = Feed.recentText(sbn, 3)
         m.textSize = 13f
         m.setTag(R.id.nt_grp, "text")
         m.setTextColor(Feed.alpha(fg, 0xDD))
-        m.maxLines = 2
+        m.maxLines = 6
         m.ellipsize = TextUtils.TruncateAt.END
         card.addView(m)
 
@@ -560,14 +560,14 @@ class PanelActivity : Activity() {
             t.setPadding(0, dp(8), 0, 0)
             card.addView(t)
         }
-        val tx = Feed.text(sbn)
+        val tx = Feed.fullText(sbn)
         if (tx.isNotEmpty()) {
             val m = TextView(this)
             m.text = tx
             m.textSize = 14f
             m.setTag(R.id.nt_grp, "text")
             m.setTextColor(Feed.alpha(fg, 0xEE))
-            m.maxLines = 8
+            m.maxLines = 60
             m.ellipsize = TextUtils.TruncateAt.END
             m.setPadding(0, dp(2), 0, 0)
             card.addView(m)

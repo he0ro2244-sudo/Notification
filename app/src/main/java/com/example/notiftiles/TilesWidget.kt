@@ -184,9 +184,9 @@ class TilesWidget : AppWidgetProvider() {
             rv.setTextColor(R.id.hdr_title, Prefs.partColor(ctx, "title").let { if (it != 0) it else main })
             txt(rv, ctx, R.id.wnote, "+ Note", 13f, true)
             txt(rv, ctx, R.id.wclear, "Clear all", 13f, false)
-            rv.setTextColor(R.id.wclear, sub)
+            rv.setTextColor(R.id.wclear, Prefs.partColor(ctx, "clear").let { if (it != 0) it else sub })
             txt(rv, ctx, R.id.wset, "⚙", 16f, false)
-            rv.setTextColor(R.id.wset, sub)
+            rv.setTextColor(R.id.wset, Prefs.partColor(ctx, "gear").let { if (it != 0) it else sub })
             txt(rv, ctx, R.id.empty, "Nothing new from your apps", 13f, false)
             rv.setTextColor(R.id.empty, sub)
 
@@ -275,8 +275,8 @@ class TilesWidget : AppWidgetProvider() {
             rv.setViewVisibility(R.id.wlocB, if (maps && !first) View.VISIBLE else View.GONE)
             rv.setViewVisibility(R.id.dialwrap, if (Prefs.show(ctx, "dial")) View.VISIBLE else View.GONE)
             val accent = Prefs.accent(ctx)
-            rv.setTextColor(R.id.wnote, accent)
-            rv.setInt(R.id.wmic, "setColorFilter", accent)
+            rv.setTextColor(R.id.wnote, Prefs.partColor(ctx, "note").let { if (it != 0) it else accent })
+            rv.setInt(R.id.wmic, "setColorFilter", Prefs.partColor(ctx, "mic").let { if (it != 0) it else accent })
             rv.setColorStateList(R.id.count, "setBackgroundTintList", ColorStateList.valueOf(accent))
         }
 
@@ -342,7 +342,7 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
         rv.setColorStateList(R.id.cnt, "setBackgroundTintList", ColorStateList.valueOf(fg))
         Look.setText(rv, ctx, R.id.title, Feed.title(sbn), 13f, true)
         rv.setTextColor(R.id.title, fg)
-        Look.setText(rv, ctx, R.id.text, Feed.text(sbn), 12f, false)
+        Look.setText(rv, ctx, R.id.text, Feed.recentText(sbn, 4), 12f, false)
         rv.setTextColor(R.id.text, Feed.alpha(fg, 0xDD))
         rv.setOnClickFillInIntent(R.id.tile_root, Intent().putExtra("key", sbn.key))
         return rv

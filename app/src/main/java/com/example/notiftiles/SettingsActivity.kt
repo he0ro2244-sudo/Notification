@@ -109,9 +109,32 @@ class SettingsActivity : Activity() {
         setPadding(0, dp(topPad), 0, dp(4))
     }
 
+    private val openSections = mutableSetOf("Themes & accent")
+
+    private fun section(name: String, body: () -> Unit) {
+        val open = name in openSections
+        val h = TextView(this)
+        h.text = (if (open) "▾  " else "▸  ") + name
+        h.textSize = 17f
+        h.setTypeface(null, Typeface.BOLD)
+        h.setPadding(dp(14), dp(14), dp(14), dp(14))
+        h.background = rounded(0x1F808080, 12)
+        h.setOnClickListener {
+            if (open) openSections.remove(name) else openSections.add(name)
+            rebuild()
+        }
+        val lp = LinearLayout.LayoutParams(MATCH, WRAP)
+        lp.topMargin = dp(12)
+        col.addView(h, lp)
+        if (open) body()
+    }
+
     private fun build() {
         col.addView(title("Look & colors", 22f, 0))
 
+        col.addView(hint("Tap a group to open or close it. Everything is still here, just grouped."))
+
+        section("Themes & accent") {
         // ---- Themes
         col.addView(title("Themes", 16f, 12))
         col.addView(themeRow())
@@ -120,6 +143,9 @@ class SettingsActivity : Activity() {
         col.addView(title("Accent colour (buttons, badge)", 16f, 20))
         col.addView(swatchRow(accents, Prefs.accent(this)) { Prefs.setAccent(this, it); applyLook(); rebuild() })
 
+        }
+
+        section("Backgrounds & pictures") {
         // ---- Control panel background
         col.addView(title("Control panel background", 16f, 16))
         col.addView(panelPreview())
@@ -138,6 +164,19 @@ class SettingsActivity : Activity() {
         col.addView(customHex { Prefs.setWidgetBg(this, it); applyLook(); rebuild() })
         col.addView(seek("Opacity", Prefs.widgetAlpha(this)) { Prefs.setWidgetAlpha(this, it); updatePreviews() })
 
+        // ---- Background pictures
+        col.addView(title("Background pictures", 16f, 20))
+        col.addView(hint("Pick a photo from your gallery. Lower the strength to let the colour show through."))
+        col.addView(imageRow("Widget background", "widget"))
+        col.addView(imageRow("Fast-dial background", "dial"))
+        col.addView(title("Fast-dial strip colour (behind the circles)", 14f, 12))
+        col.addView(swatchRow(bgColors, Prefs.dialBg(this)) { Prefs.setDialBg(this, it); applyLook(); rebuild() })
+        col.addView(seekRange("Strip opacity", Prefs.dialBgAlpha(this), 0, 100, "%") { Prefs.setDialBgAlpha(this, it) })
+        col.addView(imageRow("Panel background", "panel"))
+
+        }
+
+        section("Text, fonts & text colours") {
         // ---- Fonts
         col.addView(title("Font", 16f, 20))
         col.addView(hint("Applies to the widget, the panel and the Where to? box."))
@@ -177,11 +216,9 @@ class SettingsActivity : Activity() {
             col.addView(hint("Panel: $label"))
             col.addView(swatchRow(textColors, Prefs.grpColor(this, g)) { Prefs.setGrpColor(this, g, it); applyLook(); rebuild() })
         }
-        col.addView(title("Circle colour (clock, weather, date, Where to?)", 14f, 12))
-        col.addView(swatchRow(bgColors, Prefs.circleColor(this)) { Prefs.setCircleColor(this, it); applyLook(); rebuild() })
-        col.addView(title("Fast-dial circle colour", 14f, 12))
-        col.addView(swatchRow(bgColors, Prefs.dialCircle(this)) { Prefs.setDialCircle(this, it); applyLook(); rebuild() })
+        }
 
+        section("Shapes, circles & borders") {
         // ---- Sizes and shape
         col.addView(title("Sizes & shape", 16f, 20))
         col.addView(choiceRow(listOf("0" to "Round", "1" to "Rounded square"), if (Prefs.squareShape(this)) "1" else "0", false) {
@@ -191,6 +228,64 @@ class SettingsActivity : Activity() {
         col.addView(seekRange("Fast-dial circles", Prefs.dialSize(this), 30, 64, " dp") { Prefs.setDialSize(this, it) })
         col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
 
+        col.addView(title("Circle colour (clock, weather, date, Where to?)", 14f, 12))
+        col.addView(swatchRow(bgColors, Prefs.circleColor(this)) { Prefs.setCircleColor(this, it); applyLook(); rebuild() })
+        col.addView(title("Fast-dial circle colour", 14f, 12))
+        col.addView(swatchRow(bgColors, Prefs.dialCircle(this)) { Prefs.setDialCircle(this, it); applyLook(); rebuild() })
+
+        // ---- Borders
+        col.addView(title("Borders", 16f, 20))
+        col.addView(hint("A line around the panel and the message tiles. Thickness 0 = no border."))
+        col.addView(seekRange("Thickness", Prefs.borderWidth(this), 0, 6, " dp") { Prefs.setBorderWidth(this, it) })
+        col.addView(hint("Colour (first one = automatic)"))
+        col.addView(swatchRow(borderColors, Prefs.borderColor(this)) { Prefs.setBorderColor(this, it); rebuild() })
+        col.addView(toggleRaw("Border around the panel", Prefs.borderPanel(this)) { Prefs.setBorderPanel(this, it) })
+        col.addView(toggleRaw("Border around message tiles", Prefs.borderTiles(this)) { Prefs.setBorderTiles(this, it) })
+
+        }
+
+        section("Widget layout, clock & weather") {
+        // ---- Arrange the widget
+        col.addView(title("Arrange the widget", 16f, 20))
+        col.addView(hint("Use ▲ ▼ to move the circles. Switch an item off to hide it."))
+        val labels = mapOf("clock" to "Clock", "weather" to "Weather", "date" to "Date")
+        val order = Prefs.order(this)
+        for ((i, key) in order.withIndex()) {
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+            val sw = Switch(this)
+            sw.text = "${i + 1}.  ${labels[key]}"
+            sw.isChecked = Prefs.show(this, key)
+            sw.setOnCheckedChangeListener { _, v -> Prefs.setShow(this, key, v); applyLook() }
+            row.addView(sw, LinearLayout.LayoutParams(0, WRAP, 1f))
+            row.addView(moveButton("▲", i > 0) { swap(order, i, i - 1) })
+            row.addView(moveButton("▼", i < order.size - 1) { swap(order, i, i + 1) })
+            col.addView(row)
+        }
+        col.addView(toggle("Maps search box", "maps"))
+        col.addView(toggleRaw("Maps search box at the start (left)", Prefs.pillFirst(this)) { Prefs.setPillFirst(this, it); applyLook() })
+        col.addView(toggle("Fast-dial circles", "dial"))
+
+        // ---- Clock, date, weather
+        col.addView(title("Clock, date & weather", 16f, 20))
+        col.addView(hint("Clock"))
+        col.addView(choiceRow(listOf("0" to "Phone setting", "1" to "12-hour", "2" to "24-hour"), Prefs.clockFmt(this).toString(), false) {
+            Prefs.setClockFmt(this, it.toInt()); applyLook(); rebuild()
+        })
+        col.addView(hint("Date"))
+        col.addView(choiceRow(Prefs.DATE_FORMATS.mapIndexed { i, p -> i.toString() to p.second }, Prefs.dateFmt(this).toString(), false) {
+            Prefs.setDateFmt(this, it.toInt()); applyLook(); rebuild()
+        })
+        col.addView(hint("Weather city: ${Weather.city(this)}"))
+        col.addView(cityRow())
+        col.addView(choiceRow(listOf("c" to "°C", "f" to "°F"), Weather.unit(this), false) {
+            Weather.setUnit(this, it); applyLook(); rebuild()
+        })
+
+        }
+
+        section("Fast-dial contacts") {
         // ---- Fast dial contacts
         col.addView(title("Fast-dial contacts", 16f, 20))
         col.addView(toggleRaw("Ask before calling (Call / Change / Remove)", Prefs.dialAsk(this)) { Prefs.setDialAsk(this, it) })
@@ -226,63 +321,9 @@ class SettingsActivity : Activity() {
             col.addView(row)
         }
 
-        // ---- Borders
-        col.addView(title("Borders", 16f, 20))
-        col.addView(hint("A line around the panel and the message tiles. Thickness 0 = no border."))
-        col.addView(seekRange("Thickness", Prefs.borderWidth(this), 0, 6, " dp") { Prefs.setBorderWidth(this, it) })
-        col.addView(hint("Colour (first one = automatic)"))
-        col.addView(swatchRow(borderColors, Prefs.borderColor(this)) { Prefs.setBorderColor(this, it); rebuild() })
-        col.addView(toggleRaw("Border around the panel", Prefs.borderPanel(this)) { Prefs.setBorderPanel(this, it) })
-        col.addView(toggleRaw("Border around message tiles", Prefs.borderTiles(this)) { Prefs.setBorderTiles(this, it) })
-
-        // ---- Background pictures
-        col.addView(title("Background pictures", 16f, 20))
-        col.addView(hint("Pick a photo from your gallery. Lower the strength to let the colour show through."))
-        col.addView(imageRow("Widget background", "widget"))
-        col.addView(imageRow("Fast-dial background", "dial"))
-        col.addView(title("Fast-dial strip colour (behind the circles)", 14f, 12))
-        col.addView(swatchRow(bgColors, Prefs.dialBg(this)) { Prefs.setDialBg(this, it); applyLook(); rebuild() })
-        col.addView(seekRange("Strip opacity", Prefs.dialBgAlpha(this), 0, 100, "%") { Prefs.setDialBgAlpha(this, it) })
-        col.addView(imageRow("Panel background", "panel"))
-
-        // ---- Clock, date, weather
-        col.addView(title("Clock, date & weather", 16f, 20))
-        col.addView(hint("Clock"))
-        col.addView(choiceRow(listOf("0" to "Phone setting", "1" to "12-hour", "2" to "24-hour"), Prefs.clockFmt(this).toString(), false) {
-            Prefs.setClockFmt(this, it.toInt()); applyLook(); rebuild()
-        })
-        col.addView(hint("Date"))
-        col.addView(choiceRow(Prefs.DATE_FORMATS.mapIndexed { i, p -> i.toString() to p.second }, Prefs.dateFmt(this).toString(), false) {
-            Prefs.setDateFmt(this, it.toInt()); applyLook(); rebuild()
-        })
-        col.addView(hint("Weather city: ${Weather.city(this)}"))
-        col.addView(cityRow())
-        col.addView(choiceRow(listOf("c" to "°C", "f" to "°F"), Weather.unit(this), false) {
-            Weather.setUnit(this, it); applyLook(); rebuild()
-        })
-
-        // ---- Arrange the widget
-        col.addView(title("Arrange the widget", 16f, 20))
-        col.addView(hint("Use ▲ ▼ to move the circles. Switch an item off to hide it."))
-        val labels = mapOf("clock" to "Clock", "weather" to "Weather", "date" to "Date")
-        val order = Prefs.order(this)
-        for ((i, key) in order.withIndex()) {
-            val row = LinearLayout(this)
-            row.orientation = LinearLayout.HORIZONTAL
-            row.gravity = Gravity.CENTER_VERTICAL
-            val sw = Switch(this)
-            sw.text = "${i + 1}.  ${labels[key]}"
-            sw.isChecked = Prefs.show(this, key)
-            sw.setOnCheckedChangeListener { _, v -> Prefs.setShow(this, key, v); applyLook() }
-            row.addView(sw, LinearLayout.LayoutParams(0, WRAP, 1f))
-            row.addView(moveButton("▲", i > 0) { swap(order, i, i - 1) })
-            row.addView(moveButton("▼", i < order.size - 1) { swap(order, i, i + 1) })
-            col.addView(row)
         }
-        col.addView(toggle("Maps search box", "maps"))
-        col.addView(toggleRaw("Maps search box at the start (left)", Prefs.pillFirst(this)) { Prefs.setPillFirst(this, it); applyLook() })
-        col.addView(toggle("Fast-dial circles", "dial"))
 
+        section("\"Where to?\" search") {
         // ---- "Where to?" search
         col.addView(title("\"Where to?\" search", 16f, 20))
         col.addView(hint("Travel mode used when you search"))
@@ -303,6 +344,9 @@ class SettingsActivity : Activity() {
         }
         col.addView(clr)
 
+        }
+
+        section("Notes") {
         // ---- Notes app
         col.addView(title("Notes", 16f, 20))
         col.addView(hint("Where \"+ Note\" saves what you type."))
@@ -322,6 +366,9 @@ class SettingsActivity : Activity() {
         other.setOnClickListener { Notes.pickDialog(this) { rebuild() } }
         col.addView(other)
 
+        }
+
+        section("Voice recorder") {
         // ---- Voice recorder (mic next to + Note)
         col.addView(title("Voice recorder", 16f, 20))
         col.addView(hint("The blue mic at the start of the widget header starts recording in this app."))
@@ -385,11 +432,16 @@ class SettingsActivity : Activity() {
         }
         col.addView(recCheck)
 
+        }
+
+        section("Counts") {
         // ---- Counts
         col.addView(title("Counts", 16f, 20))
         col.addView(toggleRaw("Count drops after I read a message here", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
         col.addView(toggleRaw("Count drops after I reply here", Prefs.countReply(this)) { Prefs.setCountReply(this, it) })
         col.addView(hint("A new message from the same chat counts again."))
+
+        }
 
         val reset = Button(this)
         reset.text = "Reset everything to automatic"
