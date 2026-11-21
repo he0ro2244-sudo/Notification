@@ -23,3 +23,8 @@ android {
         jvmTarget = "17"
     }
 }
+
+dependencies {
+    // One-tap "turn on location" system prompt (falls back to the Location settings page without it).
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+}
