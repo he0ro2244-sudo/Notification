@@ -26,11 +26,17 @@ class RecorderTapService : AccessibilityService() {
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
+        val pkgName = event.packageName?.toString() ?: ""
+        if (pkgName in Weather.APPS) {
+            maybeReadWeather()
+            return
+        }
         val now = System.currentTimeMillis()
         if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
             if (now < learnUntil) learn(event)
             return
         }
+        if (event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         if (now > pendingUntil || running) return
         pendingUntil = 0L
         running = true
@@ -41,6 +47,99 @@ class RecorderTapService : AccessibilityService() {
     }
 
     override fun onInterrupt() {}
+
+    // ---- Copy the temperature shown in the phone's weather app to the widget ----
+    private var lastRead = 0L
+    private var readQueued = false
+    private val bigTemp = Regex("^\\s*(-?\\d{1,3})\\s*°\\s*[CFcf]?\\s*$")
+    private val condLine = Regex("^\\s*([A-Za-z][A-Za-z ]{2,28}?)\\s+-?\\d{1,3}°\\s*/\\s*-?\\d{1,3}°")
+
+    private fun maybeReadWeather() {
+        if (!Weather.useApp(this) || readQueued) return
+        if (System.currentTimeMillis() - lastRead < 2500) return
+        readQueued = true
+        if (autoCloseUntil > 0L && !timeoutQueued) {
+            timeoutQueued = true
+            val wait = (autoCloseUntil - System.currentTimeMillis()).coerceAtLeast(500L) + 200L
+            handler.postDelayed({
+                timeoutQueued = false
+                if (autoCloseUntil > 0L) {
+                    autoCloseUntil = 0L
+                    toast("could not read the weather app's temperature")
+                    if ((rootInActiveWindow?.packageName?.toString() ?: "") in Weather.APPS) performGlobalAction(GLOBAL_ACTION_BACK)
+                }
+            }, wait)
+        }
+        handler.postDelayed({
+            readQueued = false
+            readWeather()
+        }, 700)
+    }
+
+    private var timeoutQueued = false
+
+    // After a refresh-button read: leave the weather app again (a second Back if it stayed open).
+    private fun closeWeatherApp() {
+        handler.postDelayed({
+            performGlobalAction(GLOBAL_ACTION_BACK)
+            handler.postDelayed({
+                if ((rootInActiveWindow?.packageName?.toString() ?: "") in Weather.APPS) performGlobalAction(GLOBAL_ACTION_BACK)
+            }, 700)
+        }, 500)
+    }
+
+    private fun readWeather() {
+        val root = rootInActiveWindow ?: return
+        if ((root.packageName?.toString() ?: "") !in Weather.APPS) return
+        var bestH = 0
+        var bestTemp: Int? = null
+        var cond: String? = null
+        val r = Rect()
+        fun walk(n: AccessibilityNodeInfo?, depth: Int) {
+            if (n == null || depth > 40) return
+            val t = n.text?.toString()
+            if (t != null) {
+                val m = bigTemp.matchEntire(t)
+                if (m != null && n.isVisibleToUser) {
+                    n.getBoundsInScreen(r)
+                    if (r.height() > bestH) {
+                        bestH = r.height()
+                        bestTemp = m.groupValues[1].toIntOrNull()
+                    }
+                } else if (cond == null) {
+                    condLine.find(t)?.let { cond = it.groupValues[1].trim() }
+                }
+            }
+            for (i in 0 until n.childCount) walk(n.getChild(i), depth + 1)
+        }
+        walk(root, 0)
+        val temp = bestTemp ?: return
+        val before = Weather.appTemp(this)
+        val beforeTime = Weather.appTime(this)
+        Weather.saveFromApp(this, temp, cond)
+        lastRead = System.currentTimeMillis()
+        if (Weather.mode(this) == "both") {
+            val app = applicationContext
+            Thread {
+                Weather.learnGap(app)
+                try {
+                    TilesWidget.refresh(app)
+                } catch (e: Exception) {
+                }
+            }.start()
+        }
+        if (autoCloseUntil > System.currentTimeMillis()) {
+            autoCloseUntil = 0L
+            toast("widget weather set to $temp°")
+            closeWeatherApp()
+        } else if (temp != before || lastRead - beforeTime > 5 * 60 * 1000L) {
+            toast("widget weather set to $temp°")
+        }
+        try {
+            TilesWidget.refresh(applicationContext)
+        } catch (e: Exception) {
+        }
+    }
 
     private fun toast(s: String) = Toast.makeText(this, "Notif Tiles: $s", Toast.LENGTH_SHORT).show()
 
@@ -120,6 +219,8 @@ class RecorderTapService : AccessibilityService() {
         /** Time up to which the next Recorder window should get its red button pressed. */
         @Volatile
         var pendingUntil = 0L
+        /** Set by the widget's refresh button: read the weather app, then close it again. */
+        @Volatile var autoCloseUntil = 0L
 
         /** While set, the next click inside the Recorder is remembered. */
         @Volatile

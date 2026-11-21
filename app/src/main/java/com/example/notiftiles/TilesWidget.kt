@@ -33,7 +33,9 @@ class TilesWidget : AppWidgetProvider() {
             val ids = mgr.getAppWidgetIds(ComponentName(context, TilesWidget::class.java))
             for (id in ids) mgr.updateAppWidget(id, build(context, id))
             refresh(context)
-            fetchWeatherAsync(context)
+            val viaApp = Weather.useApp(context) && RecorderTapService.enabled(context)
+            if (!viaApp) android.widget.Toast.makeText(context, "Refreshing…", android.widget.Toast.LENGTH_SHORT).show()
+            fetchWeatherAsync(context, !viaApp)
         }
     }
 
@@ -52,13 +54,22 @@ class TilesWidget : AppWidgetProvider() {
         fetchWeatherAsync(context)
     }
 
-    private fun fetchWeatherAsync(context: Context) {
+    private fun fetchWeatherAsync(context: Context, tell: Boolean = false) {
         val app = context.applicationContext
         val pr = goAsync()
         Thread {
             try {
-                Weather.fetch(app)
+                val ok = Weather.fetch(app)
                 refresh(app)
+                if (tell) {
+                    android.os.Handler(android.os.Looper.getMainLooper()).post {
+                        android.widget.Toast.makeText(
+                            app,
+                            if (ok) "Refreshed: " + Weather.summary(app) else "Could not reach the weather service",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
             } finally {
                 pr.finish()
             }
@@ -159,10 +170,10 @@ class TilesWidget : AppWidgetProvider() {
                 R.id.wset,
                 PendingIntent.getActivity(ctx, 8, look, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             )
-            val all = Intent(ctx, TilesWidget::class.java).setAction(ACTION_REFRESH_ALL)
+            val all = Intent(ctx, RefreshActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             rv.setOnClickPendingIntent(
                 R.id.wrefresh,
-                PendingIntent.getBroadcast(ctx, 11, all, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                PendingIntent.getActivity(ctx, 11, all, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             )
             val cal = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

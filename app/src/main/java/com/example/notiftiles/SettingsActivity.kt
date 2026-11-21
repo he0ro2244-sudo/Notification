@@ -1,6 +1,7 @@
 package com.example.notiftiles
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
@@ -294,10 +295,55 @@ class SettingsActivity : Activity() {
         col.addView(choiceRow(listOf("c" to "°C", "f" to "°F"), Weather.unit(this), false) {
             Weather.setUnit(this, it); applyLook(); rebuild()
         })
+        col.addView(hint("Weather mode"))
+        col.addView(choiceRow(listOf("both" to "Both (recommended)", "app" to "Phone app only", "online" to "Online only"), Weather.mode(this), false) {
+            Weather.setMode(this, it); applyLook(); rebuild()
+        })
+        col.addView(hint(
+            "Both: whenever you copy your phone weather app's number (tap the weather circle, or the small refresh icon which opens the app for a second and closes it again), the widget shows that exact number. " +
+                "Afterwards it keeps updating itself from the online source below and adds the difference it learned, so it stays close without opening the app. " +
+                "Phone app only: always the last number copied. Online only: ignores the phone app. Copying needs the Accessibility helper. " +
+                (if (RecorderTapService.enabled(this)) "Helper is ON. " else "Helper is OFF. ") +
+                (if (Weather.appTime(this) > 0L) "Last copied: " + Weather.appTemp(this) + "° at " +
+                    java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(Weather.appTime(this))) + ". " else "Nothing copied yet. ") +
+                (if (Weather.gapKnown(this)) "Learned difference: " + (if (Weather.gap(this) > 0) "+" else "") + Weather.gap(this) + "°." else "")
+        ))
+        val accBtn2 = Button(this)
+        accBtn2.text = "Open Accessibility settings"
+        accBtn2.isAllCaps = false
+        accBtn2.setOnClickListener {
+            try {
+                startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            } catch (e: Exception) {
+            }
+        }
+        col.addView(accBtn2)
         col.addView(hint("Weather source (try another if the number differs from your phone's weather app)"))
         col.addView(choiceRow(Weather.SOURCES, Weather.source(this), false) {
             Weather.setSource(this, it); refreshWeatherNow(); rebuild()
         })
+        val cmp = Button(this)
+        cmp.text = "Compare all sources now"
+        cmp.isAllCaps = false
+        cmp.setOnClickListener {
+            Toast.makeText(this, "Checking every source…", Toast.LENGTH_SHORT).show()
+            Thread {
+                val res = Weather.compare(applicationContext)
+                runOnUiThread {
+                    val labels = res.map { (_, name, t) -> name + ":  " + (if (t != null) "$t°" else "no data") }.toTypedArray()
+                    AlertDialog.Builder(this)
+                        .setTitle("Pick the one that matches your phone")
+                        .setItems(labels) { _, i ->
+                            Weather.setSource(this, res[i].first)
+                            refreshWeatherNow()
+                            rebuild()
+                        }
+                        .setNegativeButton("Close", null)
+                        .show()
+                }
+            }.start()
+        }
+        col.addView(cmp)
         col.addView(seekRange("Temperature adjust", Weather.offset(this), -6, 6, "°") { Weather.setOffset(this, it); applyLook() })
         col.addView(toggleRaw("Show \"Updated\" time in the widget", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); applyLook() })
 
