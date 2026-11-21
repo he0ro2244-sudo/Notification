@@ -65,13 +65,13 @@ class DestinationActivity : Activity() {
     }
 
     private fun openMaps() {
+        // Google Maps' search screen (not the plain map).
+        val search = Uri.parse("https://www.google.com/maps/search/")
         try {
-            val maps = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q="))
-                .setPackage("com.google.android.apps.maps")
-            startActivity(maps)
+            startActivity(Intent(Intent.ACTION_VIEW, search).setPackage("com.google.android.apps.maps"))
         } catch (e: Exception) {
             try {
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps")))
+                startActivity(Intent(Intent.ACTION_VIEW, search))
             } catch (x: Exception) {
                 // nothing to open
             }

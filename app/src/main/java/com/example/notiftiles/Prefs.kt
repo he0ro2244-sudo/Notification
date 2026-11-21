@@ -112,9 +112,31 @@ object Prefs {
     fun setWidgetAlpha(c: Context, v: Int) = sp(c).edit().putInt("look_widget_alpha", v).apply()
 
     fun resetLook(c: Context) {
-        sp(c).edit().remove("look_panel_bg").remove("look_scrim_color").remove("look_scrim_alpha")
-            .remove("look_widget_bg").remove("look_widget_alpha").apply()
+        val e = sp(c).edit()
+        for (k in sp(c).all.keys) if (k.startsWith("look_") || k.startsWith("lay_")) e.remove(k)
+        e.apply()
     }
+
+    // ---- Accent colour (buttons, badge) ----
+    fun accent(c: Context): Int = sp(c).getInt("look_accent", 0xFF3B82F6.toInt())
+    fun setAccent(c: Context, v: Int) = sp(c).edit().putInt("look_accent", v).apply()
+
+    // ---- Widget arrangement ----
+    val ITEMS = listOf("clock", "weather", "date")
+
+    fun order(c: Context): List<String> {
+        val l = (sp(c).getString("lay_order", "clock,weather,date") ?: "").split(",").filter { it in ITEMS }.distinct()
+        return if (l.size == 3) l else ITEMS
+    }
+
+    fun setOrder(c: Context, l: List<String>) = sp(c).edit().putString("lay_order", l.joinToString(",")).apply()
+
+    /** key: clock, weather, date, maps, dial */
+    fun show(c: Context, key: String): Boolean = sp(c).getBoolean("lay_show_$key", true)
+    fun setShow(c: Context, key: String, v: Boolean) = sp(c).edit().putBoolean("lay_show_$key", v).apply()
+
+    fun pillFirst(c: Context): Boolean = sp(c).getBoolean("lay_pill_first", false)
+    fun setPillFirst(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_pill_first", v).apply()
 
     /** Panel sheet colour actually used. */
     fun panelBgColor(c: Context): Int {

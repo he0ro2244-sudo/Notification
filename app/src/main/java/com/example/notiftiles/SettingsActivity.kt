@@ -16,6 +16,7 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 
@@ -40,6 +41,27 @@ class SettingsActivity : Activity() {
     )
     private val scrimColors = intArrayOf(
         c(0xFF000000), c(0xFF1C1C20), c(0xFF1E3A8A), c(0xFF7C3AED), c(0xFF0F766E), c(0xFF3E2723)
+    )
+
+    private class Theme(
+        val name: String, val panel: Int, val scrim: Int, val scrimA: Int,
+        val widget: Int, val widgetA: Int, val accent: Int
+    )
+
+    private val themes = listOf(
+        Theme("Auto", 0, c(0xFF000000), 40, 0, 93, c(0xFF3B82F6)),
+        Theme("Midnight", c(0xFF0B1020), c(0xFF000000), 55, c(0xFF0B1020), 90, c(0xFF60A5FA)),
+        Theme("Ocean", c(0xFF0F3D4C), c(0xFF04202A), 50, c(0xFF0F3D4C), 90, c(0xFF22D3EE)),
+        Theme("Forest", c(0xFF14301F), c(0xFF05140A), 50, c(0xFF14301F), 90, c(0xFF4ADE80)),
+        Theme("Sunset", c(0xFF3B1D2A), c(0xFF1A0A12), 50, c(0xFF3B1D2A), 90, c(0xFFFB923C)),
+        Theme("Rose", c(0xFFFCE7F3), c(0xFF000000), 30, c(0xFFFCE7F3), 92, c(0xFFDB2777)),
+        Theme("Light", c(0xFFFFFFFF), c(0xFF000000), 30, c(0xFFFFFFFF), 92, c(0xFF3B82F6)),
+        Theme("AMOLED", c(0xFF000000), c(0xFF000000), 60, c(0xFF000000), 100, c(0xFFA78BFA))
+    )
+
+    private val accents = intArrayOf(
+        c(0xFF3B82F6), c(0xFF22D3EE), c(0xFF4ADE80), c(0xFFFACC15),
+        c(0xFFFB923C), c(0xFFEF4444), c(0xFFDB2777), c(0xFFA78BFA)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,6 +102,14 @@ class SettingsActivity : Activity() {
     private fun build() {
         col.addView(title("Look & colors", 22f, 0))
 
+        // ---- Themes
+        col.addView(title("Themes", 16f, 12))
+        col.addView(themeRow())
+
+        // ---- Accent colour
+        col.addView(title("Accent colour (buttons, badge)", 16f, 20))
+        col.addView(swatchRow(accents, Prefs.accent(this)) { Prefs.setAccent(this, it); applyLook(); rebuild() })
+
         // ---- Control panel background
         col.addView(title("Control panel background", 16f, 16))
         col.addView(panelPreview())
@@ -97,6 +127,28 @@ class SettingsActivity : Activity() {
         col.addView(swatchRow(bgColors, Prefs.widgetBg(this)) { Prefs.setWidgetBg(this, it); applyLook(); rebuild() })
         col.addView(customHex { Prefs.setWidgetBg(this, it); applyLook(); rebuild() })
         col.addView(seek("Opacity", Prefs.widgetAlpha(this)) { Prefs.setWidgetAlpha(this, it); updatePreviews() })
+
+        // ---- Arrange the widget
+        col.addView(title("Arrange the widget", 16f, 20))
+        col.addView(hint("Use ▲ ▼ to move the circles. Switch an item off to hide it."))
+        val labels = mapOf("clock" to "Clock", "weather" to "Weather", "date" to "Date")
+        val order = Prefs.order(this)
+        for ((i, key) in order.withIndex()) {
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+            val sw = Switch(this)
+            sw.text = "${i + 1}.  ${labels[key]}"
+            sw.isChecked = Prefs.show(this, key)
+            sw.setOnCheckedChangeListener { _, v -> Prefs.setShow(this, key, v); applyLook() }
+            row.addView(sw, LinearLayout.LayoutParams(0, WRAP, 1f))
+            row.addView(moveButton("▲", i > 0) { swap(order, i, i - 1) })
+            row.addView(moveButton("▼", i < order.size - 1) { swap(order, i, i + 1) })
+            col.addView(row)
+        }
+        col.addView(toggle("Maps search box", "maps"))
+        col.addView(toggleRaw("Maps search box at the start (left)", Prefs.pillFirst(this)) { Prefs.setPillFirst(this, it); applyLook() })
+        col.addView(toggle("Fast-dial circles", "dial"))
 
         val reset = Button(this)
         reset.text = "Reset everything to automatic"
@@ -149,6 +201,70 @@ class SettingsActivity : Activity() {
         scrimView?.setBackgroundColor(Prefs.scrimArgb(this))
         sheetView?.background = rounded(Prefs.panelBgColor(this), 16)
         widgetView?.background = rounded(Prefs.widgetBgArgb(this), 16)
+    }
+
+    private fun hint(t: String) = TextView(this).apply {
+        text = t
+        textSize = 12f
+        alpha = 0.7f
+        setPadding(0, 0, 0, dp(6))
+    }
+
+    private fun themeRow(): View {
+        val hs = HorizontalScrollView(this)
+        hs.isHorizontalScrollBarEnabled = false
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        hs.addView(row)
+        for (t in themes) {
+            val b = Button(this)
+            b.text = t.name
+            b.isAllCaps = false
+            b.setOnClickListener {
+                Prefs.setPanelBg(this, t.panel)
+                Prefs.setScrimColor(this, t.scrim)
+                Prefs.setScrimAlpha(this, t.scrimA)
+                Prefs.setWidgetBg(this, t.widget)
+                Prefs.setWidgetAlpha(this, t.widgetA)
+                Prefs.setAccent(this, t.accent)
+                applyLook()
+                rebuild()
+            }
+            row.addView(b)
+        }
+        return hs
+    }
+
+    private fun moveButton(label: String, enabled: Boolean, action: () -> Unit): View {
+        val b = Button(this)
+        b.text = label
+        b.minWidth = 0
+        b.minimumWidth = 0
+        b.isEnabled = enabled
+        b.setOnClickListener { action() }
+        return b
+    }
+
+    private fun swap(order: List<String>, a: Int, b: Int) {
+        val l = order.toMutableList()
+        val t = l[a]
+        l[a] = l[b]
+        l[b] = t
+        Prefs.setOrder(this, l)
+        applyLook()
+        rebuild()
+    }
+
+    private fun toggle(label: String, key: String): View =
+        toggleRaw(label, Prefs.show(this, key)) { Prefs.setShow(this, key, it); applyLook() }
+
+    private fun toggleRaw(label: String, on: Boolean, onChange: (Boolean) -> Unit): View {
+        val sw = Switch(this)
+        sw.text = label
+        sw.isChecked = on
+        sw.setPadding(0, dp(6), 0, dp(6))
+        sw.setOnCheckedChangeListener { _, v -> onChange(v) }
+        return sw
     }
 
     private fun swatchRow(colors: IntArray, selected: Int, onPick: (Int) -> Unit): View {

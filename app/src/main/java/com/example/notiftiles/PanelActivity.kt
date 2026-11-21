@@ -84,7 +84,7 @@ class PanelActivity : Activity() {
         back = TextView(this)
         back.text = "‹ Back"
         back.textSize = 15f
-        back.setTextColor(0xFF3B82F6.toInt())
+        back.setTextColor(Prefs.accent(this))
         back.setTypeface(null, Typeface.BOLD)
         back.setPadding(0, dp(6), dp(12), dp(6))
         back.visibility = View.GONE
@@ -105,7 +105,7 @@ class PanelActivity : Activity() {
         badge.textSize = 12f
         badge.setTypeface(null, Typeface.BOLD)
         badge.setTextColor(0xFFFFFFFF.toInt())
-        badge.background = rounded(0xFF3B82F6.toInt(), 10)
+        badge.background = rounded(Prefs.accent(this), 10)
         badge.setPadding(dp(8), dp(2), dp(8), dp(2))
         val blp = LinearLayout.LayoutParams(WRAP, WRAP)
         blp.marginStart = dp(8)
@@ -117,7 +117,7 @@ class PanelActivity : Activity() {
         addNote.text = "+ Note"
         addNote.textSize = 14f
         addNote.setTypeface(null, Typeface.BOLD)
-        addNote.setTextColor(0xFF3B82F6.toInt())
+        addNote.setTextColor(Prefs.accent(this))
         addNote.setPadding(dp(8), dp(6), dp(8), dp(6))
         addNote.setOnClickListener {
             expanded = "note:new"

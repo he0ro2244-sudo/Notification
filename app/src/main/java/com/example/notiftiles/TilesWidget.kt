@@ -50,6 +50,16 @@ class TilesWidget : AppWidgetProvider() {
         const val ACTION_CLEAR = "com.example.notiftiles.CLEAR_ALL"
         const val ACTION_WEATHER = "com.example.notiftiles.REFRESH_WEATHER"
 
+        private val W_CLOCK = intArrayOf(R.id.wclock0, R.id.wclock1, R.id.wclock2)
+        private val W_WEATHER = intArrayOf(R.id.wweather0, R.id.wweather1, R.id.wweather2)
+        private val W_DATE = intArrayOf(R.id.wdate0, R.id.wdate1, R.id.wdate2)
+        private val W_LOC = intArrayOf(R.id.wlocA, R.id.wlocB)
+        private val W_PIN = intArrayOf(R.id.wpinA, R.id.wpinB)
+
+        private fun clickAll(rv: RemoteViews, ids: IntArray, pi: PendingIntent) {
+            for (id in ids) rv.setOnClickPendingIntent(id, pi)
+        }
+
         private val DIAL_CIRCLE = intArrayOf(R.id.dc0, R.id.dc1, R.id.dc2, R.id.dc3, R.id.dc4)
         private val DIAL_NAME = intArrayOf(R.id.dn0, R.id.dn1, R.id.dn2, R.id.dn3, R.id.dn4)
         private val DIAL_BOX = intArrayOf(R.id.dial0, R.id.dial1, R.id.dial2, R.id.dial3, R.id.dial4)
@@ -93,15 +103,9 @@ class TilesWidget : AppWidgetProvider() {
                 )
             }
             val wx = Intent(ctx, OpenWeatherActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            rv.setOnClickPendingIntent(
-                R.id.wweather,
-                PendingIntent.getActivity(ctx, 4, wx, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            )
+            clickAll(rv, W_WEATHER, PendingIntent.getActivity(ctx, 4, wx, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             val clock = Intent(ctx, OpenClockActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            rv.setOnClickPendingIntent(
-                R.id.wclock,
-                PendingIntent.getActivity(ctx, 6, clock, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            )
+            clickAll(rv, W_CLOCK, PendingIntent.getActivity(ctx, 6, clock, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             mapsIcon(rv, ctx)
             val look = Intent(ctx, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             rv.setOnClickPendingIntent(
@@ -110,15 +114,9 @@ class TilesWidget : AppWidgetProvider() {
             )
             val cal = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            rv.setOnClickPendingIntent(
-                R.id.wdate,
-                PendingIntent.getActivity(ctx, 7, cal, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            )
+            clickAll(rv, W_DATE, PendingIntent.getActivity(ctx, 7, cal, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             val where = Intent(ctx, DestinationActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            rv.setOnClickPendingIntent(
-                R.id.wloc,
-                PendingIntent.getActivity(ctx, 5, where, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            )
+            clickAll(rv, W_LOC, PendingIntent.getActivity(ctx, 5, where, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             setDynamic(rv, ctx)
             return rv
         }
@@ -132,7 +130,7 @@ class TilesWidget : AppWidgetProvider() {
                 val canvas = android.graphics.Canvas(bmp)
                 d.setBounds(0, 0, size, size)
                 d.draw(canvas)
-                rv.setImageViewBitmap(R.id.wpin, bmp)
+                for (pin in W_PIN) rv.setImageViewBitmap(pin, bmp)
             } catch (e: Exception) {
                 // keep the default pin
             }
@@ -140,7 +138,8 @@ class TilesWidget : AppWidgetProvider() {
 
         private fun setDynamic(rv: RemoteViews, ctx: Context) {
             setCount(rv, ctx)
-            rv.setTextViewText(R.id.wweather, Weather.text(ctx))
+            for (w in W_WEATHER) rv.setTextViewText(w, Weather.text(ctx))
+            applyLayout(rv, ctx)
             // Background colour + opacity chosen in Look & colors.
             rv.setColorStateList(R.id.root, "setBackgroundTintList", ColorStateList.valueOf(Prefs.widgetBgArgb(ctx)))
             val custom = Prefs.widgetBg(ctx)
@@ -169,6 +168,26 @@ class TilesWidget : AppWidgetProvider() {
             }
         }
 
+        // Which top-row items are shown, in which order, and the accent colour.
+        private fun applyLayout(rv: RemoteViews, ctx: Context) {
+            val order = Prefs.order(ctx)
+            val groups = mapOf("clock" to W_CLOCK, "weather" to W_WEATHER, "date" to W_DATE)
+            for (slot in 0 until 3) {
+                for ((key, ids) in groups) {
+                    val on = order[slot] == key && Prefs.show(ctx, key)
+                    rv.setViewVisibility(ids[slot], if (on) View.VISIBLE else View.GONE)
+                }
+            }
+            val maps = Prefs.show(ctx, "maps")
+            val first = Prefs.pillFirst(ctx)
+            rv.setViewVisibility(R.id.wlocA, if (maps && first) View.VISIBLE else View.GONE)
+            rv.setViewVisibility(R.id.wlocB, if (maps && !first) View.VISIBLE else View.GONE)
+            rv.setViewVisibility(R.id.dialrow, if (Prefs.show(ctx, "dial")) View.VISIBLE else View.GONE)
+            val accent = Prefs.accent(ctx)
+            rv.setTextColor(R.id.wnote, accent)
+            rv.setColorStateList(R.id.count, "setBackgroundTintList", ColorStateList.valueOf(accent))
+        }
+
         private fun setCount(rv: RemoteViews, ctx: Context) {
             val n = Feed.items(ctx).size
             rv.setTextViewText(R.id.count, n.toString())
@@ -188,7 +207,7 @@ class TilesWidget : AppWidgetProvider() {
                 Thread {
                     Weather.fetch(app)
                     val r2 = RemoteViews(app.packageName, R.layout.widget_tiles)
-                    r2.setTextViewText(R.id.wweather, Weather.text(app))
+                    for (w in W_WEATHER) r2.setTextViewText(w, Weather.text(app))
                     for (id in ids) mgr.partiallyUpdateAppWidget(id, r2)
                 }.start()
             }

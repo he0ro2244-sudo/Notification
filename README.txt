@@ -31,3 +31,4 @@ installed weather app (and refreshes the temperature), pin asks where to go.
 Look & colors: tap the gear on the widget header or on the panel header (or the button
 in Notif Tiles setup). Control panel background, shadow behind the panel, widget background
 and opacity. "Reset" goes back to automatic light/dark.
+Themes + accent colour + "Arrange the widget" (move/hide clock, weather, date, Maps box, fast-dial) are in Look & colors.
