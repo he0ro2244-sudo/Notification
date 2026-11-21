@@ -300,9 +300,9 @@ class SettingsActivity : Activity() {
             Weather.setMode(this, it); applyLook(); rebuild()
         })
         col.addView(hint(
-            "Both: whenever you copy your phone weather app's number (tap the weather circle, or the small refresh icon which opens the app for a second and closes it again), the widget shows that exact number. " +
+            "Both: whenever you copy your phone weather app's number (tap the weather circle on the widget: your weather app opens and the number is copied), the widget shows that exact number. The small refresh icon never opens the app, it only refreshes the online number. " +
                 "Afterwards it keeps updating itself from the online source below and adds the difference it learned, so it stays close without opening the app. " +
-                "Phone app only: always the last number copied. Online only: ignores the phone app. Copying needs the Accessibility helper. " +
+                "If the phone app was never copied (or the helper is OFF) it uses the online number; if the online service cannot be reached it keeps the last number. Phone app only: always the last number copied. Online only: ignores the phone app. Copying needs the Accessibility helper. " +
                 (if (RecorderTapService.enabled(this)) "Helper is ON. " else "Helper is OFF. ") +
                 (if (Weather.appTime(this) > 0L) "Last copied: " + Weather.appTemp(this) + "° at " +
                     java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(Weather.appTime(this))) + ". " else "Nothing copied yet. ") +
@@ -439,7 +439,7 @@ class SettingsActivity : Activity() {
         section("Voice recorder") {
         // ---- Voice recorder (mic next to + Note)
         col.addView(title("Voice recorder", 16f, 20))
-        col.addView(hint("The blue mic at the start of the widget header starts recording in this app."))
+        col.addView(hint("The blue mic at the start of the widget header starts recording. With the Accessibility helper ON it uses your phone's recorder; with the helper OFF it records inside this app (switch below). Tap the mic again to stop and save."))
         val recOptions = ArrayList<Pair<String, String>>()
         recOptions.add("auto" to "Phone's recorder")
         for (a in Recorder.installedApps(this)) recOptions.add(a)
@@ -453,10 +453,11 @@ class SettingsActivity : Activity() {
         col.addView(recOther)
         col.addView(hint("How the mic starts recording. If the mic only opens the Recorder, try another one and use the test button."))
         col.addView(choiceRow(Recorder.START_ACTIONS, Recorder.startAction(this), false) { Recorder.setStartAction(this, it); rebuild() })
+        col.addView(toggleRaw("Helper OFF: record inside this app (saved in Recordings/NotifTiles)", Recorder.builtinOn(this)) { Recorder.setBuiltinOn(this, it) })
         val recTest = Button(this)
         recTest.isAllCaps = false
         recTest.text = "Test: start recording now"
-        recTest.setOnClickListener { Recorder.startRecording(this) }
+        recTest.setOnClickListener { startActivity(Intent(this, RecordActivity::class.java)) }
         col.addView(recTest)
         col.addView(title("Auto-press the red button", 14f, 12))
         col.addView(hint("This phone's Recorder ignores start requests from other apps. This helper opens the Recorder and presses its red record button for you. Turn on \"Notif Tiles recorder button\" in Accessibility. If the switch is greyed out: App info > ⋮ > Allow restricted settings."))
@@ -734,19 +735,24 @@ class SettingsActivity : Activity() {
     }
 
     private fun cityRow(): View {
+        val act = this
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         row.gravity = Gravity.CENTER_VERTICAL
         val et = EditText(this)
         et.hint = "City, e.g. Riyadh"
         et.setSingleLine(true)
+        et.setText(Weather.city(this))
+        et.setSelectAllOnFocus(true)
         row.addView(et, LinearLayout.LayoutParams(0, WRAP, 1f))
         val b = Button(this)
         b.text = "Set"
         b.isAllCaps = false
         b.setOnClickListener {
             val name = et.text.toString().trim()
-            if (name.isEmpty()) return@setOnClickListener
+            if (name.isEmpty() || name == Weather.city(act)) return@setOnClickListener
             Toast.makeText(this, "Looking up…", Toast.LENGTH_SHORT).show()
             Thread {
                 val r = Weather.lookup(applicationContext, name)
@@ -760,7 +766,56 @@ class SettingsActivity : Activity() {
             }.start()
         }
         row.addView(b)
-        return row
+        box.addView(row)
+
+        // Small list of matching places that appears while typing; tap one to use it.
+        val list = LinearLayout(this)
+        list.orientation = LinearLayout.VERTICAL
+        box.addView(list)
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        var token = 0
+        et.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val q = s?.toString()?.trim() ?: ""
+                token++
+                val mine = token
+                list.removeAllViews()
+                if (q.length < 2 || q == Weather.city(act)) return
+                handler.postDelayed({
+                    if (mine != token) return@postDelayed
+                    Thread {
+                        val hits = Weather.search(q)
+                        act.runOnUiThread {
+                            if (mine != token) return@runOnUiThread
+                            list.removeAllViews()
+                            for (h in hits) {
+                                val t = TextView(act)
+                                t.text = h.label
+                                t.textSize = 15f
+                                t.setPadding(act.dp(12), act.dp(10), act.dp(12), act.dp(10))
+                                val bg = GradientDrawable()
+                                bg.setColor(0x22808080)
+                                bg.cornerRadius = act.dp(8).toFloat()
+                                t.background = bg
+                                val lp = LinearLayout.LayoutParams(MATCH, WRAP)
+                                lp.topMargin = act.dp(4)
+                                t.layoutParams = lp
+                                t.setOnClickListener {
+                                    Weather.setPlace(act.applicationContext, h)
+                                    Toast.makeText(act, h.label, Toast.LENGTH_SHORT).show()
+                                    TilesWidget.refresh(act.applicationContext)
+                                    act.rebuild()
+                                }
+                                list.addView(t)
+                            }
+                        }
+                    }.start()
+                }, 350)
+            }
+        })
+        return box
     }
 
     private fun panelPreview(): View {

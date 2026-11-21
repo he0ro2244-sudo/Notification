@@ -33,9 +33,8 @@ class TilesWidget : AppWidgetProvider() {
             val ids = mgr.getAppWidgetIds(ComponentName(context, TilesWidget::class.java))
             for (id in ids) mgr.updateAppWidget(id, build(context, id))
             refresh(context)
-            val viaApp = Weather.useApp(context) && RecorderTapService.enabled(context)
-            if (!viaApp) android.widget.Toast.makeText(context, "Refreshing…", android.widget.Toast.LENGTH_SHORT).show()
-            fetchWeatherAsync(context, !viaApp)
+            android.widget.Toast.makeText(context, "Refreshing…", android.widget.Toast.LENGTH_SHORT).show()
+            fetchWeatherAsync(context, true)
         }
     }
 

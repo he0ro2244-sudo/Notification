@@ -2,6 +2,12 @@ Notif Tiles v0.9.15
 
 LATEST (v0.9.15) - older versions are listed below, newest at the bottom.
 
+LATEST CHANGES: Weather city box now shows the current city and a small list of matching places while you type
+(tap one to use it). The refresh icon no longer opens the phone's weather app.
+Mic: with the Accessibility helper ON it still uses your phone's recorder. With the helper OFF it now records inside this
+app (asks for microphone permission once), saved as m4a in Recordings/NotifTiles; tap the mic again, or "Stop & save" in the
+notification, to finish. Switch it off in Look & colors > Voice recorder to get the old behaviour back.
+
 NEW IN v0.9.15
 Settings icon is now a real icon (not a text character), so its colour and size follow Look & colors
 (widget and panel). New sliders: widget settings icon, widget mic icon, refresh icon size.
@@ -32,12 +38,11 @@ Needs the helper ON (Accessibility > Notif Tiles recorder button; after a reinst
 Allow restricted settings first if it is greyed out). It updates each time you open the app and keeps showing that number; the
 online source is only used until the first number is copied, or if you turn the switch off.
 
-Refresh icon + phone weather: with the phone-weather switch on and the helper ON, the small refresh icon opens the
-phone's weather app for about a second, copies its temperature into the widget and closes the app again by itself.
+Refresh icon: only refreshes the message counts and the online weather. It never opens the phone's weather app.
+The phone's weather app opens (and its number is copied) only when you tap the weather circle on the widget.
 
 Weather modes (Look & colors > Widget layout, clock & weather): Both (recommended) / Phone app only / Online only.
-Both: after you copy the phone weather app's number (weather circle, or the refresh icon which opens and closes the
-app by itself) the widget shows that exact number for 20 minutes, learns the difference to the online source, and then
+Both: after you copy the phone weather app's number (tap the weather circle on the widget) the widget shows that exact number for 20 minutes, learns the difference to the online source, and then
 keeps updating from the online source with that difference added, so it stays close to the phone without opening the app.
 
 ============================================================

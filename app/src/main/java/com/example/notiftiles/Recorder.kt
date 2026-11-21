@@ -30,6 +30,11 @@ object Recorder {
     fun mode(c: Context): String = sp(c).getString("rec_app", "auto") ?: "auto"
     fun setMode(c: Context, v: String) = sp(c).edit().putString("rec_app", v).apply()
 
+    /** When the Accessibility helper is OFF: record inside this app (saved in Recordings/NotifTiles) instead of opening the phone's recorder. */
+    fun builtinOn(c: Context): Boolean = sp(c).getBoolean("rec_builtin", true)
+    fun setBuiltinOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("rec_builtin", v).apply()
+    fun useBuiltin(c: Context): Boolean = builtinOn(c) && !RecorderTapService.enabled(c)
+
     private fun installed(c: Context, pkg: String): Boolean = try {
         c.packageManager.getApplicationInfo(pkg, 0)
         true

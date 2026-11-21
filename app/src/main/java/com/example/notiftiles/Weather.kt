@@ -227,6 +227,44 @@ object Weather {
         }
     }
 
+    class CityHit(val label: String, val lat: Double, val lon: Double)
+
+    /** Blocking. Up to 6 places matching a partly typed name, for the suggestion list. */
+    fun search(name: String): List<CityHit> {
+        return try {
+            val body = get(
+                "https://geocoding-api.open-meteo.com/v1/search?name=" +
+                    URLEncoder.encode(name, "UTF-8") + "&count=6&language=en&format=json"
+            )
+            val arr = org.json.JSONObject(body).optJSONArray("results") ?: return emptyList()
+            val out = ArrayList<CityHit>()
+            for (k in 0 until arr.length()) {
+                val r = arr.getJSONObject(k)
+                val n = r.optString("name")
+                val admin = r.optString("admin1")
+                val country = r.optString("country")
+                val label = n + (if (admin.isNotEmpty() && admin != n) ", $admin" else "") +
+                    (if (country.isNotEmpty()) ", $country" else "")
+                out.add(CityHit(label, r.getDouble("latitude"), r.getDouble("longitude")))
+            }
+            out
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    /** Makes a place picked from the suggestion list the weather location. */
+    fun setPlace(c: Context, p: CityHit) {
+        sp(c).edit()
+            .putString("w_lat", p.lat.toString())
+            .putString("w_lon", p.lon.toString())
+            .putString("w_city", p.label)
+            .putLong("w_try", 0L)
+            .putBoolean("w_has", false)
+            .remove("w_gap")
+            .apply()
+    }
+
     fun stale(c: Context): Boolean =
         System.currentTimeMillis() - sp(c).getLong("w_try", 0L) > EVERY_MS
 
