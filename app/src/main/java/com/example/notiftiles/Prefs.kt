@@ -199,6 +199,7 @@ object Prefs {
         "note" to "Widget: + Note",
         "clear" to "Widget: Clear all",
         "gear" to "Widget: settings icon",
+        "refresh" to "Widget: refresh icon",
         "clock" to "Widget: clock",
         "weather" to "Widget: weather",
         "date" to "Widget: date",
@@ -246,6 +247,10 @@ object Prefs {
     fun setGearSize(c: Context, v: Int) = sp(c).edit().putInt("look_szgear", v).apply()
     fun micSize(c: Context): Int = sp(c).getInt("look_szmic", 22)
     fun setMicSize(c: Context, v: Int) = sp(c).edit().putInt("look_szmic", v).apply()
+    fun refreshShow(c: Context): Boolean = sp(c).getBoolean("look_refresh", true)
+    fun setRefreshShow(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_refresh", v).apply()
+    fun refreshSize(c: Context): Int = sp(c).getInt("look_szrefresh", 16)
+    fun setRefreshSize(c: Context, v: Int) = sp(c).edit().putInt("look_szrefresh", v).apply()
     fun topSize(c: Context): Int = sp(c).getInt("look_sztop", 50)
     fun setTopSize(c: Context, v: Int) = sp(c).edit().putInt("look_sztop", v).apply()
     fun dialSize(c: Context): Int = sp(c).getInt("look_szdial", 42)
@@ -281,6 +286,10 @@ object Prefs {
     fun setCountRead(c: Context, v: Boolean) = sp(c).edit().putBoolean("cnt_read", v).apply()
     fun countReply(c: Context): Boolean = sp(c).getBoolean("cnt_reply", true)
     fun setCountReply(c: Context, v: Boolean) = sp(c).edit().putBoolean("cnt_reply", v).apply()
+
+    /** Also remove the notification from the phone's notification shade once it is handled here. */
+    fun dismissHandled(c: Context): Boolean = sp(c).getBoolean("cnt_dismiss", true)
+    fun setDismissHandled(c: Context, v: Boolean) = sp(c).edit().putBoolean("cnt_dismiss", v).apply()
 
     /** notification key -> time up to which it no longer counts (a newer post counts again). */
     fun handledMap(c: Context): Map<String, Long> {

@@ -80,3 +80,22 @@ NEW IN v0.9.6
 The phone's Recorder ignores start requests from other apps, so the mic now has a helper: turn on
 "Notif Tiles recorder button" in Accessibility and the mic opens the Recorder and presses its red record
 button for you. Adjust where it taps in Look & colors > Voice recorder > Red button position.
+
+NEW IN v0.9.15
+Settings icon is now a real icon (not a text character), so its colour and size follow Look & colors
+(widget and panel). New sliders: widget settings icon, widget mic icon, refresh icon size.
+Small refresh icon in the middle of the widget (under "Nothing new from your apps"): re-counts messages,
+redraws the widget and refreshes the weather. Hide it or recolour it in Look & colors.
+Weather refreshes about every 15 minutes by itself and retries after 2 minutes if a fetch fails.
+Weather source (Open-Meteo, ECMWF, ICON, Yr), a temperature adjust of +/- 6 degrees, and a small
+"Updated 14:05" line under the refresh icon (can be hidden).
+Backup & restore (Look & colors): export all settings, notes and background pictures to one file, import it later.
+BUILD: the app is now signed with a fixed key (app/notiftiles-debug.keystore), so new builds install over old ones.
+You must uninstall once when moving from an older build; after that, updates install over. Every push to
+main/master builds automatically, and the APK is attached to a GitHub release (Releases page) as well as the
+Actions artifact. If your repo is public, anyone can sign with this key: keep the repo private.
+
+Handled messages leave the phone's notification panel too: when you read a message here (leave it or press Back),
+reply, open it, or tap the app's "Mark as read" button, its notification is cleared from the phone's shade.
+Turn it off in Look & colors > Counts > "Also remove it from the phone's notification panel".
+(This clears the notification only. It does not mark the chat as read inside WhatsApp etc.)

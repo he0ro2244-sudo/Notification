@@ -97,6 +97,14 @@ class SettingsActivity : Activity() {
         scroll.post { scroll.scrollTo(0, y) }
     }
 
+    private fun refreshWeatherNow() {
+        val app = applicationContext
+        Thread {
+            Weather.fetch(app)
+            TilesWidget.refresh(app)
+        }.start()
+    }
+
     private fun applyLook() {
         updatePreviews()
         TilesWidget.refresh(applicationContext)
@@ -226,6 +234,8 @@ class SettingsActivity : Activity() {
         })
         col.addView(seekRange("Clock / weather / date circles", Prefs.topSize(this), 36, 72, " dp") { Prefs.setTopSize(this, it) })
         col.addView(seekRange("Widget settings icon", Prefs.gearSize(this), 14, 40, " dp") { Prefs.setGearSize(this, it) })
+        col.addView(toggleRaw("Refresh icon (centre of the widget)", Prefs.refreshShow(this)) { Prefs.setRefreshShow(this, it); applyLook() })
+        col.addView(seekRange("Widget refresh icon", Prefs.refreshSize(this), 10, 32, " dp") { Prefs.setRefreshSize(this, it) })
         col.addView(seekRange("Widget mic icon", Prefs.micSize(this), 14, 40, " dp") { Prefs.setMicSize(this, it) })
         col.addView(seekRange("Fast-dial circles", Prefs.dialSize(this), 30, 64, " dp") { Prefs.setDialSize(this, it) })
         col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
@@ -284,6 +294,12 @@ class SettingsActivity : Activity() {
         col.addView(choiceRow(listOf("c" to "°C", "f" to "°F"), Weather.unit(this), false) {
             Weather.setUnit(this, it); applyLook(); rebuild()
         })
+        col.addView(hint("Weather source (try another if the number differs from your phone's weather app)"))
+        col.addView(choiceRow(Weather.SOURCES, Weather.source(this), false) {
+            Weather.setSource(this, it); refreshWeatherNow(); rebuild()
+        })
+        col.addView(seekRange("Temperature adjust", Weather.offset(this), -6, 6, "°") { Weather.setOffset(this, it); applyLook() })
+        col.addView(toggleRaw("Show \"Updated\" time in the widget", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); applyLook() })
 
         }
 
@@ -445,8 +461,38 @@ class SettingsActivity : Activity() {
         col.addView(title("Counts", 16f, 20))
         col.addView(toggleRaw("Count drops after I read a message here", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
         col.addView(toggleRaw("Count drops after I reply here", Prefs.countReply(this)) { Prefs.setCountReply(this, it) })
-        col.addView(hint("A new message from the same chat counts again."))
+        col.addView(toggleRaw("Also remove it from the phone's notification panel", Prefs.dismissHandled(this)) { Prefs.setDismissHandled(this, it) })
+        col.addView(hint("When you read, reply to or mark a message as read here, its notification is cleared from the phone's shade too. A new message from the same chat counts again."))
 
+        }
+
+        section("Backup & restore") {
+            col.addView(hint("Saves all your Look & colors choices, fast-dial contacts, notes and background pictures into one file, so a reinstall does not lose them."))
+            val ex = Button(this)
+            ex.text = "Export settings to a file"
+            ex.isAllCaps = false
+            ex.setOnClickListener {
+                try {
+                    val i = Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                        .setType("application/json").putExtra(Intent.EXTRA_TITLE, "notiftiles-settings.json")
+                    startActivityForResult(i, 110)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "No file app found", Toast.LENGTH_SHORT).show()
+                }
+            }
+            col.addView(ex)
+            val im = Button(this)
+            im.text = "Import settings from a file"
+            im.isAllCaps = false
+            im.setOnClickListener {
+                try {
+                    val i = Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
+                    startActivityForResult(i, 111)
+                } catch (e: Exception) {
+                    Toast.makeText(this, "No file app found", Toast.LENGTH_SHORT).show()
+                }
+            }
+            col.addView(im)
         }
 
         val reset = Button(this)
@@ -602,6 +648,32 @@ class SettingsActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         val uri = data?.data
+        if (requestCode == 110 && resultCode == RESULT_OK && uri != null) {
+            Thread {
+                val ok = try {
+                    contentResolver.openOutputStream(uri, "wt")?.use { it.write(Backup.export(applicationContext).toByteArray()) }
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+                runOnUiThread { Toast.makeText(this, if (ok) "Settings saved" else "Could not save the file", Toast.LENGTH_SHORT).show() }
+            }.start()
+        }
+        if (requestCode == 111 && resultCode == RESULT_OK && uri != null) {
+            Thread {
+                val n = try {
+                    val text = contentResolver.openInputStream(uri)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: ""
+                    Backup.import(applicationContext, text)
+                } catch (e: Exception) {
+                    -1
+                }
+                runOnUiThread {
+                    Toast.makeText(this, if (n >= 0) "Restored $n settings" else "That file is not a Notif Tiles backup", Toast.LENGTH_LONG).show()
+                    applyLook()
+                    rebuild()
+                }
+            }.start()
+        }
         if (requestCode in 100..102 && resultCode == RESULT_OK && uri != null) {
             val kind = KINDS[requestCode - 100]
             Thread {

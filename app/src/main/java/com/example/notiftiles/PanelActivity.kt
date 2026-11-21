@@ -212,12 +212,26 @@ class PanelActivity : Activity() {
         return t
     }
 
+    // Removes a handled notification from the phone's shade too (only ones Android lets you swipe away).
+    private fun dismissFromShade(sbn: StatusBarNotification, delayMs: Long = 0L) {
+        if (!Prefs.dismissHandled(this) || !sbn.isClearable) return
+        val key = sbn.key
+        if (delayMs <= 0L) {
+            NotifListener.instance?.cancelNotification(key)
+        } else {
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                NotifListener.instance?.cancelNotification(key)
+            }, delayMs)
+        }
+    }
+
     // Leaving an opened message counts it as read: it stops being counted until something newer arrives.
     private fun finishViewing() {
         val v = viewing ?: return
         viewing = null
         if (Prefs.countRead(this)) {
             Prefs.markHandled(this, v.key, v.postTime)
+            dismissFromShade(v)
             TilesWidget.refresh(applicationContext)
         }
     }
@@ -639,11 +653,7 @@ class PanelActivity : Activity() {
             if (v != null && Prefs.countReply(this)) {
                 // Ignore the app's own "you replied" update, and tidy the notification away.
                 Prefs.markHandled(this, v.key, System.currentTimeMillis() + 4000)
-                if (v.isClearable) {
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        NotifListener.instance?.cancelNotification(v.key)
-                    }, 1500)
-                }
+                dismissFromShade(v, 1500L)
                 viewing = null
                 expanded = null
                 refresh()
@@ -686,13 +696,26 @@ class PanelActivity : Activity() {
             return
         }
         val t = a.title.toString().lowercase()
+        if (t.contains("read") && !t.contains("unread")) {
+            // "Mark as read" from the app's own button: handled here as well.
+            Prefs.markHandled(this, sbn.key, System.currentTimeMillis() + 4000)
+            dismissFromShade(sbn, 800L)
+            if (viewing?.key == sbn.key) viewing = null
+            expanded = null
+            refresh()
+            TilesWidget.refresh(applicationContext)
+            return
+        }
         if (t.contains("view") || t.contains("open") || t.contains("play") || t.contains("watch")) {
             open(sbn)
         }
     }
 
     private fun open(sbn: StatusBarNotification) {
-        if (Prefs.countRead(this)) Prefs.markHandled(this, sbn.key, sbn.postTime)
+        if (Prefs.countRead(this)) {
+            Prefs.markHandled(this, sbn.key, sbn.postTime)
+            dismissFromShade(sbn, 1500L)
+        }
         viewing = null
         try {
             val pi = sbn.notification.contentIntent

@@ -1,5 +1,13 @@
 name: Build APK
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,3 +35,11 @@ jobs:
         with:
           name: notiftiles-apk
           path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+      - name: Publish APK as a release (easy download on the phone)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Notif Tiles build ${{ github.run_number }}
+          prerelease: true
+          files: app/build/outputs/apk/debug/app-debug.apk

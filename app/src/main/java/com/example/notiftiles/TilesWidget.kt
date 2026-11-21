@@ -27,9 +27,27 @@ class TilesWidget : AppWidgetProvider() {
             refresh(context)
         }
         if (intent.action == ACTION_WEATHER) fetchWeatherAsync(context)
+        if (intent.action == ACTION_REFRESH_ALL) {
+            // Re-count messages, redraw everything and fetch fresh weather.
+            val mgr = AppWidgetManager.getInstance(context)
+            val ids = mgr.getAppWidgetIds(ComponentName(context, TilesWidget::class.java))
+            for (id in ids) mgr.updateAppWidget(id, build(context, id))
+            refresh(context)
+            fetchWeatherAsync(context)
+        }
+    }
+
+    override fun onEnabled(context: Context) {
+        scheduleWeather(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        am.cancel(weatherPending(context))
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
+        scheduleWeather(context)
         for (id in appWidgetIds) appWidgetManager.updateAppWidget(id, build(context, id))
         fetchWeatherAsync(context)
     }
@@ -49,6 +67,7 @@ class TilesWidget : AppWidgetProvider() {
 
     companion object {
         const val ACTION_CLEAR = "com.example.notiftiles.CLEAR_ALL"
+        const val ACTION_REFRESH_ALL = "com.example.notiftiles.REFRESH_ALL"
         const val ACTION_WEATHER = "com.example.notiftiles.REFRESH_WEATHER"
 
         private val W_CLOCK = intArrayOf(R.id.wclock0, R.id.wclock1, R.id.wclock2)
@@ -118,6 +137,11 @@ class TilesWidget : AppWidgetProvider() {
                 R.id.wset,
                 PendingIntent.getActivity(ctx, 8, look, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             )
+            val all = Intent(ctx, TilesWidget::class.java).setAction(ACTION_REFRESH_ALL)
+            rv.setOnClickPendingIntent(
+                R.id.wrefresh,
+                PendingIntent.getBroadcast(ctx, 11, all, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            )
             val cal = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_CALENDAR)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             clickAll(rv, W_DATE, PendingIntent.getActivity(ctx, 7, cal, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
@@ -147,6 +171,14 @@ class TilesWidget : AppWidgetProvider() {
 
         fun setWeather(rv: RemoteViews, ctx: Context) {
             for (w in W_WEATHER) txt(rv, ctx, w, Weather.text(ctx), 13f, true)
+            val upd = Weather.updatedText(ctx)
+            if (Weather.showUpdated(ctx) && upd.isNotEmpty()) {
+                rv.setViewVisibility(R.id.wupdated, android.view.View.VISIBLE)
+                rv.setTextViewText(R.id.wupdated, upd)
+                rv.setTextViewTextSize(R.id.wupdated, TypedValue.COMPLEX_UNIT_SP, 10f * Look.scale(ctx))
+            } else {
+                rv.setViewVisibility(R.id.wupdated, android.view.View.GONE)
+            }
         }
 
         private fun bgImage(rv: RemoteViews, ctx: Context, viewId: Int, kind: String) {
@@ -189,8 +221,15 @@ class TilesWidget : AppWidgetProvider() {
             val gs = Prefs.gearSize(ctx).toFloat()
             rv.setViewLayoutWidth(R.id.wset, gs + 6f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wset, gs + 4f, TypedValue.COMPLEX_UNIT_DIP)
-            txt(rv, ctx, R.id.empty, "Nothing new from your apps", 13f, false)
-            rv.setTextColor(R.id.empty, sub)
+            txt(rv, ctx, R.id.empty_txt, "Nothing new from your apps", 13f, false)
+            rv.setTextColor(R.id.empty_txt, sub)
+            rv.setViewVisibility(R.id.wrefresh, if (Prefs.refreshShow(ctx)) android.view.View.VISIBLE else android.view.View.GONE)
+            val rc = Prefs.partColor(ctx, "refresh").let { if (it != 0) it else Feed.alpha(sub, 0x99) }
+            rv.setInt(R.id.wrefresh, "setColorFilter", rc)
+            rv.setTextColor(R.id.wupdated, Feed.alpha(sub, 0x99))
+            val rs = Prefs.refreshSize(ctx).toFloat()
+            rv.setViewLayoutWidth(R.id.wrefresh, rs + 12f, TypedValue.COMPLEX_UNIT_DIP)
+            rv.setViewLayoutHeight(R.id.wrefresh, rs + 12f, TypedValue.COMPLEX_UNIT_DIP)
 
             // ---- Clock / weather / date circles and the Where to? box
             val circ = Prefs.circleColor(ctx)

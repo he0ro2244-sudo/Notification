@@ -11,8 +11,18 @@ android {
         applicationId = "com.example.notiftiles"
         minSdk = 31
         targetSdk = 34
-        versionCode = 15
-        versionName = "0.9.6"
+        versionCode = 16
+        versionName = "0.9.15"
+    }
+
+    // One fixed signing key, so every build installs over the last one (no more uninstalling first).
+    signingConfigs {
+        getByName("debug") {
+            storeFile = file("notiftiles-debug.keystore")
+            storePassword = "android"
+            keyAlias = "notiftiles"
+            keyPassword = "android"
+        }
     }
 
     compileOptions {
