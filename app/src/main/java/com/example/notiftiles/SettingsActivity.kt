@@ -341,6 +341,20 @@ class SettingsActivity : Activity() {
         accBtn.text = "Open Accessibility settings"
         accBtn.setOnClickListener { startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
         col.addView(accBtn)
+        col.addView(hint(Recorder.learnedSummary(this)))
+        val learnBtn = Button(this)
+        learnBtn.isAllCaps = false
+        learnBtn.text = "Learn the red button"
+        learnBtn.setOnClickListener {
+            if (!RecorderTapService.enabled(this)) {
+                Toast.makeText(this, "Turn the helper on in Accessibility first", Toast.LENGTH_LONG).show()
+            } else {
+                RecorderTapService.learnUntil = System.currentTimeMillis() + 60000
+                Recorder.open(this, true)
+                Toast.makeText(this, "Now press the red record button once, then stop the recording", Toast.LENGTH_LONG).show()
+            }
+        }
+        col.addView(learnBtn)
         col.addView(seekRange("Red button position: across", Recorder.tapX(this), 20, 80, "%") { Recorder.setTapX(this, it) })
         col.addView(seekRange("Red button position: down", Recorder.tapY(this), 60, 95, "%") { Recorder.setTapY(this, it) })
         val recCheck = Button(this)

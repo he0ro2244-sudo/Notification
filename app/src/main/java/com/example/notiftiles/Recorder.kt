@@ -114,6 +114,19 @@ object Recorder {
     fun setTapX(c: Context, v: Int) = sp(c).edit().putInt("rec_tap_x", v).apply()
     fun setTapY(c: Context, v: Int) = sp(c).edit().putInt("rec_tap_y", v).apply()
 
+    // The red button as learned from a real press (see "Learn the red button" in settings).
+    fun learnedId(c: Context): String = sp(c).getString("rec_btn_id", "") ?: ""
+    fun learnedDesc(c: Context): String = sp(c).getString("rec_btn_desc", "") ?: ""
+    fun hasLearned(c: Context): Boolean = learnedId(c).isNotBlank() || learnedDesc(c).isNotBlank()
+    fun setLearned(c: Context, id: String, desc: String, xPct: Int, yPct: Int) {
+        sp(c).edit().putString("rec_btn_id", id).putString("rec_btn_desc", desc)
+            .putInt("rec_tap_x", xPct).putInt("rec_tap_y", yPct).apply()
+    }
+    fun learnedSummary(c: Context): String =
+        if (!hasLearned(c)) "Nothing learned yet."
+        else "Learned: " + learnedId(c).substringAfter(":id/", learnedId(c)).ifBlank { learnedDesc(c) } +
+            " at " + tapX(c) + "%, " + tapY(c) + "%"
+
     /** Starts recording right away in the phone's Recorder; falls back to just opening it. */
     fun startRecording(c: Context): Boolean {
         // The Recorder ignores start requests from other apps, so when the helper is on we open it

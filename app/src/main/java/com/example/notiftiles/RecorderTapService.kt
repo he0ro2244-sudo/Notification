@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.GestureDescription
 import android.content.Context
 import android.graphics.Path
+import android.graphics.Rect
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
@@ -21,6 +22,10 @@ class RecorderTapService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         val now = System.currentTimeMillis()
+        if (event.eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+            if (now < learnUntil) learn(event)
+            return
+        }
         if (now > pendingUntil) return
         if (now - lastTap < 15000) return // never press twice (a second press would stop the recording)
         pendingUntil = 0L
@@ -33,6 +38,45 @@ class RecorderTapService : AccessibilityService() {
 
     private var backs = 0
     private var lastTap = 0L
+
+    // Remember the button the person really pressed, so it can be pressed the same way later.
+    private fun learn(event: AccessibilityEvent) {
+        val n = event.source
+        if (n == null) {
+            Toast.makeText(this, "Notif Tiles: couldn't read that button", Toast.LENGTH_LONG).show()
+            return
+        }
+        learnUntil = 0L
+        val r = Rect()
+        n.getBoundsInScreen(r)
+        val b = getSystemService(WindowManager::class.java).currentWindowMetrics.bounds
+        val xp = (r.centerX() * 100f / b.width()).toInt().coerceIn(1, 99)
+        val yp = (r.centerY() * 100f / b.height()).toInt().coerceIn(1, 99)
+        Recorder.setLearned(this, n.viewIdResourceName ?: "", n.contentDescription?.toString() ?: "", xp, yp)
+        Toast.makeText(this, "Notif Tiles learned: " + Recorder.learnedSummary(this), Toast.LENGTH_LONG).show()
+    }
+
+    private fun findLearned(root: AccessibilityNodeInfo): AccessibilityNodeInfo? {
+        val id = Recorder.learnedId(this)
+        if (id.isNotBlank()) {
+            val l = root.findAccessibilityNodeInfosByViewId(id)
+            val v = l.firstOrNull { it.isVisibleToUser }
+            if (v != null) return v
+        }
+        val d = Recorder.learnedDesc(this)
+        if (d.isNotBlank()) return findByDesc(root, d)
+        return null
+    }
+
+    private fun findByDesc(n: AccessibilityNodeInfo, d: String): AccessibilityNodeInfo? {
+        if (n.isVisibleToUser && n.contentDescription?.toString() == d) return n
+        for (i in 0 until n.childCount) {
+            val c = n.getChild(i) ?: continue
+            val r = findByDesc(c, d)
+            if (r != null) return r
+        }
+        return null
+    }
 
     private fun alreadyRecording(root: AccessibilityNodeInfo): Boolean {
         val l = (root.contentDescription?.toString() ?: "") + " " + (root.text?.toString() ?: "")
@@ -66,7 +110,7 @@ class RecorderTapService : AccessibilityService() {
         // 1) Try to find the record button by its label / id and click it.
         val root = rootInActiveWindow
         if (root != null) {
-            var n: AccessibilityNodeInfo? = findRecordButton(root)
+            var n: AccessibilityNodeInfo? = findLearned(root) ?: (if (Recorder.hasLearned(this)) null else findRecordButton(root))
             while (n != null && !n.isClickable) n = n.parent
             if (n != null && n.performAction(AccessibilityNodeInfo.ACTION_CLICK)) {
                 Toast.makeText(this, "Notif Tiles: pressed record button", Toast.LENGTH_SHORT).show()
@@ -105,6 +149,10 @@ class RecorderTapService : AccessibilityService() {
         /** Time up to which the next Recorder window should get its red button pressed. */
         @Volatile
         var pendingUntil = 0L
+
+        /** While set, the next click inside the Recorder is remembered as "the red button". */
+        @Volatile
+        var learnUntil = 0L
 
         fun enabled(c: Context): Boolean {
             val s = Settings.Secure.getString(c.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES) ?: return false
