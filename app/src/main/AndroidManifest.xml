@@ -10,6 +10,16 @@
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
         <package android:name="com.google.android.apps.maps" />
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        <package android:name="com.google.android.keep" />
+        <package android:name="com.samsung.android.app.notes" />
+        <package android:name="com.microsoft.office.onenote" />
+        <package android:name="com.evernote" />
+        <package android:name="com.automattic.simplenote" />
+        <package android:name="md.obsidian" />
     </queries>
 
     <application

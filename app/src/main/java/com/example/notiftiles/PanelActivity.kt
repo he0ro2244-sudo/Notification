@@ -434,16 +434,30 @@ class PanelActivity : Activity() {
         bar.orientation = LinearLayout.HORIZONTAL
         bar.setPadding(0, dp(10), 0, 0)
         val plp = { LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(6) } }
-        bar.addView(pill("Save", fg, bg, true) {
+        bar.addView(pill(if (existing == null && !Notes.keepInApp(this)) "Send to notes app" else "Save", fg, bg, true) {
             val txt = et.text.toString().trim()
             if (txt.isEmpty()) {
                 toast("Type something first")
             } else {
-                if (existing == null) Prefs.addNote(this, txt) else Prefs.updateNote(this, existing.id, txt)
-                et.setText("")
-                expanded = null
-                refresh()
-                toast("Saved")
+                if (existing == null && !Notes.keepInApp(this)) {
+                    if (Notes.send(this, txt)) {
+                        et.setText("")
+                        expanded = null
+                        finish()
+                    } else {
+                        Prefs.addNote(this, txt)
+                        et.setText("")
+                        expanded = null
+                        refresh()
+                        toast("No notes app found, saved here")
+                    }
+                } else {
+                    if (existing == null) Prefs.addNote(this, txt) else Prefs.updateNote(this, existing.id, txt)
+                    et.setText("")
+                    expanded = null
+                    refresh()
+                    toast("Saved")
+                }
             }
         }, plp())
         if (existing != null) {

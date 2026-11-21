@@ -234,6 +234,16 @@ class SettingsActivity : Activity() {
         }
         col.addView(clr)
 
+        // ---- Notes app
+        col.addView(title("Notes", 16f, 20))
+        col.addView(hint("Where \"+ Note\" saves what you type."))
+        val noteOptions = ArrayList<Pair<String, String>>()
+        noteOptions.add("auto" to "Auto")
+        for (a in Notes.installedApps(this)) noteOptions.add(a)
+        noteOptions.add("ask" to "Ask each time")
+        noteOptions.add("inapp" to "Inside Notif Tiles")
+        col.addView(choiceRow(noteOptions, Notes.mode(this), false) { Notes.setMode(this, it); rebuild() })
+
         // ---- Counts
         col.addView(title("Counts", 16f, 20))
         col.addView(toggleRaw("Count drops after I read a message here", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })

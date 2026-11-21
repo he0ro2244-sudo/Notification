@@ -52,3 +52,8 @@ The count now goes down when you read a message in the panel (leave it or press 
 reply from the panel (the notification is also tidied away). A newer message from the same chat
 counts again. Turn either off in Look & colors > Counts. The widget also re-counts a moment after
 any notification is removed, so reading a chat in its own app updates the count more reliably.
+
+NEW IN v0.9
+"+ Note" now sends what you type to the notes app on the phone (Google Keep, Samsung Notes, ...).
+Choose the app, "Ask each time" or "Inside Notif Tiles" in Look & colors > Notes. Notes you already
+saved inside Notif Tiles stay until you delete them.
