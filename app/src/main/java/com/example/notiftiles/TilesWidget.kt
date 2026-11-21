@@ -89,8 +89,6 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
 
         val rv = RemoteViews(ctx.packageName, R.layout.widget_tile)
         rv.setColorStateList(R.id.tile_root, "setBackgroundTintList", ColorStateList.valueOf(bg))
-        val bmp = Feed.iconBitmap(ctx, sbn.packageName, 64)
-        if (bmp != null) rv.setImageViewBitmap(R.id.icon, bmp)
         rv.setTextViewText(R.id.appname, Feed.label(ctx, sbn.packageName))
         rv.setTextColor(R.id.appname, Feed.alpha(fg, 0xCC))
         rv.setTextViewText(R.id.cnt, (counts[sbn.packageName] ?: 1).toString())

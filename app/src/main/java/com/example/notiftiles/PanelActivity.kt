@@ -1,12 +1,14 @@
 package com.example.notiftiles
 
 import android.app.Activity
+import android.app.ActivityOptions
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.RemoteInput
 import android.content.Intent
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
+import android.os.Build
 import android.os.Bundle
 import android.service.notification.StatusBarNotification
 import android.text.TextUtils
@@ -388,7 +390,7 @@ class PanelActivity : Activity() {
         bar.setPadding(0, dp(10), 0, 0)
         val blp = { LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(6) } }
         for (a in others) {
-            bar.addView(pill(a.title.toString(), fg, bg, false) { runAction(a) }, blp())
+            bar.addView(pill(a.title.toString(), fg, bg, false) { runAction(sbn, a) }, blp())
         }
         bar.addView(pill("Open", fg, bg, false) { open(sbn) }, blp())
         if (count > 1) {
@@ -419,12 +421,36 @@ class PanelActivity : Activity() {
         }
     }
 
-    private fun runAction(a: Notification.Action) {
-        try {
-            a.actionIntent.send()
-            if (a.actionIntent.isActivity) finish()
-        } catch (e: PendingIntent.CanceledException) {
-            toast("Couldn't run that action")
+    private fun balOptions(): Bundle? {
+        if (Build.VERSION.SDK_INT < 34) return null
+        return ActivityOptions.makeBasic()
+            .setPendingIntentBackgroundActivityStartMode(
+                ActivityOptions.MODE_BACKGROUND_ACTIVITY_ALLOWED
+            )
+            .toBundle()
+    }
+
+    private fun fire(pi: PendingIntent): Boolean = try {
+        pi.send(this, 0, null, null, null, null, balOptions())
+        true
+    } catch (e: PendingIntent.CanceledException) {
+        false
+    }
+
+    private fun runAction(sbn: StatusBarNotification, a: Notification.Action) {
+        val pi = a.actionIntent
+        if (!fire(pi)) {
+            toast("That action expired, opening the app instead")
+            open(sbn)
+            return
+        }
+        if (pi.isActivity) {
+            finish()
+            return
+        }
+        val t = a.title.toString().lowercase()
+        if (t.contains("view") || t.contains("open") || t.contains("play") || t.contains("watch")) {
+            open(sbn)
         }
     }
 
@@ -432,7 +458,7 @@ class PanelActivity : Activity() {
         try {
             val pi = sbn.notification.contentIntent
             if (pi != null) {
-                pi.send()
+                if (!fire(pi)) toast("Couldn't open")
                 if ((sbn.notification.flags and Notification.FLAG_AUTO_CANCEL) != 0) {
                     NotifListener.instance?.cancelNotification(sbn.key)
                 }
