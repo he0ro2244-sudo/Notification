@@ -12,7 +12,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.7
-      - run: gradle assembleDebug --no-daemon
+      - name: Build
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --console=plain 2>&1 | tee build.log
+      - name: Show errors in summary
+        if: failure()
+        run: |
+          echo '### Build errors' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E '^e: |error:|What went wrong|Execution failed' -A4 build.log | head -80 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with:
           name: notiftiles-apk
