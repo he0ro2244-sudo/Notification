@@ -3,6 +3,8 @@
     android:accessibilityEventTypes="typeWindowStateChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:canPerformGestures="true"
+    android:canRetrieveWindowContent="true"
+    android:accessibilityFlags="flagReportViewIds"
     android:description="@string/rec_tap_desc"
     android:notificationTimeout="100"
-    android:packageNames="com.coloros.soundrecorder,com.oplus.soundrecorder,com.oneplus.soundrecorder" />
+    android:packageNames="com.coloros.soundrecorder,com.oplus.soundrecorder,com.oneplus.soundrecorder,com.google.android.apps.recorder,com.sec.android.app.voicenote,com.android.soundrecorder,com.miui.soundrecorder,com.huawei.soundrecorder,com.motorola.soundrecorder,com.sonymobile.androidapp.audiorecorder,com.nothing.soundrecorder,com.lge.voicerecorder" />
