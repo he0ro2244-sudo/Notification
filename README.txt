@@ -66,3 +66,8 @@ NEW IN v0.9.2
 Notes: "Phone default" now asks Android for the phone's own default Notes app. The pick list shows all
 your apps (notes-like names first). If the app you pick can't take shared text, the note is copied
 and the app opens so you can paste it.
+
+NEW IN v0.9.3
+Panel header: a mic button next to "+ Note" opens the phone's voice recorder so you can record audio fast.
+It finds your recorder automatically (Google Recorder, Samsung Voice Recorder, ...). If none is found you
+pick it once from a list. Change it any time in Look & colors > Voice recorder.

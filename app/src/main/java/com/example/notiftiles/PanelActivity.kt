@@ -115,6 +115,19 @@ class PanelActivity : Activity() {
 
         header.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
 
+        val rec = TextView(this)
+        rec.text = "\uD83C\uDF99"
+        rec.textSize = 18f
+        rec.setPadding(dp(8), dp(4), dp(8), dp(4))
+        rec.setOnClickListener {
+            val go = {
+                if (Recorder.open(this)) finish()
+                else toast("No recorder app found")
+            }
+            if (Recorder.needsPick(this)) Recorder.pickDialog(this) { go() } else go()
+        }
+        header.addView(rec)
+
         val addNote = TextView(this)
         addNote.text = "+ Note"
         addNote.textSize = 14f
