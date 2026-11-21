@@ -1,4 +1,4 @@
-Notif Tiles v0.3
+Notif Tiles v0.4
 
 NEW: home-screen widget (BlinkFeed-style tile grid with counts and app colors),
 two-column colored tiles in the panel, tap a tile to expand it with reply and the

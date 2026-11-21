@@ -24,6 +24,8 @@ object Feed {
     private val INSTAGRAM = Style(0xFFFBE0F0, 0xFFA31F6E, 0xFF4A1A38, 0xFFFFA6D6)
     private val SNAPCHAT = Style(0xFFFFF6C2, 0xFF7A6400, 0xFF4A4210, 0xFFFFE35C)
 
+    val NOTES = Style(0xFFFFE8CC, 0xFF8A4B00, 0xFF4A3016, 0xFFFFC98A)
+
     fun style(pkg: String): Style = when {
         pkg.startsWith("com.whatsapp") -> WHATSAPP
         pkg.startsWith("com.facebook") -> FACEBOOK
@@ -84,6 +86,7 @@ object Feed {
         return all
             .filter { it.packageName in enabled && it.packageName != c.packageName }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
+            .filter { title(it).isNotEmpty() || text(it).isNotEmpty() }
             .filter {
                 val summary = (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0
                 !summary || (it.packageName to it.notification.group) !in withKids

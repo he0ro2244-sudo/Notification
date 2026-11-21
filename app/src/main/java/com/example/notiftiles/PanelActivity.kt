@@ -5,6 +5,7 @@ import android.app.ActivityOptions
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.RemoteInput
+import android.content.Context
 import android.content.Intent
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -16,6 +17,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsets
+import android.view.inputmethod.InputMethodManager
 import android.widget.Button
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -29,6 +31,7 @@ class PanelActivity : Activity() {
 
     private lateinit var list: LinearLayout
     private lateinit var badge: TextView
+    private lateinit var back: TextView
     private var expanded: String? = null
     private var dark = false
 
@@ -76,12 +79,27 @@ class PanelActivity : Activity() {
         header.orientation = LinearLayout.HORIZONTAL
         header.gravity = Gravity.CENTER_VERTICAL
         header.setPadding(dp(4), 0, dp(4), dp(8))
+
+        back = TextView(this)
+        back.text = "‹ Back"
+        back.textSize = 15f
+        back.setTextColor(0xFF3B82F6.toInt())
+        back.setTypeface(null, Typeface.BOLD)
+        back.setPadding(0, dp(6), dp(12), dp(6))
+        back.visibility = View.GONE
+        back.setOnClickListener {
+            expanded = null
+            refresh()
+        }
+        header.addView(back)
+
         val title = TextView(this)
         title.text = "Inbox"
         title.textSize = 20f
         title.setTypeface(null, Typeface.BOLD)
         title.setTextColor(cText)
         header.addView(title)
+
         badge = TextView(this)
         badge.textSize = 12f
         badge.setTypeface(null, Typeface.BOLD)
@@ -91,8 +109,21 @@ class PanelActivity : Activity() {
         val blp = LinearLayout.LayoutParams(WRAP, WRAP)
         blp.marginStart = dp(8)
         header.addView(badge, blp)
-        val spacer = View(this)
-        header.addView(spacer, LinearLayout.LayoutParams(0, 1, 1f))
+
+        header.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
+
+        val addNote = TextView(this)
+        addNote.text = "+ Note"
+        addNote.textSize = 14f
+        addNote.setTypeface(null, Typeface.BOLD)
+        addNote.setTextColor(0xFF3B82F6.toInt())
+        addNote.setPadding(dp(8), dp(6), dp(8), dp(6))
+        addNote.setOnClickListener {
+            expanded = "note:new"
+            refresh()
+        }
+        header.addView(addNote)
+
         val clear = TextView(this)
         clear.text = "Clear all"
         clear.textSize = 14f
@@ -150,53 +181,62 @@ class PanelActivity : Activity() {
 
     private fun refresh() {
         list.removeAllViews()
-        if (NotifListener.instance == null) {
-            badge.visibility = View.GONE
+        val svc = NotifListener.instance
+        val items = if (svc == null) emptyList() else Feed.items(this)
+        val notes = Prefs.notes(this)
+        badge.text = items.size.toString()
+        badge.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+
+        val key = expanded
+        if (key != null) {
+            val view: View? = when {
+                key == "note:new" -> composer(null)
+                key.startsWith("note:") ->
+                    notes.firstOrNull { "note:" + it.id == key }?.let { composer(it) }
+                else ->
+                    items.firstOrNull { it.key == key }
+                        ?.let { s -> expandedCard(s, items.count { x -> x.packageName == s.packageName }) }
+            }
+            if (view != null) {
+                back.visibility = View.VISIBLE
+                list.addView(view)
+                return
+            }
+            expanded = null
+        }
+        back.visibility = View.GONE
+
+        if (svc == null) {
             list.addView(
                 note(
                     if (Access.enabled(this)) "Connecting to notifications…"
                     else "Notification access is off. Open Notif Tiles setup and turn it on."
                 )
             )
-            return
-        }
-        val items = Feed.items(this)
-        badge.text = items.size.toString()
-        badge.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
-        if (items.isEmpty()) {
-            list.addView(note("Nothing new from your apps."))
-            return
         }
         val counts = items.groupingBy { it.packageName }.eachCount()
-        if (expanded != null && items.none { it.key == expanded }) expanded = null
-
-        var pending: StatusBarNotification? = null
-        for (sbn in items) {
-            val p = pending
-            if (sbn.key == expanded) {
-                if (p != null) list.addView(row(p, null, counts))
-                pending = null
-                list.addView(expandedCard(sbn, counts[sbn.packageName] ?: 1))
-            } else if (p == null) {
-                pending = sbn
-            } else {
-                list.addView(row(p, sbn, counts))
-                pending = null
-            }
+        val cells = ArrayList<View>()
+        for (sbn in items) cells.add(compact(sbn, counts[sbn.packageName] ?: 1))
+        for (n in notes) cells.add(noteTile(n))
+        if (cells.isEmpty()) {
+            if (svc != null) list.addView(note("Nothing new from your apps. Tap + Note to write something down."))
+            return
         }
-        val last = pending
-        if (last != null) list.addView(row(last, null, counts))
+        var i = 0
+        while (i < cells.size) {
+            list.addView(rowOf(cells[i], cells.getOrNull(i + 1)))
+            i += 2
+        }
     }
 
-    private fun row(a: StatusBarNotification, b: StatusBarNotification?, counts: Map<String, Int>): View {
+    private fun rowOf(a: View, b: View?): View {
         val r = LinearLayout(this)
         r.orientation = LinearLayout.HORIZONTAL
         val rlp = LinearLayout.LayoutParams(MATCH, WRAP)
         rlp.bottomMargin = dp(8)
         r.layoutParams = rlp
-        r.addView(compact(a, counts[a.packageName] ?: 1), cell(true))
-        if (b != null) r.addView(compact(b, counts[b.packageName] ?: 1), cell(false))
-        else r.addView(View(this), cell(false))
+        r.addView(a, cell(true))
+        r.addView(b ?: View(this), cell(false))
         return r
     }
 
@@ -270,6 +310,39 @@ class PanelActivity : Activity() {
         return card
     }
 
+    private fun noteTile(n: Note): View {
+        val st = Feed.NOTES
+        val bg = st.bg(dark)
+        val fg = st.fg(dark)
+        val card = LinearLayout(this)
+        card.orientation = LinearLayout.VERTICAL
+        card.background = rounded(bg, 16)
+        card.setPadding(dp(10), dp(10), dp(10), dp(10))
+        card.minimumHeight = dp(104)
+
+        val label = TextView(this)
+        label.text = "Note"
+        label.textSize = 12f
+        label.setTypeface(null, Typeface.BOLD)
+        label.setTextColor(Feed.alpha(fg, 0xCC))
+        card.addView(label)
+
+        val m = TextView(this)
+        m.text = n.text
+        m.textSize = 14f
+        m.setTextColor(fg)
+        m.maxLines = 4
+        m.ellipsize = TextUtils.TruncateAt.END
+        m.setPadding(0, dp(6), 0, 0)
+        card.addView(m)
+
+        card.setOnClickListener {
+            expanded = "note:" + n.id
+            refresh()
+        }
+        return card
+    }
+
     private fun pill(label: String, fg: Int, bg: Int, filled: Boolean, onClick: () -> Unit): Button {
         val b = Button(this, null, android.R.attr.borderlessButtonStyle)
         b.text = label
@@ -287,6 +360,76 @@ class PanelActivity : Activity() {
         }
         b.setOnClickListener { onClick() }
         return b
+    }
+
+    private fun composer(existing: Note?): View {
+        val st = Feed.NOTES
+        val bg = st.bg(dark)
+        val fg = st.fg(dark)
+
+        val card = LinearLayout(this)
+        card.orientation = LinearLayout.VERTICAL
+        card.background = rounded(bg, 18)
+        card.setPadding(dp(12), dp(10), dp(12), dp(12))
+        val clp = LinearLayout.LayoutParams(MATCH, WRAP)
+        clp.bottomMargin = dp(8)
+        card.layoutParams = clp
+
+        val label = TextView(this)
+        label.text = if (existing == null) "New note" else "Note"
+        label.textSize = 13f
+        label.setTypeface(null, Typeface.BOLD)
+        label.setTextColor(Feed.alpha(fg, 0xCC))
+        card.addView(label)
+
+        val et = EditText(this)
+        et.hint = "Type a note…"
+        et.setHintTextColor(Feed.alpha(fg, 0x99))
+        et.setTextColor(fg)
+        et.textSize = 15f
+        et.minLines = 4
+        et.gravity = Gravity.TOP or Gravity.START
+        et.background = rounded(if (dark) 0x33FFFFFF else 0xAAFFFFFF.toInt(), 12)
+        et.setPadding(dp(12), dp(10), dp(12), dp(10))
+        if (existing != null) et.setText(existing.text)
+        val elp = LinearLayout.LayoutParams(MATCH, WRAP)
+        elp.topMargin = dp(8)
+        card.addView(et, elp)
+
+        val bar = LinearLayout(this)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.setPadding(0, dp(10), 0, 0)
+        val plp = { LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(6) } }
+        bar.addView(pill("Save", fg, bg, true) {
+            val txt = et.text.toString().trim()
+            if (txt.isEmpty()) {
+                toast("Type something first")
+            } else {
+                if (existing == null) Prefs.addNote(this, txt) else Prefs.updateNote(this, existing.id, txt)
+                et.setText("")
+                expanded = null
+                refresh()
+                toast("Saved")
+            }
+        }, plp())
+        if (existing != null) {
+            bar.addView(pill("Delete", fg, bg, false) {
+                Prefs.deleteNote(this, existing.id)
+                et.setText("")
+                expanded = null
+                refresh()
+            }, plp())
+        }
+        card.addView(bar)
+
+        if (existing == null) {
+            et.post {
+                et.requestFocus()
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                imm.showSoftInput(et, InputMethodManager.SHOW_IMPLICIT)
+            }
+        }
+        return card
     }
 
     private fun expandedCard(sbn: StatusBarNotification, count: Int): View {
@@ -326,10 +469,6 @@ class PanelActivity : Activity() {
             refresh()
         }
         head.addView(x)
-        head.setOnClickListener {
-            expanded = null
-            refresh()
-        }
         card.addView(head)
 
         val tt = Feed.title(sbn)

@@ -15,11 +15,25 @@ import android.widget.RemoteViewsService
 
 class TilesWidget : AppWidgetProvider() {
 
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == ACTION_CLEAR) {
+            val svc = NotifListener.instance
+            if (svc != null) {
+                val keys = Feed.items(context).filter { it.isClearable }.map { it.key }.toTypedArray()
+                if (keys.isNotEmpty()) svc.cancelNotifications(keys)
+            }
+            refresh(context)
+        }
+    }
+
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (id in appWidgetIds) appWidgetManager.updateAppWidget(id, build(context, id))
     }
 
     companion object {
+        const val ACTION_CLEAR = "com.example.notiftiles.CLEAR_ALL"
+
         fun build(ctx: Context, id: Int): RemoteViews {
             val rv = RemoteViews(ctx.packageName, R.layout.widget_tiles)
 
@@ -33,6 +47,17 @@ class TilesWidget : AppWidgetProvider() {
             rv.setOnClickPendingIntent(
                 R.id.header,
                 PendingIntent.getActivity(ctx, 0, open, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            )
+            val newNote = Intent(ctx, PanelActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("key", "note:new")
+            rv.setOnClickPendingIntent(
+                R.id.wnote,
+                PendingIntent.getActivity(ctx, 2, newNote, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            )
+            val clear = Intent(ctx, TilesWidget::class.java).setAction(ACTION_CLEAR)
+            rv.setOnClickPendingIntent(
+                R.id.wclear,
+                PendingIntent.getBroadcast(ctx, 3, clear, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             )
             val template = Intent(ctx, PanelActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             rv.setPendingIntentTemplate(

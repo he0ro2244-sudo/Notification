@@ -2,6 +2,8 @@ package com.example.notiftiles
 
 import android.content.Context
 
+class Note(val id: String, val text: String)
+
 object Prefs {
     val USUAL = listOf(
         // WhatsApp
@@ -44,5 +46,41 @@ object Prefs {
     fun addSeen(c: Context, pkg: String) {
         val s = HashSet(seen(c))
         if (s.add(pkg)) sp(c).edit().putStringSet("seen", s).apply()
+    }
+
+    fun notes(c: Context): List<Note> {
+        val raw = sp(c).getString("notes", "[]") ?: "[]"
+        return try {
+            val arr = org.json.JSONArray(raw)
+            (0 until arr.length()).map {
+                val o = arr.getJSONObject(it)
+                Note(o.getString("id"), o.getString("text"))
+            }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun saveNotes(c: Context, list: List<Note>) {
+        val arr = org.json.JSONArray()
+        for (n in list) {
+            val o = org.json.JSONObject()
+            o.put("id", n.id)
+            o.put("text", n.text)
+            arr.put(o)
+        }
+        sp(c).edit().putString("notes", arr.toString()).apply()
+    }
+
+    fun addNote(c: Context, text: String) {
+        saveNotes(c, listOf(Note(System.currentTimeMillis().toString(), text)) + notes(c))
+    }
+
+    fun updateNote(c: Context, id: String, text: String) {
+        saveNotes(c, notes(c).map { if (it.id == id) Note(id, text) else it })
+    }
+
+    fun deleteNote(c: Context, id: String) {
+        saveNotes(c, notes(c).filter { it.id != id })
     }
 }
