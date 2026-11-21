@@ -17,6 +17,7 @@ class MainActivity : Activity() {
 
     private lateinit var status: TextView
     private lateinit var listBox: LinearLayout
+    private lateinit var dialBox: LinearLayout
 
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
 
@@ -70,6 +71,11 @@ class MainActivity : Activity() {
         help.setPadding(0, dp(12), 0, dp(12))
         col.addView(help)
 
+        col.addView(heading("Fast dial (5 circles on the widget)"))
+        dialBox = LinearLayout(this)
+        dialBox.orientation = LinearLayout.VERTICAL
+        col.addView(dialBox)
+
         listBox = LinearLayout(this)
         listBox.orientation = LinearLayout.VERTICAL
         col.addView(listBox)
@@ -79,7 +85,45 @@ class MainActivity : Activity() {
         super.onResume()
         status.text = if (Access.enabled(this)) "Notification access: on" else "Notification access: OFF"
         Access.rebindIfNeeded(this)
+        renderDial()
         renderList()
+    }
+
+    private fun renderDial() {
+        dialBox.removeAllViews()
+        for (i in 0 until Prefs.DIAL_SLOTS) {
+            val name = Prefs.dialName(this, i)
+            val num = Prefs.dialNumber(this, i)
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = android.view.Gravity.CENTER_VERTICAL
+            val t = TextView(this)
+            t.text = "${i + 1}. " + if (num.isEmpty()) "empty" else "$name  $num"
+            t.textSize = 15f
+            t.layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            row.addView(t)
+            val set = Button(this)
+            set.text = if (num.isEmpty()) "Set" else "Change"
+            set.isAllCaps = false
+            set.setOnClickListener {
+                startActivity(
+                    Intent(this, DialActivity::class.java).putExtra("slot", i).putExtra("pick", true)
+                )
+            }
+            row.addView(set)
+            if (num.isNotEmpty()) {
+                val clr = Button(this)
+                clr.text = "Clear"
+                clr.isAllCaps = false
+                clr.setOnClickListener {
+                    Prefs.clearDial(this, i)
+                    TilesWidget.refresh(applicationContext)
+                    renderDial()
+                }
+                row.addView(clr)
+            }
+            dialBox.addView(row)
+        }
     }
 
     private fun btn(label: String, onClick: () -> Unit): Button {

@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.notiftiles"
         minSdk = 31
         targetSdk = 34
-        versionCode = 4
-        versionName = "0.4"
+        versionCode = 5
+        versionName = "0.5"
     }
 
     compileOptions {

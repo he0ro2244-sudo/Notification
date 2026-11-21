@@ -4,4 +4,5 @@
     <color name="nt_text">#ECECEF</color>
     <color name="nt_sub">#A8A8B0</color>
     <color name="nt_badge">#3B82F6</color>
+    <color name="nt_circle">#FF2B2B31</color>
 </resources>

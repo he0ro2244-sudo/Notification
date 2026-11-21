@@ -83,4 +83,18 @@ object Prefs {
     fun deleteNote(c: Context, id: String) {
         saveNotes(c, notes(c).filter { it.id != id })
     }
+
+    // ---- Fast dial (5 slots) ----
+    const val DIAL_SLOTS = 5
+
+    fun dialName(c: Context, i: Int): String = sp(c).getString("dial_name_$i", "") ?: ""
+    fun dialNumber(c: Context, i: Int): String = sp(c).getString("dial_num_$i", "") ?: ""
+
+    fun setDial(c: Context, i: Int, name: String, number: String) {
+        sp(c).edit().putString("dial_name_$i", name).putString("dial_num_$i", number).apply()
+    }
+
+    fun clearDial(c: Context, i: Int) {
+        sp(c).edit().remove("dial_name_$i").remove("dial_num_$i").apply()
+    }
 }

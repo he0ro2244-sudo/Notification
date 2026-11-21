@@ -1,4 +1,4 @@
-Notif Tiles v0.4
+Notif Tiles v0.5
 
 NEW: home-screen widget (BlinkFeed-style tile grid with counts and app colors),
 two-column colored tiles in the panel, tap a tile to expand it with reply and the
@@ -18,3 +18,10 @@ SET UP
    first if it is greyed out). Set battery to unrestricted.
 2. Tap "Turn on my usual apps".
 3. Long-press Nova home screen > Widgets > Notif Tiles, drop it on an empty page.
+
+NEW IN v0.5
+Widget top strip: clock circle, weather circle (Amman, Jordan, tap it to refresh),
+and a location pin. Five fast-dial circles: tap an empty one to pick a contact, tap
+a filled one to call. Change or clear them in "Notif Tiles setup" > Fast dial.
+The first call asks for phone permission; if you refuse it opens the dialer instead.
+The new widget is taller: if your existing widget looks cramped, resize it or re-add it.

@@ -25,14 +25,34 @@ class TilesWidget : AppWidgetProvider() {
             }
             refresh(context)
         }
+        if (intent.action == ACTION_WEATHER) fetchWeatherAsync(context)
     }
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (id in appWidgetIds) appWidgetManager.updateAppWidget(id, build(context, id))
+        fetchWeatherAsync(context)
+    }
+
+    private fun fetchWeatherAsync(context: Context) {
+        val app = context.applicationContext
+        val pr = goAsync()
+        Thread {
+            try {
+                Weather.fetch(app)
+                refresh(app)
+            } finally {
+                pr.finish()
+            }
+        }.start()
     }
 
     companion object {
         const val ACTION_CLEAR = "com.example.notiftiles.CLEAR_ALL"
+        const val ACTION_WEATHER = "com.example.notiftiles.REFRESH_WEATHER"
+
+        private val DIAL_CIRCLE = intArrayOf(R.id.dc0, R.id.dc1, R.id.dc2, R.id.dc3, R.id.dc4)
+        private val DIAL_NAME = intArrayOf(R.id.dn0, R.id.dn1, R.id.dn2, R.id.dn3, R.id.dn4)
+        private val DIAL_BOX = intArrayOf(R.id.dial0, R.id.dial1, R.id.dial2, R.id.dial3, R.id.dial4)
 
         fun build(ctx: Context, id: Int): RemoteViews {
             val rv = RemoteViews(ctx.packageName, R.layout.widget_tiles)
@@ -64,8 +84,40 @@ class TilesWidget : AppWidgetProvider() {
                 R.id.grid,
                 PendingIntent.getActivity(ctx, 1, template, PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             )
-            setCount(rv, ctx)
+            for (i in 0 until Prefs.DIAL_SLOTS) {
+                val dial = Intent(ctx, DialActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("slot", i)
+                rv.setOnClickPendingIntent(
+                    DIAL_BOX[i],
+                    PendingIntent.getActivity(ctx, 10 + i, dial, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                )
+            }
+            val wx = Intent(ctx, TilesWidget::class.java).setAction(ACTION_WEATHER)
+            rv.setOnClickPendingIntent(
+                R.id.wweather,
+                PendingIntent.getBroadcast(ctx, 4, wx, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            )
+            setDynamic(rv, ctx)
             return rv
+        }
+
+        private fun setDynamic(rv: RemoteViews, ctx: Context) {
+            setCount(rv, ctx)
+            rv.setTextViewText(R.id.wweather, Weather.text(ctx))
+            val dark = Feed.isDark(ctx)
+            val filled = Feed.style("com.whatsapp")
+            val empty = Feed.style("")
+            for (i in 0 until Prefs.DIAL_SLOTS) {
+                val name = Prefs.dialName(ctx, i)
+                val has = Prefs.dialNumber(ctx, i).isNotEmpty()
+                val st = if (has) filled else empty
+                val label = if (name.isNotBlank()) name else if (has) Prefs.dialNumber(ctx, i) else ""
+                val initial = if (name.isNotBlank()) name.trim().first().uppercaseChar().toString() else if (has) "☎" else "+"
+                rv.setTextViewText(DIAL_CIRCLE[i], initial)
+                rv.setTextColor(DIAL_CIRCLE[i], st.fg(dark))
+                rv.setColorStateList(DIAL_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(st.bg(dark)))
+                rv.setTextViewText(DIAL_NAME[i], if (has) label else "Add")
+            }
         }
 
         private fun setCount(rv: RemoteViews, ctx: Context) {
@@ -79,9 +131,18 @@ class TilesWidget : AppWidgetProvider() {
             val ids = mgr.getAppWidgetIds(ComponentName(ctx, TilesWidget::class.java))
             if (ids.isEmpty()) return
             val rv = RemoteViews(ctx.packageName, R.layout.widget_tiles)
-            setCount(rv, ctx)
+            setDynamic(rv, ctx)
             for (id in ids) mgr.partiallyUpdateAppWidget(id, rv)
             mgr.notifyAppWidgetViewDataChanged(ids, R.id.grid)
+            if (Weather.stale(ctx)) {
+                val app = ctx.applicationContext
+                Thread {
+                    Weather.fetch(app)
+                    val r2 = RemoteViews(app.packageName, R.layout.widget_tiles)
+                    r2.setTextViewText(R.id.wweather, Weather.text(app))
+                    for (id in ids) mgr.partiallyUpdateAppWidget(id, r2)
+                }.start()
+            }
         }
     }
 }
