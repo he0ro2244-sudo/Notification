@@ -244,8 +244,12 @@ class TilesWidget : AppWidgetProvider() {
                 val st = if (has) filled else empty
                 val label = if (name.isNotBlank()) name else if (has) Prefs.dialNumber(ctx, i) else ""
                 val initial = if (name.isNotBlank()) name.trim().first().uppercaseChar().toString() else if (has) "☎" else "+"
-                val bgc = if (dc != 0) dc else st.bg(dark)
-                val fgc = if (dc != 0) Look.contrast(dc) else st.fg(dark)
+                val own = Prefs.dialCircleOf(ctx, i)
+                val bgc = if (own != 0) own else if (dc != 0) dc else st.bg(dark)
+                val autoFg = if (own != 0) Look.contrast(own) else if (dc != 0) Look.contrast(dc) else st.fg(dark)
+                val ownText = Prefs.dialTextOf(ctx, i)
+                val letterC = Prefs.partColor(ctx, "dialletter")
+                val fgc = if (ownText != 0) ownText else if (letterC != 0) letterC else autoFg
                 txt(rv, ctx, DIAL_CIRCLE[i], initial, 18f, true)
                 rv.setTextColor(DIAL_CIRCLE[i], fgc)
                 rv.setColorStateList(DIAL_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(bgc))
@@ -254,7 +258,7 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setViewLayoutHeight(DIAL_CIRCLE[i], dsize, TypedValue.COMPLEX_UNIT_DIP)
                 txt(rv, ctx, DIAL_NAME[i], if (has) label else "Add", 10f, false)
                 val dn = Prefs.partColor(ctx, "dialnames")
-                rv.setTextColor(DIAL_NAME[i], if (dn != 0) dn else sub)
+                rv.setTextColor(DIAL_NAME[i], if (ownText != 0) ownText else if (dn != 0) dn else sub)
                 rv.setViewVisibility(DIAL_NAME[i], if (showNames) View.VISIBLE else View.GONE)
             }
         }

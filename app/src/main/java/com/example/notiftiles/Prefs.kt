@@ -203,7 +203,8 @@ object Prefs {
         "weather" to "Widget: weather",
         "date" to "Widget: date",
         "where" to "Widget: Where to?",
-        "dialnames" to "Widget: fast-dial names"
+        "dialletter" to "Widget: fast-dial letters (inside circles)",
+        "dialnames" to "Widget: fast-dial names (under circles)"
     )
     fun partColor(c: Context, k: String): Int = sp(c).getInt("look_pc_$k", 0)
     fun setPartColor(c: Context, k: String, v: Int) = sp(c).edit().putInt("look_pc_$k", v).apply()
@@ -232,6 +233,11 @@ object Prefs {
     fun setTextColor(c: Context, v: Int) = sp(c).edit().putInt("look_text", v).apply()
     fun circleColor(c: Context): Int = sp(c).getInt("look_circle", 0)
     fun setCircleColor(c: Context, v: Int) = sp(c).edit().putInt("look_circle", v).apply()
+    // Each fast-dial circle can have its own background and text colour (0 = automatic)
+    fun dialCircleOf(c: Context, i: Int): Int = sp(c).getInt("look_dialc_$i", 0)
+    fun setDialCircleOf(c: Context, i: Int, v: Int) = sp(c).edit().putInt("look_dialc_$i", v).apply()
+    fun dialTextOf(c: Context, i: Int): Int = sp(c).getInt("look_dialt_$i", 0)
+    fun setDialTextOf(c: Context, i: Int, v: Int) = sp(c).edit().putInt("look_dialt_$i", v).apply()
     fun dialCircle(c: Context): Int = sp(c).getInt("look_dialcircle", 0)
     fun setDialCircle(c: Context, v: Int) = sp(c).edit().putInt("look_dialcircle", v).apply()
     fun squareShape(c: Context): Boolean = sp(c).getBoolean("look_square", false)

@@ -319,6 +319,10 @@ class SettingsActivity : Activity() {
                 row.addView(cl)
             }
             col.addView(row)
+            col.addView(hint("Circle ${i + 1}: background colour"))
+            col.addView(swatchRow(bgColors, Prefs.dialCircleOf(this, i)) { Prefs.setDialCircleOf(this, i, it); applyLook(); rebuild() })
+            col.addView(hint("Circle ${i + 1}: text colour (letter and name)"))
+            col.addView(swatchRow(textColors, Prefs.dialTextOf(this, i)) { Prefs.setDialTextOf(this, i, it); applyLook(); rebuild() })
         }
 
         }
