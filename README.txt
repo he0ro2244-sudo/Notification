@@ -39,3 +39,10 @@ keyboard already up: type or use the mic, pick Home/Work/recent places or sugges
 Drive/Walk/Bike/Transit, and Google Maps opens straight to that destination.
 Customise it in Look & colors > "Where to?" search (default mode, Home/Work addresses, voice button,
 suggestions, recents, auto-start navigation, auto Location).
+
+NEW IN v0.7
+Look & colors now also has: Font (family, weight, italic, text size) for the widget, panel and
+Where to? box; text colour; circle and fast-dial circle colours; round or rounded-square shape;
+circle sizes; names under fast-dial on/off; background PICTURES for the widget, the fast-dial strip
+and the panel (with strength slider); fast-dial strip colour + opacity; 12/24-hour clock; date
+format; weather city and C/F.

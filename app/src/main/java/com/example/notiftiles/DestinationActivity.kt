@@ -127,7 +127,7 @@ class DestinationActivity : Activity() {
 
         val sheet = LinearLayout(this)
         sheet.orientation = LinearLayout.VERTICAL
-        sheet.background = rounded(bg, 22)
+        sheet.background = Look.panelBackground(this, bg, dp(22))
         sheet.setPadding(dp(16), dp(16), dp(16), dp(12))
         sheet.isClickable = true
         val slp = FrameLayout.LayoutParams(MATCH, WRAP, Gravity.BOTTOM)
@@ -200,6 +200,7 @@ class DestinationActivity : Activity() {
         sheet.addView(list, LinearLayout.LayoutParams(MATCH, WRAP))
 
         setContentView(root)
+        Look.applyTree(sheet, this)
         showDefaults()
         input.requestFocus()
         input.postDelayed({
@@ -224,6 +225,7 @@ class DestinationActivity : Activity() {
         t.setSingleLine(true)
         t.setPadding(dp(6), dp(12), dp(6), dp(12))
         t.setOnClickListener { onClick() }
+        Look.applyTree(t, this)
         return t
     }
 

@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
+import android.util.TypedValue
 import android.service.notification.StatusBarNotification
 import android.view.View
 import android.widget.RemoteViews
@@ -136,35 +137,114 @@ class TilesWidget : AppWidgetProvider() {
             }
         }
 
+        private fun txt(rv: RemoteViews, ctx: Context, id: Int, text: String, baseSp: Float, bold: Boolean) =
+            Look.setText(rv, ctx, id, text, baseSp, bold)
+
+        fun setWeather(rv: RemoteViews, ctx: Context) {
+            for (w in W_WEATHER) txt(rv, ctx, w, Weather.text(ctx), 13f, true)
+        }
+
+        private fun bgImage(rv: RemoteViews, ctx: Context, viewId: Int, kind: String) {
+            val bmp = Look.bitmap(ctx, kind)
+            if (bmp != null) {
+                rv.setImageViewBitmap(viewId, bmp)
+                rv.setInt(viewId, "setImageAlpha", Prefs.imgAlpha(ctx, kind) * 255 / 100)
+                rv.setViewVisibility(viewId, View.VISIBLE)
+            } else {
+                rv.setViewVisibility(viewId, View.GONE)
+            }
+        }
+
         private fun setDynamic(rv: RemoteViews, ctx: Context) {
             setCount(rv, ctx)
-            for (w in W_WEATHER) rv.setTextViewText(w, Weather.text(ctx))
+            setWeather(rv, ctx)
             applyLayout(rv, ctx)
-            // Background colour + opacity chosen in Look & colors.
+
+            // ---- Backgrounds: colour + opacity, then the optional pictures
             rv.setColorStateList(R.id.root, "setBackgroundTintList", ColorStateList.valueOf(Prefs.widgetBgArgb(ctx)))
+            bgImage(rv, ctx, R.id.wbgimg, "widget")
+            bgImage(rv, ctx, R.id.dialimg, "dial")
+            val dbg = Prefs.dialBg(ctx)
+            val dialTint = if (dbg != 0) ((Prefs.dialBgAlpha(ctx) * 255 / 100) shl 24) or (dbg and 0xFFFFFF) else 0
+            rv.setColorStateList(R.id.dialwrap, "setBackgroundTintList", ColorStateList.valueOf(dialTint))
+
+            // ---- Text colours (a picked text colour wins over the automatic light/dark choice)
             val custom = Prefs.widgetBg(ctx)
             val lightText = custom != 0 && android.graphics.Color.luminance(custom) < 0.5f
             val darkText = custom != 0 && !lightText
-            val main = if (lightText) 0xFFF2F2F5.toInt() else if (darkText) 0xFF1B1B1F.toInt() else ctx.getColor(R.color.nt_text)
-            val sub = if (lightText) 0xFFB4B4BC.toInt() else if (darkText) 0xFF55555C.toInt() else ctx.getColor(R.color.nt_sub)
+            val ov = Prefs.textColor(ctx)
+            val main = if (ov != 0) ov else if (lightText) 0xFFF2F2F5.toInt() else if (darkText) 0xFF1B1B1F.toInt() else ctx.getColor(R.color.nt_text)
+            val sub = if (ov != 0) Feed.alpha(ov, 0xB3) else if (lightText) 0xFFB4B4BC.toInt() else if (darkText) 0xFF55555C.toInt() else ctx.getColor(R.color.nt_sub)
+            txt(rv, ctx, R.id.hdr_title, "Inbox", 16f, true)
             rv.setTextColor(R.id.hdr_title, main)
+            txt(rv, ctx, R.id.wnote, "+ Note", 13f, true)
+            txt(rv, ctx, R.id.wclear, "Clear all", 13f, false)
             rv.setTextColor(R.id.wclear, sub)
+            txt(rv, ctx, R.id.wset, "⚙", 16f, false)
             rv.setTextColor(R.id.wset, sub)
+            txt(rv, ctx, R.id.empty, "Nothing new from your apps", 13f, false)
             rv.setTextColor(R.id.empty, sub)
-            for (n in DIAL_NAME) rv.setTextColor(n, sub)
+
+            // ---- Clock / weather / date circles and the Where to? box
+            val circ = Prefs.circleColor(ctx)
+            val circleTint = ColorStateList.valueOf(if (circ != 0) circ else ctx.getColor(R.color.nt_circle))
+            val circleText = if (ov != 0) ov else if (circ != 0) Look.contrast(circ) else ctx.getColor(R.color.nt_text)
+            val circleSub = if (ov != 0 || circ != 0) Feed.alpha(circleText, 0xB3) else ctx.getColor(R.color.nt_sub)
+            val shapeRes = if (Prefs.squareShape(ctx)) R.drawable.nt_squircle_bg else R.drawable.nt_circle_bg
+            val topSize = Prefs.topSize(ctx).toFloat()
+            val clockFmt = Prefs.clockFmt(ctx)
+            val f12 = if (clockFmt == 2) "HH:mm" else "h:mm"
+            val f24 = if (clockFmt == 1) "h:mm" else "HH:mm"
+            val dateFmt = Prefs.DATE_FORMATS[Prefs.dateFmt(ctx)].first
+            for (slot in 0 until 3) {
+                for (id in intArrayOf(W_CLOCK[slot], W_WEATHER[slot], W_DATE[slot])) {
+                    rv.setColorStateList(id, "setBackgroundTintList", circleTint)
+                    rv.setInt(id, "setBackgroundResource", shapeRes)
+                    rv.setTextColor(id, circleText)
+                    rv.setViewLayoutWidth(id, topSize, TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutHeight(id, topSize, TypedValue.COMPLEX_UNIT_DIP)
+                }
+                val clock = W_CLOCK[slot]
+                rv.setCharSequence(clock, "setFormat12Hour", Look.span(ctx, f12, true))
+                rv.setCharSequence(clock, "setFormat24Hour", Look.span(ctx, f24, true))
+                rv.setTextViewTextSize(clock, TypedValue.COMPLEX_UNIT_SP, 14f * Look.scale(ctx))
+                val date = W_DATE[slot]
+                rv.setCharSequence(date, "setFormat12Hour", Look.span(ctx, dateFmt, true))
+                rv.setCharSequence(date, "setFormat24Hour", Look.span(ctx, dateFmt, true))
+                rv.setTextViewTextSize(date, TypedValue.COMPLEX_UNIT_SP, 12f * Look.scale(ctx))
+            }
+            for (i in 0 until 2) {
+                rv.setColorStateList(W_LOC[i], "setBackgroundTintList", circleTint)
+            }
+            txt(rv, ctx, R.id.wwA, "Where to?", 12f, false)
+            txt(rv, ctx, R.id.wwB, "Where to?", 12f, false)
+            rv.setTextColor(R.id.wwA, circleSub)
+            rv.setTextColor(R.id.wwB, circleSub)
+
+            // ---- Fast-dial circles
             val dark = Feed.isDark(ctx)
             val filled = Feed.style("com.whatsapp")
             val empty = Feed.style("")
+            val dc = Prefs.dialCircle(ctx)
+            val dsize = Prefs.dialSize(ctx).toFloat()
+            val showNames = Prefs.dialNames(ctx)
             for (i in 0 until Prefs.DIAL_SLOTS) {
                 val name = Prefs.dialName(ctx, i)
                 val has = Prefs.dialNumber(ctx, i).isNotEmpty()
                 val st = if (has) filled else empty
                 val label = if (name.isNotBlank()) name else if (has) Prefs.dialNumber(ctx, i) else ""
                 val initial = if (name.isNotBlank()) name.trim().first().uppercaseChar().toString() else if (has) "☎" else "+"
-                rv.setTextViewText(DIAL_CIRCLE[i], initial)
-                rv.setTextColor(DIAL_CIRCLE[i], st.fg(dark))
-                rv.setColorStateList(DIAL_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(st.bg(dark)))
-                rv.setTextViewText(DIAL_NAME[i], if (has) label else "Add")
+                val bgc = if (dc != 0) dc else st.bg(dark)
+                val fgc = if (dc != 0) Look.contrast(dc) else st.fg(dark)
+                txt(rv, ctx, DIAL_CIRCLE[i], initial, 18f, true)
+                rv.setTextColor(DIAL_CIRCLE[i], fgc)
+                rv.setColorStateList(DIAL_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(bgc))
+                rv.setInt(DIAL_CIRCLE[i], "setBackgroundResource", shapeRes)
+                rv.setViewLayoutWidth(DIAL_CIRCLE[i], dsize, TypedValue.COMPLEX_UNIT_DIP)
+                rv.setViewLayoutHeight(DIAL_CIRCLE[i], dsize, TypedValue.COMPLEX_UNIT_DIP)
+                txt(rv, ctx, DIAL_NAME[i], if (has) label else "Add", 10f, false)
+                rv.setTextColor(DIAL_NAME[i], sub)
+                rv.setViewVisibility(DIAL_NAME[i], if (showNames) View.VISIBLE else View.GONE)
             }
         }
 
@@ -182,7 +262,7 @@ class TilesWidget : AppWidgetProvider() {
             val first = Prefs.pillFirst(ctx)
             rv.setViewVisibility(R.id.wlocA, if (maps && first) View.VISIBLE else View.GONE)
             rv.setViewVisibility(R.id.wlocB, if (maps && !first) View.VISIBLE else View.GONE)
-            rv.setViewVisibility(R.id.dialrow, if (Prefs.show(ctx, "dial")) View.VISIBLE else View.GONE)
+            rv.setViewVisibility(R.id.dialwrap, if (Prefs.show(ctx, "dial")) View.VISIBLE else View.GONE)
             val accent = Prefs.accent(ctx)
             rv.setTextColor(R.id.wnote, accent)
             rv.setColorStateList(R.id.count, "setBackgroundTintList", ColorStateList.valueOf(accent))
@@ -190,7 +270,7 @@ class TilesWidget : AppWidgetProvider() {
 
         private fun setCount(rv: RemoteViews, ctx: Context) {
             val n = Feed.items(ctx).size
-            rv.setTextViewText(R.id.count, n.toString())
+            txt(rv, ctx, R.id.count, n.toString(), 12f, true)
             rv.setViewVisibility(R.id.count, if (n > 0) View.VISIBLE else View.GONE)
         }
 
@@ -207,7 +287,7 @@ class TilesWidget : AppWidgetProvider() {
                 Thread {
                     Weather.fetch(app)
                     val r2 = RemoteViews(app.packageName, R.layout.widget_tiles)
-                    for (w in W_WEATHER) r2.setTextViewText(w, Weather.text(app))
+                    setWeather(r2, app)
                     for (id in ids) mgr.partiallyUpdateAppWidget(id, r2)
                 }.start()
             }
@@ -243,14 +323,14 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
 
         val rv = RemoteViews(ctx.packageName, R.layout.widget_tile)
         rv.setColorStateList(R.id.tile_root, "setBackgroundTintList", ColorStateList.valueOf(bg))
-        rv.setTextViewText(R.id.appname, Feed.label(ctx, sbn.packageName))
+        Look.setText(rv, ctx, R.id.appname, Feed.label(ctx, sbn.packageName), 11f, false)
         rv.setTextColor(R.id.appname, Feed.alpha(fg, 0xCC))
-        rv.setTextViewText(R.id.cnt, (counts[sbn.packageName] ?: 1).toString())
+        Look.setText(rv, ctx, R.id.cnt, (counts[sbn.packageName] ?: 1).toString(), 11f, true)
         rv.setTextColor(R.id.cnt, bg)
         rv.setColorStateList(R.id.cnt, "setBackgroundTintList", ColorStateList.valueOf(fg))
-        rv.setTextViewText(R.id.title, Feed.title(sbn))
+        Look.setText(rv, ctx, R.id.title, Feed.title(sbn), 13f, true)
         rv.setTextColor(R.id.title, fg)
-        rv.setTextViewText(R.id.text, Feed.text(sbn))
+        Look.setText(rv, ctx, R.id.text, Feed.text(sbn), 12f, false)
         rv.setTextColor(R.id.text, Feed.alpha(fg, 0xDD))
         rv.setOnClickFillInIntent(R.id.tile_root, Intent().putExtra("key", sbn.key))
         return rv

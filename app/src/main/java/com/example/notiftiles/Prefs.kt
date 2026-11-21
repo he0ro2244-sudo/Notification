@@ -115,6 +115,7 @@ object Prefs {
         val e = sp(c).edit()
         for (k in sp(c).all.keys) if (k.startsWith("look_") || k.startsWith("lay_")) e.remove(k)
         e.apply()
+        Look.clearAllImages(c)
     }
 
     // ---- Accent colour (buttons, badge) ----
@@ -169,6 +170,56 @@ object Prefs {
 
     fun autoLocation(c: Context): Boolean = sp(c).getBoolean("dest_auto_loc", true)
     fun setAutoLocation(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_auto_loc", v).apply()
+
+    // ---- Fonts ----
+    fun fontFamily(c: Context): String = sp(c).getString("look_font", "sans-serif") ?: "sans-serif"
+    fun setFontFamily(c: Context, v: String) = sp(c).edit().putString("look_font", v).apply()
+    /** 0 = as designed, 1 = all bold, 2 = no bold */
+    fun boldMode(c: Context): Int = sp(c).getInt("look_bold", 0)
+    fun setBoldMode(c: Context, v: Int) = sp(c).edit().putInt("look_bold", v).apply()
+    fun italic(c: Context): Boolean = sp(c).getBoolean("look_italic", false)
+    fun setItalic(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_italic", v).apply()
+    fun fontScale(c: Context): Int = sp(c).getInt("look_fscale", 100)
+    fun setFontScale(c: Context, v: Int) = sp(c).edit().putInt("look_fscale", v).apply()
+
+    // ---- Text colour, shapes, sizes (0 = automatic) ----
+    fun textColor(c: Context): Int = sp(c).getInt("look_text", 0)
+    fun setTextColor(c: Context, v: Int) = sp(c).edit().putInt("look_text", v).apply()
+    fun circleColor(c: Context): Int = sp(c).getInt("look_circle", 0)
+    fun setCircleColor(c: Context, v: Int) = sp(c).edit().putInt("look_circle", v).apply()
+    fun dialCircle(c: Context): Int = sp(c).getInt("look_dialcircle", 0)
+    fun setDialCircle(c: Context, v: Int) = sp(c).edit().putInt("look_dialcircle", v).apply()
+    fun squareShape(c: Context): Boolean = sp(c).getBoolean("look_square", false)
+    fun setSquareShape(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_square", v).apply()
+    fun topSize(c: Context): Int = sp(c).getInt("look_sztop", 50)
+    fun setTopSize(c: Context, v: Int) = sp(c).edit().putInt("look_sztop", v).apply()
+    fun dialSize(c: Context): Int = sp(c).getInt("look_szdial", 42)
+    fun setDialSize(c: Context, v: Int) = sp(c).edit().putInt("look_szdial", v).apply()
+
+    // ---- Fast-dial strip background colour + images (kind: widget, dial, panel) ----
+    fun dialBg(c: Context): Int = sp(c).getInt("look_dialbg", 0)
+    fun setDialBg(c: Context, v: Int) = sp(c).edit().putInt("look_dialbg", v).apply()
+    fun dialBgAlpha(c: Context): Int = sp(c).getInt("look_dialalpha", 70)
+    fun setDialBgAlpha(c: Context, v: Int) = sp(c).edit().putInt("look_dialalpha", v).apply()
+    fun imgAlpha(c: Context, kind: String): Int = sp(c).getInt("look_imgalpha_$kind", 100)
+    fun setImgAlpha(c: Context, kind: String, v: Int) = sp(c).edit().putInt("look_imgalpha_$kind", v).apply()
+
+    // ---- Layout extras ----
+    fun dialNames(c: Context): Boolean = sp(c).getBoolean("lay_dialnames", true)
+    fun setDialNames(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_dialnames", v).apply()
+    /** 0 = follow phone, 1 = 12-hour, 2 = 24-hour */
+    fun clockFmt(c: Context): Int = sp(c).getInt("lay_clockfmt", 0)
+    fun setClockFmt(c: Context, v: Int) = sp(c).edit().putInt("lay_clockfmt", v).apply()
+    val DATE_FORMATS = listOf(
+        "EEE\nd MMM" to "Sat / 21 Nov",
+        "d MMM" to "21 Nov",
+        "EEE d" to "Sat 21",
+        "d/M" to "21/11",
+        "M/d" to "11/21",
+        "EEEE" to "Saturday"
+    )
+    fun dateFmt(c: Context): Int = sp(c).getInt("lay_datefmt", 0).coerceIn(0, DATE_FORMATS.size - 1)
+    fun setDateFmt(c: Context, v: Int) = sp(c).edit().putInt("lay_datefmt", v).apply()
 
     /** Panel sheet colour actually used. */
     fun panelBgColor(c: Context): Int {

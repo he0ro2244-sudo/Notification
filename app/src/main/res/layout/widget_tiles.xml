@@ -1,9 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/nt_widget_bg"
+    android:clipToOutline="true">
+
+    <ImageView
+        android:id="@+id/wbgimg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
+<LinearLayout
+    android:id="@+id/content"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="8dp">
 
@@ -37,6 +50,7 @@
                 android:src="@drawable/ic_pin" />
 
             <TextView
+                android:id="@+id/wwA"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="5dp"
@@ -61,7 +75,7 @@
             android:background="@drawable/nt_circle_bg"
             android:gravity="center"
             android:textColor="@color/nt_text"
-            android:textStyle="bold"
+           
             android:visibility="visible"
             android:format12Hour="h:mm"
             android:format24Hour="HH:mm"
@@ -76,7 +90,7 @@
             android:background="@drawable/nt_circle_bg"
             android:gravity="center"
             android:textColor="@color/nt_text"
-            android:textStyle="bold"
+           
             android:visibility="gone"
             android:text="--°"
             android:textSize="13sp"
@@ -90,7 +104,7 @@
             android:background="@drawable/nt_circle_bg"
             android:gravity="center"
             android:textColor="@color/nt_text"
-            android:textStyle="bold"
+           
             android:visibility="gone"
             android:format12Hour="EEE&#10;d MMM"
             android:format24Hour="EEE&#10;d MMM"
@@ -112,7 +126,7 @@
             android:background="@drawable/nt_circle_bg"
             android:gravity="center"
             android:textColor="@color/nt_text"
-            android:textStyle="bold"
+           
             android:visibility="gone"
             android:format12Hour="h:mm"
             android:format24Hour="HH:mm"
@@ -127,7 +141,7 @@
             android:background="@drawable/nt_circle_bg"
             android:gravity="center"
             android:textColor="@color/nt_text"
-            android:textStyle="bold"
+           
             android:visibility="visible"
             android:text="--°"
             android:textSize="13sp"
@@ -141,7 +155,7 @@
             android:background="@drawable/nt_circle_bg"
             android:gravity="center"
             android:textColor="@color/nt_text"
-            android:textStyle="bold"
+           
             android:visibility="gone"
             android:format12Hour="EEE&#10;d MMM"
             android:format24Hour="EEE&#10;d MMM"
@@ -163,7 +177,7 @@
             android:background="@drawable/nt_circle_bg"
             android:gravity="center"
             android:textColor="@color/nt_text"
-            android:textStyle="bold"
+           
             android:visibility="gone"
             android:format12Hour="h:mm"
             android:format24Hour="HH:mm"
@@ -178,7 +192,7 @@
             android:background="@drawable/nt_circle_bg"
             android:gravity="center"
             android:textColor="@color/nt_text"
-            android:textStyle="bold"
+           
             android:visibility="gone"
             android:text="--°"
             android:textSize="13sp"
@@ -192,7 +206,7 @@
             android:background="@drawable/nt_circle_bg"
             android:gravity="center"
             android:textColor="@color/nt_text"
-            android:textStyle="bold"
+           
             android:visibility="visible"
             android:format12Hour="EEE&#10;d MMM"
             android:format24Hour="EEE&#10;d MMM"
@@ -221,6 +235,7 @@
                 android:src="@drawable/ic_pin" />
 
             <TextView
+                android:id="@+id/wwB"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="5dp"
@@ -233,12 +248,28 @@
         </LinearLayout>
     </LinearLayout>
 
+    <FrameLayout
+        android:id="@+id/dialwrap"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/nt_dial_bg"
+        android:clipToOutline="true">
+
+    <ImageView
+        android:id="@+id/dialimg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/dialrow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:paddingBottom="6dp">
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
 
         <LinearLayout
             android:id="@+id/dial0"
@@ -256,7 +287,7 @@
                 android:gravity="center"
                 android:text="+"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                />
 
             <TextView
                 android:id="@+id/dn0"
@@ -287,7 +318,7 @@
                 android:gravity="center"
                 android:text="+"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                />
 
             <TextView
                 android:id="@+id/dn1"
@@ -318,7 +349,7 @@
                 android:gravity="center"
                 android:text="+"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                />
 
             <TextView
                 android:id="@+id/dn2"
@@ -349,7 +380,7 @@
                 android:gravity="center"
                 android:text="+"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                />
 
             <TextView
                 android:id="@+id/dn3"
@@ -380,7 +411,7 @@
                 android:gravity="center"
                 android:text="+"
                 android:textSize="18sp"
-                android:textStyle="bold" />
+                />
 
             <TextView
                 android:id="@+id/dn4"
@@ -395,6 +426,7 @@
                 android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>
+    </FrameLayout>
 
     <LinearLayout
         android:id="@+id/header"
@@ -414,7 +446,7 @@
             android:text="Inbox"
             android:textColor="@color/nt_text"
             android:textSize="16sp"
-            android:textStyle="bold" />
+            />
 
         <TextView
             android:id="@+id/count"
@@ -428,7 +460,7 @@
             android:text="0"
             android:textColor="#FFFFFF"
             android:textSize="12sp"
-            android:textStyle="bold" />
+            />
 
         <TextView
             android:id="@+id/wnote"
@@ -441,7 +473,7 @@
             android:text="+ Note"
             android:textColor="@color/nt_badge"
             android:textSize="13sp"
-            android:textStyle="bold" />
+            />
 
         <TextView
             android:id="@+id/wclear"
@@ -494,3 +526,4 @@
             android:textSize="13sp" />
     </FrameLayout>
 </LinearLayout>
+</FrameLayout>

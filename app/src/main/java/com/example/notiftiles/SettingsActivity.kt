@@ -1,6 +1,7 @@
 package com.example.notiftiles
 
 import android.app.Activity
+import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -128,6 +129,69 @@ class SettingsActivity : Activity() {
         col.addView(customHex { Prefs.setWidgetBg(this, it); applyLook(); rebuild() })
         col.addView(seek("Opacity", Prefs.widgetAlpha(this)) { Prefs.setWidgetAlpha(this, it); updatePreviews() })
 
+        // ---- Fonts
+        col.addView(title("Font", 16f, 20))
+        col.addView(hint("Applies to the widget, the panel and the Where to? box."))
+        col.addView(choiceRow(Look.FONTS, Prefs.fontFamily(this), true) {
+            Prefs.setFontFamily(this, it); applyLook(); rebuild()
+        })
+        col.addView(hint("Weight"))
+        col.addView(choiceRow(listOf("0" to "As designed", "1" to "All bold", "2" to "No bold"), Prefs.boldMode(this).toString(), false) {
+            Prefs.setBoldMode(this, it.toInt()); applyLook(); rebuild()
+        })
+        col.addView(toggleRaw("Italic", Prefs.italic(this)) { Prefs.setItalic(this, it); applyLook(); updateFontPreview() })
+        col.addView(seekRange("Text size", Prefs.fontScale(this), 70, 160, "%") { Prefs.setFontScale(this, it); updateFontPreview() })
+        val sample = TextView(this)
+        sample.text = "Aa  12:45  The quick brown fox"
+        sample.textSize = 18f
+        sample.setPadding(0, dp(8), 0, dp(8))
+        Look.applyTree(sample, this)
+        fontPreview = sample
+        col.addView(sample)
+
+        // ---- Colours of text and shapes
+        col.addView(title("Text colour (widget)", 16f, 20))
+        col.addView(swatchRow(textColors, Prefs.textColor(this)) { Prefs.setTextColor(this, it); applyLook(); rebuild() })
+        col.addView(title("Circle colour (clock, weather, date, Where to?)", 14f, 12))
+        col.addView(swatchRow(bgColors, Prefs.circleColor(this)) { Prefs.setCircleColor(this, it); applyLook(); rebuild() })
+        col.addView(title("Fast-dial circle colour", 14f, 12))
+        col.addView(swatchRow(bgColors, Prefs.dialCircle(this)) { Prefs.setDialCircle(this, it); applyLook(); rebuild() })
+
+        // ---- Sizes and shape
+        col.addView(title("Sizes & shape", 16f, 20))
+        col.addView(choiceRow(listOf("0" to "Round", "1" to "Rounded square"), if (Prefs.squareShape(this)) "1" else "0", false) {
+            Prefs.setSquareShape(this, it == "1"); applyLook(); rebuild()
+        })
+        col.addView(seekRange("Clock / weather / date circles", Prefs.topSize(this), 36, 72, " dp") { Prefs.setTopSize(this, it) })
+        col.addView(seekRange("Fast-dial circles", Prefs.dialSize(this), 30, 64, " dp") { Prefs.setDialSize(this, it) })
+        col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
+
+        // ---- Background pictures
+        col.addView(title("Background pictures", 16f, 20))
+        col.addView(hint("Pick a photo from your gallery. Lower the strength to let the colour show through."))
+        col.addView(imageRow("Widget background", "widget"))
+        col.addView(imageRow("Fast-dial background", "dial"))
+        col.addView(title("Fast-dial strip colour (behind the circles)", 14f, 12))
+        col.addView(swatchRow(bgColors, Prefs.dialBg(this)) { Prefs.setDialBg(this, it); applyLook(); rebuild() })
+        col.addView(seekRange("Strip opacity", Prefs.dialBgAlpha(this), 0, 100, "%") { Prefs.setDialBgAlpha(this, it) })
+        col.addView(imageRow("Panel background", "panel"))
+
+        // ---- Clock, date, weather
+        col.addView(title("Clock, date & weather", 16f, 20))
+        col.addView(hint("Clock"))
+        col.addView(choiceRow(listOf("0" to "Phone setting", "1" to "12-hour", "2" to "24-hour"), Prefs.clockFmt(this).toString(), false) {
+            Prefs.setClockFmt(this, it.toInt()); applyLook(); rebuild()
+        })
+        col.addView(hint("Date"))
+        col.addView(choiceRow(Prefs.DATE_FORMATS.mapIndexed { i, p -> i.toString() to p.second }, Prefs.dateFmt(this).toString(), false) {
+            Prefs.setDateFmt(this, it.toInt()); applyLook(); rebuild()
+        })
+        col.addView(hint("Weather city: ${Weather.city(this)}"))
+        col.addView(cityRow())
+        col.addView(choiceRow(listOf("c" to "°C", "f" to "°F"), Weather.unit(this), false) {
+            Weather.setUnit(this, it); applyLook(); rebuild()
+        })
+
         // ---- Arrange the widget
         col.addView(title("Arrange the widget", 16f, 20))
         col.addView(hint("Use ▲ ▼ to move the circles. Switch an item off to hide it."))
@@ -219,6 +283,148 @@ class SettingsActivity : Activity() {
         b.setOnClickListener {
             Prefs.setFav(this, key, et.text.toString())
             Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
+        }
+        row.addView(b)
+        return row
+    }
+
+    private var fontPreview: TextView? = null
+
+    private fun updateFontPreview() {
+        fontPreview?.let { Look.applyTree(it, this) }
+    }
+
+    private val textColors = intArrayOf(
+        0, c(0xFF000000), c(0xFFFFFFFF), c(0xFF1B1B1F), c(0xFFF2F2F5),
+        c(0xFFFACC15), c(0xFF22D3EE), c(0xFF4ADE80), c(0xFFFB923C), c(0xFFF472B6)
+    )
+
+    private val KINDS = listOf("widget", "dial", "panel")
+
+    private fun choiceRow(options: List<Pair<String, String>>, selected: String, preview: Boolean, onPick: (String) -> Unit): View {
+        val hs = HorizontalScrollView(this)
+        hs.isHorizontalScrollBarEnabled = false
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        hs.addView(row)
+        for ((key, label) in options) {
+            val b = Button(this)
+            b.isAllCaps = false
+            b.text = if (key == selected) "✓ $label" else label
+            if (preview) b.typeface = Typeface.create(key, Typeface.NORMAL)
+            b.setOnClickListener { onPick(key) }
+            row.addView(b)
+        }
+        return hs
+    }
+
+    private fun seekRange(label: String, value: Int, min: Int, max: Int, unit: String, onChange: (Int) -> Unit): View {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        val t = TextView(this)
+        t.text = "$label: $value$unit"
+        t.setPadding(0, dp(8), 0, 0)
+        box.addView(t)
+        val sb = SeekBar(this)
+        sb.max = max - min
+        sb.progress = (value - min).coerceIn(0, max - min)
+        sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
+                t.text = "$label: ${p + min}$unit"
+                if (fromUser) onChange(p + min)
+            }
+
+            override fun onStartTrackingTouch(s: SeekBar) {}
+
+            override fun onStopTrackingTouch(s: SeekBar) {
+                TilesWidget.refresh(applicationContext)
+            }
+        })
+        box.addView(sb)
+        return box
+    }
+
+    private fun imageRow(label: String, kind: String): View {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        val has = Look.hasImage(this, kind)
+        box.addView(hint(if (has) "$label: picture set" else "$label: none"))
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        val pick = Button(this)
+        pick.isAllCaps = false
+        pick.text = if (has) "Change picture" else "Choose picture"
+        pick.setOnClickListener { pickImage(kind) }
+        row.addView(pick)
+        if (has) {
+            val rm = Button(this)
+            rm.isAllCaps = false
+            rm.text = "Remove"
+            rm.setOnClickListener {
+                Look.clearImage(this, kind)
+                applyLook()
+                rebuild()
+            }
+            row.addView(rm)
+        }
+        box.addView(row)
+        if (has) {
+            box.addView(seekRange("Picture strength", Prefs.imgAlpha(this, kind), 10, 100, "%") { Prefs.setImgAlpha(this, kind, it) })
+        }
+        return box
+    }
+
+    private fun pickImage(kind: String) {
+        try {
+            val i = Intent(Intent.ACTION_GET_CONTENT).setType("image/*")
+            startActivityForResult(Intent.createChooser(i, "Choose picture"), 100 + KINDS.indexOf(kind))
+        } catch (e: Exception) {
+            Toast.makeText(this, "No gallery app found", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        val uri = data?.data
+        if (requestCode in 100..102 && resultCode == RESULT_OK && uri != null) {
+            val kind = KINDS[requestCode - 100]
+            Thread {
+                val ok = Look.importImage(applicationContext, uri, kind)
+                runOnUiThread {
+                    Toast.makeText(this, if (ok) "Picture set" else "Could not use that picture", Toast.LENGTH_SHORT).show()
+                    applyLook()
+                    rebuild()
+                }
+            }.start()
+        }
+    }
+
+    private fun cityRow(): View {
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        val et = EditText(this)
+        et.hint = "City, e.g. Riyadh"
+        et.setSingleLine(true)
+        row.addView(et, LinearLayout.LayoutParams(0, WRAP, 1f))
+        val b = Button(this)
+        b.text = "Set"
+        b.isAllCaps = false
+        b.setOnClickListener {
+            val name = et.text.toString().trim()
+            if (name.isEmpty()) return@setOnClickListener
+            Toast.makeText(this, "Looking up…", Toast.LENGTH_SHORT).show()
+            Thread {
+                val r = Weather.lookup(applicationContext, name)
+                runOnUiThread {
+                    Toast.makeText(this, r ?: "City not found", Toast.LENGTH_SHORT).show()
+                    if (r != null) {
+                        TilesWidget.refresh(applicationContext)
+                        rebuild()
+                    }
+                }
+            }.start()
         }
         row.addView(b)
         return row

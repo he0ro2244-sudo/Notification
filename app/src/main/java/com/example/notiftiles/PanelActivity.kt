@@ -69,7 +69,7 @@ class PanelActivity : Activity() {
 
         val sheet = LinearLayout(this)
         sheet.orientation = LinearLayout.VERTICAL
-        sheet.background = rounded(cBg, 24)
+        sheet.background = Look.panelBackground(this, cBg, dp(24))
         sheet.setPadding(dp(12), dp(12), dp(12), dp(8))
         sheet.setOnClickListener { }
         val lp = FrameLayout.LayoutParams(MATCH, WRAP, Gravity.BOTTOM)
@@ -152,6 +152,7 @@ class PanelActivity : Activity() {
         sheet.addView(scroll, LinearLayout.LayoutParams(MATCH, WRAP))
 
         setContentView(root)
+        Look.applyTree(root, this)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -192,6 +193,11 @@ class PanelActivity : Activity() {
     }
 
     private fun refresh() {
+        refreshInner()
+        Look.applyTree(list, this)
+    }
+
+    private fun refreshInner() {
         list.removeAllViews()
         val svc = NotifListener.instance
         val items = if (svc == null) emptyList() else Feed.items(this)
