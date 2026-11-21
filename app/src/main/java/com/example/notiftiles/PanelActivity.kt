@@ -423,11 +423,15 @@ class PanelActivity : Activity() {
 
     private fun balOptions(): Bundle? {
         if (Build.VERSION.SDK_INT < 34) return null
-        return ActivityOptions.makeBasic()
-            .setPendingIntentBackgroundActivityStartMode(
-                ActivityOptions.MODE_BACKGROUND_ACTIVITY_ALLOWED
-            )
-            .toBundle()
+        return try {
+            val o = ActivityOptions.makeBasic()
+            ActivityOptions::class.java
+                .getMethod("setPendingIntentBackgroundActivityStartMode", Int::class.javaPrimitiveType)
+                .invoke(o, 1)
+            o.toBundle()
+        } catch (e: Throwable) {
+            null
+        }
     }
 
     private fun fire(pi: PendingIntent): Boolean = try {
