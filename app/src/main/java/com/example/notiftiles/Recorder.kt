@@ -69,6 +69,58 @@ object Recorder {
         }
     }
 
+    // Components of the recorder that look like "start recording" entry points.
+    private val START_NAME = Regex("(start|quick|shortcut|direct|fast).*(record|rec)|(record|rec).*(start|quick|shortcut|direct|fast)", RegexOption.IGNORE_CASE)
+
+    @Suppress("DEPRECATION")
+    private fun components(c: Context, pkg: String): List<Triple<String, String, Boolean>> = try {
+        val pi = c.packageManager.getPackageInfo(
+            pkg,
+            android.content.pm.PackageManager.GET_ACTIVITIES or
+                android.content.pm.PackageManager.GET_SERVICES or
+                android.content.pm.PackageManager.GET_RECEIVERS
+        )
+        val out = ArrayList<Triple<String, String, Boolean>>()
+        pi.activities?.forEach { out.add(Triple("activity", it.name, it.exported)) }
+        pi.services?.forEach { out.add(Triple("service", it.name, it.exported)) }
+        pi.receivers?.forEach { out.add(Triple("receiver", it.name, it.exported)) }
+        out
+    } catch (e: Exception) {
+        emptyList()
+    }
+
+    private fun recorderPkg(c: Context): String? {
+        val m = mode(c)
+        if (m != "auto") return m
+        return installedApps(c).firstOrNull()?.first
+    }
+
+    /** Tries to start recording right away in the phone's Recorder; falls back to just opening it. */
+    fun startRecording(c: Context): Boolean {
+        val pkg = recorderPkg(c)
+        if (pkg != null) {
+            // 1) the standard Android "record sound" request, aimed at the recorder
+            if (start(c, recordIntent().setPackage(pkg))) return true
+            // 2) an exported activity of the recorder named like a start-recording shortcut
+            for ((kind, name, exported) in components(c, pkg)) {
+                if (kind != "activity" || !exported || !START_NAME.containsMatchIn(name)) continue
+                if (start(c, Intent().setClassName(pkg, name))) return true
+            }
+        }
+        return open(c)
+    }
+
+    /** Text listing the recorder's entry points, for finding the right "start recording" command. */
+    fun diagnose(c: Context): String {
+        val pkg = recorderPkg(c) ?: return "No known recorder app found. Pick one first."
+        val sb = StringBuilder("Recorder: $pkg (${label(c, pkg)})\n")
+        sb.append("RECORD_SOUND answered: ")
+            .append(try { recordIntent().setPackage(pkg).resolveActivity(c.packageManager) != null } catch (e: Exception) { false })
+            .append("\n\nExported entry points:\n")
+        for ((kind, name, exported) in components(c, pkg)) if (exported) sb.append("$kind $name\n")
+        return sb.toString()
+    }
+
     fun open(c: Context): Boolean {
         val m = mode(c)
         if (m != "auto") return launchPkg(c, m)
@@ -90,14 +142,15 @@ object Recorder {
         return all.sortedWith(compareBy({ !recLike(it) }, { it.second.lowercase() }))
     }
 
-    fun pickDialog(a: Activity, onPicked: () -> Unit) {
+    fun pickDialog(a: Activity, onPicked: () -> Unit, onCancel: () -> Unit = {}) {
         val t = targets(a)
         if (t.isEmpty()) {
             Toast.makeText(a, "No apps found", Toast.LENGTH_SHORT).show()
             return
         }
         android.app.AlertDialog.Builder(a)
-            .setTitle("Open this recorder…")
+            .setTitle("Record with…")
+            .setOnCancelListener { onCancel() }
             .setItems(t.map { it.second }.toTypedArray()) { _, i ->
                 setMode(a, t[i].first)
                 onPicked()

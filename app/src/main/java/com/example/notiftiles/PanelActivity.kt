@@ -140,17 +140,6 @@ class PanelActivity : Activity() {
             refresh()
         }
         header.addView(addNote)
-        val mic = ImageView(this)
-        mic.setImageResource(R.drawable.ic_mic)
-        mic.setColorFilter(Prefs.accent(this))
-        mic.setPadding(dp(6), dp(4), dp(6), dp(4))
-        mic.setOnClickListener {
-            val go = {
-                if (Recorder.open(this)) finish() else toast("No recorder app found")
-            }
-            if (Recorder.needsPick(this)) Recorder.pickDialog(this) { go() } else go()
-        }
-        header.addView(mic, LinearLayout.LayoutParams(dp(34), dp(30)))
 
         val clear = TextView(this)
         clear.text = "Clear all"

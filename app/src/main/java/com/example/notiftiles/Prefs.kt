@@ -184,7 +184,7 @@ object Prefs {
     // ---- Panel text sizes per part (percent, on top of the overall text size) ----
     val PANEL_GROUPS = listOf(
         "head" to "Header title (Inbox, Back)",
-        "hdr" to "Header buttons (mic, + Note, Clear all)",
+        "hdr" to "Header buttons (+ Note, Clear all)",
         "title" to "Message titles",
         "text" to "Message text and notes",
         "small" to "Small labels (app name, counts)",

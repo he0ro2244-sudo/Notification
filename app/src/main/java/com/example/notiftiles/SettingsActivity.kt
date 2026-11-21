@@ -314,7 +314,7 @@ class SettingsActivity : Activity() {
 
         // ---- Voice recorder (mic next to + Note)
         col.addView(title("Voice recorder", 16f, 20))
-        col.addView(hint("The blue mic next to \"+ Note\" opens this app."))
+        col.addView(hint("The blue mic at the start of the widget header starts recording in this app."))
         val recOptions = ArrayList<Pair<String, String>>()
         recOptions.add("auto" to "Phone's recorder")
         for (a in Recorder.installedApps(this)) recOptions.add(a)
@@ -324,8 +324,25 @@ class SettingsActivity : Activity() {
         val recOther = Button(this)
         recOther.isAllCaps = false
         recOther.text = "Choose any other app…"
-        recOther.setOnClickListener { Recorder.pickDialog(this) { rebuild() } }
+        recOther.setOnClickListener { Recorder.pickDialog(this, { rebuild() }) }
         col.addView(recOther)
+        val recCheck = Button(this)
+        recCheck.isAllCaps = false
+        recCheck.text = "Check recorder entry points"
+        recCheck.setOnClickListener {
+            val info = Recorder.diagnose(this)
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Recorder")
+                .setMessage(info)
+                .setPositiveButton("Copy") { _, _ ->
+                    val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    cm.setPrimaryClip(android.content.ClipData.newPlainText("recorder", info))
+                    Toast.makeText(this, "Copied", Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Close", null)
+                .show()
+        }
+        col.addView(recCheck)
 
         // ---- Counts
         col.addView(title("Counts", 16f, 20))

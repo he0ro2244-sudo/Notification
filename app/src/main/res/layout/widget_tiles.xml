@@ -462,6 +462,17 @@
             android:textSize="12sp"
             />
 
+        <ImageView
+            android:id="@+id/wmic"
+            android:layout_width="32dp"
+            android:layout_height="26dp"
+            android:contentDescription="Record"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="2dp"
+            android:src="@drawable/ic_mic" />
+
         <TextView
             android:id="@+id/wnote"
             android:layout_width="wrap_content"

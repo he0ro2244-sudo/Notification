@@ -85,6 +85,11 @@ class TilesWidget : AppWidgetProvider() {
                 R.id.wnote,
                 PendingIntent.getActivity(ctx, 2, newNote, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             )
+            val rec = Intent(ctx, RecordActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            rv.setOnClickPendingIntent(
+                R.id.wmic,
+                PendingIntent.getActivity(ctx, 40, rec, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            )
             val clear = Intent(ctx, TilesWidget::class.java).setAction(ACTION_CLEAR)
             rv.setOnClickPendingIntent(
                 R.id.wclear,
@@ -265,6 +270,7 @@ class TilesWidget : AppWidgetProvider() {
             rv.setViewVisibility(R.id.dialwrap, if (Prefs.show(ctx, "dial")) View.VISIBLE else View.GONE)
             val accent = Prefs.accent(ctx)
             rv.setTextColor(R.id.wnote, accent)
+            rv.setInt(R.id.wmic, "setColorFilter", accent)
             rv.setColorStateList(R.id.count, "setBackgroundTintList", ColorStateList.valueOf(accent))
         }
 
