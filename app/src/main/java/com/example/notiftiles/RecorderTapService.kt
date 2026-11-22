@@ -27,6 +27,10 @@ class RecorderTapService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event == null) return
         val pkgName = event.packageName?.toString() ?: ""
+        if (pkgName == LocationAuto.MAPS) {
+            maybeOpenMapsSearch()
+            return
+        }
         if (pkgName in Weather.APPS) {
             maybeReadWeather()
             return
@@ -47,6 +51,36 @@ class RecorderTapService : AccessibilityService() {
     }
 
     override fun onInterrupt() {}
+
+    // ---- "Where to?" straight into Google Maps' own search: tap Maps' search bar once after it opens ----
+    private var mapsQueued = false
+
+    private fun maybeOpenMapsSearch() {
+        if (System.currentTimeMillis() > mapsSearchUntil || mapsQueued) return
+        mapsQueued = true
+        handler.postDelayed({
+            mapsQueued = false
+            if (System.currentTimeMillis() <= mapsSearchUntil && clickMapsSearch()) mapsSearchUntil = 0L
+        }, 600)
+    }
+
+    private fun clickMapsSearch(): Boolean {
+        val root = rootInActiveWindow ?: return false
+        if ((root.packageName?.toString() ?: "") != LocationAuto.MAPS) return false
+        for (label in listOf("Search here", "Search Google Maps")) {
+            for (n in root.findAccessibilityNodeInfosByText(label)) {
+                if (!n.isVisibleToUser) continue
+                var t: AccessibilityNodeInfo? = n
+                var depth = 0
+                while (t != null && !t.isClickable && depth < 6) {
+                    t = t.parent
+                    depth++
+                }
+                if (t != null && t.isClickable && t.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+            }
+        }
+        return false
+    }
 
     // ---- Copy the temperature shown in the phone's weather app to the widget ----
     private var lastRead = 0L
@@ -219,6 +253,8 @@ class RecorderTapService : AccessibilityService() {
         /** Time up to which the next Recorder window should get its red button pressed. */
         @Volatile
         var pendingUntil = 0L
+        /** Set by "Where to?" (Maps search option): until then, tap the search bar of the next Google Maps window. */
+        @Volatile var mapsSearchUntil = 0L
         /** Set by the widget's refresh button: read the weather app, then close it again. */
         @Volatile var autoCloseUntil = 0L
 

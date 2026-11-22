@@ -64,6 +64,11 @@ class DestinationActivity : Activity() {
             showSearch()
             return
         }
+        // With the one-time permission granted, Location is switched on silently (and off again after navigation).
+        if (LocationAuto.turnOn(this)) {
+            showSearch()
+            return
+        }
         // Location is off: show Google's one-tap "turn on location" prompt, then the search box.
         try {
             val req = LocationRequest.Builder(Priority.PRIORITY_BALANCED_POWER_ACCURACY, 10000L).build()
@@ -114,7 +119,19 @@ class DestinationActivity : Activity() {
 
     private fun alphaOf(color: Int, a: Int) = (a shl 24) or (color and 0xFFFFFF)
 
+    // Option "Where to? opens the Google Maps search screen": launch Maps and let the helper tap its search bar.
+    // Not while navigating, so the red "Exit navigation" button stays reachable here.
+    private fun openMapsStraight(): Boolean {
+        if (!Prefs.mapsSearchDirect(this) || LocationAuto.navNotification() != null) return false
+        val i = packageManager.getLaunchIntentForPackage(MAPS) ?: return false
+        if (RecorderTapService.enabled(this)) RecorderTapService.mapsSearchUntil = System.currentTimeMillis() + 8000L
+        startActivity(i)
+        finish()
+        return true
+    }
+
     private fun showSearch() {
+        if (openMapsStraight()) return
         val bg = Prefs.panelBgColor(this)
         val lum = 0.299 * Color.red(bg) + 0.587 * Color.green(bg) + 0.114 * Color.blue(bg)
         fg = if (lum > 140) 0xFF111111.toInt() else 0xFFFFFFFF.toInt()
@@ -133,6 +150,25 @@ class DestinationActivity : Activity() {
         val slp = FrameLayout.LayoutParams(MATCH, WRAP, Gravity.BOTTOM)
         slp.setMargins(dp(8), 0, dp(8), dp(8))
         root.addView(sheet, slp)
+
+        // While Google Maps is navigating: one tap ends it (the same as "Exit navigation" in its notification).
+        if (LocationAuto.navNotification() != null) {
+            val ex = TextView(this)
+            ex.text = "⛔  Exit navigation"
+            ex.textSize = 16f
+            ex.gravity = Gravity.CENTER
+            ex.setTextColor(0xFFFFFFFF.toInt())
+            ex.background = rounded(0xFFD93025.toInt(), 14)
+            ex.setPadding(dp(12), dp(12), dp(12), dp(12))
+            ex.setOnClickListener {
+                val ok = LocationAuto.exitNavigation()
+                Toast.makeText(this, if (ok) "Navigation ended" else "Open Google Maps to end navigation", Toast.LENGTH_SHORT).show()
+                if (ok) finish()
+            }
+            val elp = LinearLayout.LayoutParams(MATCH, WRAP)
+            elp.bottomMargin = dp(10)
+            sheet.addView(ex, elp)
+        }
 
         // Search row: text box + mic
         val row = LinearLayout(this)
@@ -232,6 +268,7 @@ class DestinationActivity : Activity() {
     // Empty box: Home / Work and recent places.
     private fun showDefaults() {
         list.removeAllViews()
+        list.addView(row("🗺", "Open Google Maps (its own search and suggestions)") { openMaps() })
         val home = Prefs.fav(this, "home")
         val work = Prefs.fav(this, "work")
         if (home.isNotEmpty()) list.addView(row("🏠", "Home  ·  $home") { go(home) })
@@ -251,6 +288,7 @@ class DestinationActivity : Activity() {
         }
         list.removeAllViews()
         list.addView(row("🔎", "Search “$q”") { go(q) })
+        list.addView(row("🗺", "Show “$q” in Google Maps (all matches)") { openMapsSearch(q) })
         if (!Prefs.suggestions(this) || q.length < 3) return
         val r = Runnable {
             Thread {
@@ -272,6 +310,33 @@ class DestinationActivity : Activity() {
         }
         pending = r
         ui.postDelayed(r, 400)
+    }
+
+    // Google Maps' own search results for the typed words (pick the right place there, then Directions).
+    private fun openMapsSearch(q: String) {
+        val enc = Uri.encode(q)
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$enc")).setPackage(MAPS))
+            finish()
+        } catch (e: Exception) {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=$enc")))
+                finish()
+            } catch (x: Exception) {
+                Toast.makeText(this, "No maps app found", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // Straight into the Google Maps app, to use its own search box.
+    private fun openMaps() {
+        val i = packageManager.getLaunchIntentForPackage(MAPS)
+        if (i != null) {
+            startActivity(i)
+            finish()
+        } else {
+            Toast.makeText(this, "Google Maps isn't installed", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun listen() {

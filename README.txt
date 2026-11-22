@@ -1,8 +1,8 @@
-Notif Tiles v0.9.15
+Notif Tiles v0.9.16
 
-LATEST (v0.9.15) - older versions are listed below, newest at the bottom.
+LATEST (v0.9.16) - older versions are listed below, newest at the bottom.
 
-LATEST CHANGES: Weather city box now shows the current city and a small list of matching places while you type
+NEW IN v0.9.16: Weather city box now shows the current city and a small list of matching places while you type
 (tap one to use it). The refresh icon no longer opens the phone's weather app.
 Mic: with the Accessibility helper ON it still uses your phone's recorder. With the helper OFF it now records inside this
 app (asks for microphone permission once), saved as m4a in Recordings/NotifTiles; tap the mic again, or "Stop & save" in the
@@ -12,6 +12,13 @@ stop, the saved file name. Files: Internal storage > Recordings > NotifTiles.
 Notes: new switch in Look & colors > Notes, "+ Note opens the notes app straight away". Off (default) keeps the type-here box.
 Message time stamp (Look & colors > Text, fonts & text colours): Smart = only the time today, "Yesterday, time", older shows the date.
 Other choices: Date + time (the old look), Time only, None.
+Where to?: with the one-time adb permission (adb shell pm grant com.example.notiftiles android.permission.WRITE_SECURE_SETTINGS)
+Location is switched on with no pop-up and switched off again when the Google Maps navigation ends (only if Notif Tiles
+switched it on). Without the permission the normal Google Turn on pop-up is used.
+Where to? straight to Google Maps: switch in Look & colors > Where to? (off by default). Opens Maps and, with the Accessibility
+helper ON, taps its search bar so you get Maps' own suggestions, Home, Work and Recent.
+Where to? extras: a red "Exit navigation" button appears at the top while Google Maps is navigating. While typing there is a
+row "Show ... in Google Maps (all matches)", and with an empty box a row "Open Google Maps" (its own search and suggestions).
 Photos: when a chat app sends a photo and lets other apps read it, the photo is shown inside the opened message card in the panel.
 
 NEW IN v0.9.15

@@ -1,5 +1,6 @@
 package com.example.notiftiles
 
+import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
 import android.provider.Settings
@@ -19,6 +20,7 @@ class NotifListener : NotificationListenerService() {
             activeNotifications?.forEach { Prefs.addSeen(this, it.packageName) }
         } catch (e: Exception) {
         }
+        if (Prefs.locOwned(this)) watchLocation()
         changed()
     }
 
@@ -36,6 +38,48 @@ class NotifListener : NotificationListenerService() {
     }
 
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    // Switches Location off again once the Google Maps navigation notification is gone (only when we switched it on).
+    private var gone = 0
+    private val locCheck = object : Runnable {
+        override fun run() {
+            val c = this@NotifListener
+            if (!Prefs.locOwned(c)) return
+            if (!LocationAuto.isOn(c) || !Prefs.autoLocationOff(c)) {
+                Prefs.setLocOwned(c, false)
+                return
+            }
+            var nav = true
+            try {
+                val list = c.activeNotifications
+                if (list != null) {
+                    nav = list.any {
+                        it.packageName == LocationAuto.MAPS && (it.notification.flags and Notification.FLAG_ONGOING_EVENT) != 0
+                    }
+                }
+            } catch (e: Exception) {
+            }
+            if (nav) {
+                Prefs.setLocSeen(c, true)
+                gone = 0
+            } else {
+                gone++
+                val seen = Prefs.locSeen(c)
+                val age = System.currentTimeMillis() - Prefs.locSince(c)
+                if ((seen && gone >= 2) || (!seen && age > 10 * 60 * 1000L)) {
+                    LocationAuto.release(c)
+                    return
+                }
+            }
+            handler.postDelayed(this, 10000)
+        }
+    }
+
+    fun watchLocation() {
+        gone = 0
+        handler.removeCallbacks(locCheck)
+        handler.postDelayed(locCheck, 10000)
+    }
 
     private fun refreshWidget() {
         try {

@@ -171,6 +171,23 @@ object Prefs {
     fun autoLocation(c: Context): Boolean = sp(c).getBoolean("dest_auto_loc", true)
     fun setAutoLocation(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_auto_loc", v).apply()
 
+    // "Where to?" opens the Google Maps search screen directly (the Accessibility helper taps Maps' search bar)
+    fun mapsSearchDirect(c: Context): Boolean = sp(c).getBoolean("dest_maps_direct", false)
+    fun setMapsSearchDirect(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_maps_direct", v).apply()
+
+    // Location that Notif Tiles switched on by itself for navigation, so it can switch it off again afterwards
+    fun autoLocationOff(c: Context): Boolean = sp(c).getBoolean("loc_auto_off", true)
+    fun setAutoLocationOff(c: Context, v: Boolean) = sp(c).edit().putBoolean("loc_auto_off", v).apply()
+    fun locOwned(c: Context): Boolean = sp(c).getBoolean("loc_owned", false)
+    fun locSince(c: Context): Long = sp(c).getLong("loc_since", 0L)
+    fun locSeen(c: Context): Boolean = sp(c).getBoolean("loc_seen", false)
+    fun setLocSeen(c: Context, v: Boolean) = sp(c).edit().putBoolean("loc_seen", v).apply()
+    fun setLocOwned(c: Context, on: Boolean) = sp(c).edit()
+        .putBoolean("loc_owned", on)
+        .putLong("loc_since", if (on) System.currentTimeMillis() else 0L)
+        .putBoolean("loc_seen", false)
+        .apply()
+
     // ---- Borders (0 thickness = none; colour 0 = automatic) ----
     fun borderWidth(c: Context): Int = sp(c).getInt("look_bw", 0)
     fun setBorderWidth(c: Context, v: Int) = sp(c).edit().putInt("look_bw", v).apply()
