@@ -346,7 +346,39 @@ object Feed {
     }
 
     /** All messages, one per line. */
-    fun fullText(c: Context, n: StatusBarNotification): String = lines(c, n).joinToString("\n")
+    fun fullText(c: Context, n: StatusBarNotification): String =
+        lines(c, n, true).ifEmpty { lines(c, n) }.joinToString("\n")
+
+    /**
+     * What this app gives us for a notification: the names and kinds of its fields and the type of each message's
+     * attachment (never the texts). Shown by a long press on the photo box, to see whether any picture is offered.
+     */
+    @Suppress("DEPRECATION")
+    fun debugDump(n: StatusBarNotification): String {
+        val ex = n.notification.extras
+        val sb = StringBuilder()
+        sb.append(n.packageName).append('\n')
+        for (k in ex.keySet().sorted()) {
+            val v = try {
+                ex.get(k)
+            } catch (e: Exception) {
+                null
+            }
+            val d = when (v) {
+                null -> "null"
+                is CharSequence -> "text(" + v.length + ")"
+                is Bitmap -> "BITMAP " + v.width + "x" + v.height
+                is android.graphics.drawable.Icon -> "ICON"
+                is Array<*> -> "array(" + v.size + ")"
+                else -> v.javaClass.simpleName
+            }
+            sb.append(k.removePrefix("android.")).append(": ").append(d).append('\n')
+        }
+        for (m in messageList(n)) {
+            sb.append("message: mime=").append(m.dataMimeType).append(" uri=").append(if (m.dataUri == null) "none" else "yes").append('\n')
+        }
+        return sb.toString()
+    }
 
     /** The latest [k] messages, one per line (newest at the bottom). */
     fun recentText(c: Context, n: StatusBarNotification, k: Int): String = lines(c, n, true).takeLast(k).joinToString("\n")

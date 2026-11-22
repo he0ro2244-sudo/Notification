@@ -1,3 +1,7 @@
+NEW IN v0.9.38: An opened message card now shows only the NEW messages from the other person (not the old history and not what
+you sent). If there is nothing new it shows the whole chat as before. Long-press the "Photo - tap to view in the app" box
+to see what Instagram / Snapchat actually offer in their notification (names and kinds of fields only, no message texts).
+
 NEW IN v0.9.37: What you send never comes back as new. The text of every reply sent from the panel is remembered for 10 minutes;
 when the app re-posts the chat with that same text as its newest message, it is hidden. "Done" is now also remembered per
 conversation (app + chat name), not only per notification, so it still holds when the app re-posts under a new id. The ignore

@@ -809,6 +809,7 @@ class PanelActivity : Activity() {
                     ph.setTextColor(fg)
                     ph.setPadding(dp(12), dp(28), dp(12), dp(28))
                     ph.setOnClickListener { open(sbn) }
+                    ph.setOnLongClickListener { showDump(sbn); true }
                     mediaBox.removeAllViews()
                     mediaBox.addView(ph, FrameLayout.LayoutParams(MATCH, WRAP))
                     mediaBox.background = rounded(0x22808080, 12)
@@ -921,6 +922,20 @@ class PanelActivity : Activity() {
         }
         card.addView(bar)
         return card
+    }
+
+    // Long press on the photo box: what the app offers in its notification (to see whether it gives any picture).
+    private fun showDump(sbn: StatusBarNotification) {
+        val tv = TextView(this)
+        tv.text = Feed.debugDump(sbn)
+        tv.typeface = Typeface.MONOSPACE
+        tv.textSize = 12f
+        tv.setTextIsSelectable(true)
+        tv.setPadding(dp(20), dp(12), dp(20), dp(12))
+        val sv = android.widget.ScrollView(this)
+        sv.addView(tv)
+        android.app.AlertDialog.Builder(this).setTitle("What this app gives").setView(sv)
+            .setPositiveButton("Close", null).show()
     }
 
     private fun sendReply(a: Notification.Action, et: EditText) {
