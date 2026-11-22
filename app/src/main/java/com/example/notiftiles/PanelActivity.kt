@@ -1054,19 +1054,15 @@ class PanelActivity : Activity() {
         } catch (e: Exception) {
         }
         val h = android.os.Handler(android.os.Looper.getMainLooper())
-        // The panel stays open for a while: the phone's "wants to open Snapchat" question disappears if the panel closes
-        // at once. Tap "Allow for 30 days" there. Then the panel closes by itself.
-        toast("Opening Snapchat…")
-        h.postDelayed({ if (!isFinishing) finish() }, 15000L)
         val target = pi ?: sbn.notification.contentIntent
         if (target == null) {
             ActionLog.add(this, "Snapchat: started the app; Snapchat gave nothing to send to the chat")
             return
         }
-        ActionLog.add(this, "Snapchat: started the app, sending its " + (if (pi == null) "chat" else "button") + " (" + ActionLog.kind(target) + ") after 2.5 s and 8 s")
+        ActionLog.add(this, "Snapchat: started the app, sending its " + (if (pi == null) "chat" else "button") + " (" + ActionLog.kind(target) + ") after 0.9 s and 3.5 s")
         val opts = balOptions()
         val app = applicationContext
-        for (d in longArrayOf(2500L, 8000L)) {
+        for (d in longArrayOf(900L, 3500L)) {
             h.postDelayed({
                 try {
                     target.send(app, 0, null, null, null, null, opts)
@@ -1087,6 +1083,7 @@ class PanelActivity : Activity() {
             }
             viewing = null
             openSnapchat(sbn, a.actionIntent)
+            finish()
             return
         }
         val pi = a.actionIntent
@@ -1128,6 +1125,7 @@ class PanelActivity : Activity() {
         viewing = null
         if (sbn.packageName == "com.snapchat.android") {
             openSnapchat(sbn, null)
+            finish()
             return
         }
         try {

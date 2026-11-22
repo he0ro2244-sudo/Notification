@@ -165,6 +165,18 @@ class SettingsActivity : Activity() {
         btnLog.text = "Button log"
         btnLog.setOnClickListener { ActionLog.show(this) }
         col.addView(btnLog)
+        val btnSnap = Button(this)
+        btnSnap.isAllCaps = false
+        btnSnap.text = "Allow opening Snapchat (answer once)"
+        btnSnap.setOnClickListener {
+            Toast.makeText(this, "If the phone asks, choose Allow for 30 days", Toast.LENGTH_LONG).show()
+            try {
+                packageManager.getLaunchIntentForPackage("com.snapchat.android")
+                    ?.let { startActivity(it.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            } catch (e: Exception) {
+            }
+        }
+        col.addView(btnSnap)
 
         category("LOOK")
         section("Themes & accent colour") {

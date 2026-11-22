@@ -1,3 +1,6 @@
+NEW IN v0.9.46: The panel closes at once again after Open Snapchat (no 15 s wait). New in Settings: "Allow opening Snapchat (answer once)"
+- it opens Snapchat from the settings screen so the phone's question can be answered calmly (Allow for 30 days).
+
 NEW IN v0.9.45: Snapchat card has ONE button, "Open Snapchat" (View / Reply / Open did the same thing). After you press it the panel
 stays open for up to 15 s so the phone's "Notif Tiles wants to open Snapchat" question does not vanish; tap "Allow for 30 days".
 
