@@ -124,6 +124,11 @@ class SettingsActivity : Activity() {
 
     private fun build() {
         col.addView(title("Look & colors", 22f, 0))
+        try {
+            val vn = packageManager.getPackageInfo(packageName, 0).versionName
+            col.addView(hint("Notif Tiles version $vn"))
+        } catch (e: Exception) {
+        }
 
         col.addView(hint("Tap a group to open or close it. Everything is still here, just grouped."))
 

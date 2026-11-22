@@ -1,3 +1,5 @@
+NEW IN v0.9.25: Look & colors now shows the installed version under its title.
+
 NEW IN v0.9.24: Exit navigation now proves itself: it presses Exit, checks the Maps notification is really gone, and if not it
 taps Exit inside Maps; every result is shown in a message. Look & colors > Where to? has a "Self-check" button (shows
 notification access, the Maps Exit button, the adb Location permission and the Accessibility helper) and "Test: exit navigation
