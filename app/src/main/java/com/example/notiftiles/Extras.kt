@@ -55,7 +55,7 @@ object Extras {
     fun markAllRead(c: Context) {
         val svc = NotifListener.instance
         for (n in Feed.items(c, true)) {
-            Prefs.markHandled(c, n.key, n.postTime)
+            Prefs.markHandled(c, n.key, Feed.handledStamp(n))
             if (Prefs.dismissHandled(c) && n.isClearable) svc?.cancelNotification(n.key)
         }
     }

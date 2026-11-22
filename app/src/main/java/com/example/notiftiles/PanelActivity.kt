@@ -284,7 +284,7 @@ class PanelActivity : Activity() {
         val v = viewing ?: return
         viewing = null
         if (Prefs.countRead(this)) {
-            Prefs.markHandled(this, v.key, v.postTime)
+            Prefs.markHandled(this, v.key, Feed.handledStamp(v))
             dismissFromShade(v)
             TilesWidget.refresh(applicationContext)
         }
@@ -944,9 +944,11 @@ class PanelActivity : Activity() {
             et.postDelayed({ et.hint = oldHint }, 1200)
             val v = viewing
             if (v != null && Prefs.countReply(this)) {
-                // Ignore the app's own "you replied" update, and tidy the notification away.
-                Prefs.markHandled(this, v.key, System.currentTimeMillis() + 10000)
-                Feed.markReplied(v.key)
+                // Everything in this chat up to now counts as answered: the app's "you replied" re-post carries only
+                // messages up to now, so it stays hidden; only a message that arrives later shows again.
+                val until = maxOf(Feed.handledStamp(v), System.currentTimeMillis()) +
+                    (if (Feed.hasMessages(v)) 6000L else 60000L)
+                Prefs.markHandled(this, v.key, until)
                 dismissFromShade(v, 1500L)
                 sweepEcho(v.key)
                 viewing = null
@@ -954,6 +956,8 @@ class PanelActivity : Activity() {
                 refresh()
                 TilesWidget.refresh(applicationContext)
             }
+            // The panel closes by itself once the reply is sent.
+            finish()
         } catch (e: PendingIntent.CanceledException) {
             toast("Couldn't send. Open the app to reply.")
         }
@@ -972,7 +976,9 @@ class PanelActivity : Activity() {
                 } catch (e: Exception) {
                     null
                 }
-                if (n != null && n.isClearable && Prefs.dismissHandled(app) && Feed.isEcho(n)) {
+                if (n != null && n.isClearable && Prefs.dismissHandled(app) &&
+                    Feed.newestTs(n) <= (Prefs.handledMap(app)[key] ?: 0L)
+                ) {
                     svc.cancelNotification(key)
                 }
                 TilesWidget.refresh(app)
@@ -1014,7 +1020,7 @@ class PanelActivity : Activity() {
         val t = a.title.toString().lowercase()
         if (t.contains("read") && !t.contains("unread")) {
             // "Mark as read" from the app's own button: handled here as well.
-            Prefs.markHandled(this, sbn.key, System.currentTimeMillis() + 4000)
+            Prefs.markHandled(this, sbn.key, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
             dismissFromShade(sbn, 800L)
             if (viewing?.key == sbn.key) viewing = null
             expanded = null
@@ -1029,7 +1035,7 @@ class PanelActivity : Activity() {
 
     private fun open(sbn: StatusBarNotification) {
         if (Prefs.countRead(this)) {
-            Prefs.markHandled(this, sbn.key, sbn.postTime)
+            Prefs.markHandled(this, sbn.key, Feed.handledStamp(sbn))
             dismissFromShade(sbn, 1500L)
         }
         viewing = null

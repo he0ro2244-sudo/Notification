@@ -1,3 +1,12 @@
+NEW IN v0.9.36: The panel (the pop-up from the bottom) closes by itself right after a reply is sent.
+
+NEW IN v0.9.35: Messages you answered or read stay gone (rebuilt). Whether a chat is "new" is now decided by the time of its
+messages, not by when the app re-posted its notification (apps re-post after every reply / read, which used to bring the
+tile back). Reading or replying marks everything up to that moment as done; only a message that arrives later shows again.
+Messages you wrote yourself (found through the app's own "me" person, "You" / "أنت", or no sender) are never shown as new,
+also when you replied from the pop-up notification or inside the app. Tiles now show only the new messages from the other
+person, not the ones you sent.
+
 NEW IN v0.9.34: A chat you just replied to stays gone. After a reply the app re-posts the chat; it is now recognised by its time
 (nothing newer than your reply is in it) instead of by the sender name, which Arabic phones and some apps write differently.
 A chat whose newest message is your own (named You / أنت / your own name) is also never counted as new.

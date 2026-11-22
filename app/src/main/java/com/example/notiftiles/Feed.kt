@@ -66,7 +66,7 @@ object Feed {
      * chosen in Look & colors. Falls back to inbox lines, then to the single text.
      */
     @Suppress("DEPRECATION")
-    fun lines(c: Context, n: StatusBarNotification): List<String> {
+    fun lines(c: Context, n: StatusBarNotification, unreadOnly: Boolean = false): List<String> {
         val ex = n.notification.extras
         val out = ArrayList<String>()
         try {
@@ -78,9 +78,12 @@ object Feed {
                 msgs.addAll(Notification.MessagingStyle.Message.getMessagesFromBundleArray(it))
             }
             val seen = HashSet<String>()
+            val handledTs = if (unreadOnly) (Prefs.handledMap(c)[n.key] ?: 0L) else 0L
+            val anySender = msgs.any { it.senderPerson != null }
             for (m in msgs.sortedBy { it.timestamp }) {
                 val t = m.text?.toString().orEmpty()
                 if (t.isEmpty()) continue
+                if (unreadOnly && (m.timestamp <= handledTs || isOwnMsg(n, m, anySender))) continue
                 val who = m.senderPerson?.name?.toString().orEmpty()
                 val st = stamp(c, m.timestamp)
                 val line = (if (st.isNotEmpty()) "[$st] " else "") + (if (who.isNotEmpty()) "$who: " else "") + t
@@ -247,54 +250,61 @@ object Feed {
         return PHOTO_WORDS.containsMatchIn(body)
     }
 
-    // ---- Replies sent from the panel: the app re-posts the chat with our own reply in it; that must not come back ----
-    private val replied = java.util.concurrent.ConcurrentHashMap<String, Long>()
-
-    fun markReplied(key: String) {
-        replied[key] = System.currentTimeMillis()
-    }
+    // ---- What is new: decided by the time of the MESSAGES, never by when the app re-posted the notification ----
+    // (Apps re-post a chat after every reply / read; that must not bring an answered message back.)
 
     @Suppress("DEPRECATION")
-    private fun newestMessage(n: StatusBarNotification): Notification.MessagingStyle.Message? = try {
+    private fun messageList(n: StatusBarNotification): List<Notification.MessagingStyle.Message> = try {
         val arr = n.notification.extras.getParcelableArray(Notification.EXTRA_MESSAGES)
-        if (arr == null) null else Notification.MessagingStyle.Message.getMessagesFromBundleArray(arr).maxByOrNull { it.timestamp }
+        if (arr == null) emptyList() else Notification.MessagingStyle.Message.getMessagesFromBundleArray(arr)
     } catch (e: Exception) {
-        null
+        emptyList()
     }
 
-    private fun isSelfName(n: StatusBarNotification, who: String): Boolean {
-        if (who.isEmpty()) return false
-        val self = n.notification.extras.getCharSequence(Notification.EXTRA_SELF_DISPLAY_NAME)?.toString().orEmpty()
-        return who == "You" || who == "أنت" || (self.isNotEmpty() && who == self)
+    fun hasMessages(n: StatusBarNotification): Boolean = messageList(n).isNotEmpty()
+
+    /** Time of the newest message; the post time when the app gives no message list (or no usable times). */
+    fun newestTs(n: StatusBarNotification): Long {
+        val t = messageList(n).maxOfOrNull { it.timestamp } ?: 0L
+        return if (t > 0L) t else n.postTime
     }
 
-    /** True when the newest message of the chat is written by the phone's owner (named as the app names "me"). */
-    fun ownLast(n: StatusBarNotification): Boolean {
-        val m = newestMessage(n) ?: return false
-        return isSelfName(n, m.senderPerson?.name?.toString().orEmpty())
-    }
+    /** What to store in Prefs.markHandled when this chat is read: everything up to now, including its newest message. */
+    fun handledStamp(n: StatusBarNotification): Long = maxOf(n.postTime, newestTs(n))
 
-    /**
-     * A chat we just replied to, re-posted by the app. After our reply nothing newer than the reply itself is in it
-     * (its newest message is our own reply or the message we already answered), so it is not a new message.
-     */
-    fun isEcho(n: StatusBarNotification): Boolean {
-        val t = replied[n.key] ?: return false
-        val now = System.currentTimeMillis()
-        if (now - t > 180000L) {
-            replied.remove(n.key)
-            return false
+    /** Is [m] written by the phone's owner? (no sender = the owner, as in Android's own MessagingStyle) */
+    @Suppress("DEPRECATION")
+    private fun isOwnMsg(n: StatusBarNotification, m: Notification.MessagingStyle.Message, anySender: Boolean): Boolean {
+        val p = m.senderPerson ?: return anySender
+        val ex = n.notification.extras
+        val name = p.name?.toString().orEmpty()
+        val user = try {
+            ex.get(Notification.EXTRA_MESSAGING_PERSON) as? android.app.Person
+        } catch (e: Exception) {
+            null
         }
-        val m = newestMessage(n)
-            ?: return n.postTime <= t + 60000L // no message list (some apps): anything re-posted within a minute
-        return m.timestamp <= t + 4000L || ownLast(n)
+        if (user != null) {
+            val uk = user.key
+            if (uk != null && uk == p.key) return true
+            val un = user.name?.toString().orEmpty()
+            if (un.isNotEmpty() && un == name) return true
+        }
+        val self = ex.getCharSequence(Notification.EXTRA_SELF_DISPLAY_NAME)?.toString().orEmpty()
+        return name == "You" || name == "أنت" || (self.isNotEmpty() && name == self)
+    }
+
+    /** True when the newest message of the chat was written by the phone's owner (so there is nothing new to read). */
+    fun ownLast(n: StatusBarNotification): Boolean {
+        val l = messageList(n)
+        val last = l.maxByOrNull { it.timestamp } ?: return false
+        return isOwnMsg(n, last, l.any { it.senderPerson != null })
     }
 
     /** All messages, one per line. */
     fun fullText(c: Context, n: StatusBarNotification): String = lines(c, n).joinToString("\n")
 
     /** The latest [k] messages, one per line (newest at the bottom). */
-    fun recentText(c: Context, n: StatusBarNotification, k: Int): String = lines(c, n).takeLast(k).joinToString("\n")
+    fun recentText(c: Context, n: StatusBarNotification, k: Int): String = lines(c, n, true).takeLast(k).joinToString("\n")
 
     fun label(c: Context, pkg: String): String = try {
         c.packageManager.getApplicationLabel(c.packageManager.getApplicationInfo(pkg, 0)).toString()
@@ -341,8 +351,8 @@ object Feed {
         return all
             .filter { it.packageName in enabled && it.packageName != c.packageName && it.packageName !in muted }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
-            .filter { it.postTime > (handled[it.key] ?: 0L) }
-            .filter { !isEcho(it) && !ownLast(it) }
+            .filter { newestTs(it) > (handled[it.key] ?: 0L) }
+            .filter { !ownLast(it) }
             .filter { title(it).isNotEmpty() || text(it).isNotEmpty() }
             .filter {
                 val summary = (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0

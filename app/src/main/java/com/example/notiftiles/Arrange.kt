@@ -29,7 +29,7 @@ object Arrange {
                 .map { Feed.title(it) }.filter { it.isNotEmpty() }.distinct().joinToString(", ")
             val lines = ArrayList<String>()
             for (n in list.sortedByDescending { it.postTime }) {
-                val last = Feed.lines(c, n).lastOrNull() ?: continue
+                val last = Feed.lines(c, n, true).lastOrNull() ?: continue
                 val who = Feed.title(n)
                 lines.add(if (who.isNotEmpty() && list.size > 1 && !last.contains(who)) "$who: $last" else last)
                 if (lines.size >= k) break
