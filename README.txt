@@ -1,3 +1,7 @@
+NEW IN v0.9.40: Fixes in the panel. The x on an opened card now counts the message as handled (WhatsApp no longer brings it back)
+and closes the panel, same as Instagram's message going away. Mark as read (WhatsApp) closes the panel too. Snapchat now has a
+Reply button (it uses Snapchat's own reply box if offered, otherwise it opens the chat in Snapchat).
+
 NEW IN v0.9.39: A message stays until you act on it. Opening the card and closing it again no longer counts as read.
 It goes when you reply, tap Mark as read, tap Open, tap the photo / play the video, or clear it. (Look & colors > Counts: the
 new switch "Count drops just from opening and closing the message card" brings the old behaviour back.) The card shows at most

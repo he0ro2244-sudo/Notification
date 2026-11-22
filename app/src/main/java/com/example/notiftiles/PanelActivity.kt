@@ -743,9 +743,13 @@ class PanelActivity : Activity() {
         x.setTextColor(fg)
         x.setPadding(dp(14), 0, dp(2), 0)
         x.setOnClickListener {
-            expanded = null
+            // Counts as handled (so apps that re-post, like WhatsApp, do not bring it back) and the panel closes.
+            Feed.markDone(this, sbn, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
             NotifListener.instance?.cancelNotification(sbn.key)
-            refresh()
+            viewing = null
+            expanded = null
+            TilesWidget.refresh(applicationContext)
+            finish()
         }
         head.addView(x)
         card.addView(head)
@@ -835,9 +839,12 @@ class PanelActivity : Activity() {
         }.start()
 
         val actions = n.actions?.toList() ?: emptyList()
+        val snap = sbn.packageName == "com.snapchat.android"
         val reply = actions.firstOrNull { a ->
             a.actionIntent != null && a.remoteInputs?.any { it.allowFreeFormInput } == true
-        }
+        } ?: (if (snap) actions.firstOrNull { a ->
+            a.actionIntent != null && a.remoteInputs?.isNotEmpty() == true
+        } else null)
 
         // One tile per app: also show the other chats of this app here, newest first (tap a name to open that chat).
         if (Prefs.groupMode(this) == 1) {
@@ -916,6 +923,10 @@ class PanelActivity : Activity() {
         val blp = { LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(6) } }
         for (a in others) {
             bar.addView(pill(a.title.toString(), fg, bg, false) { runAction(sbn, a) }, blp())
+        }
+        if (snap && reply == null && others.none { it.title.toString().contains("reply", true) }) {
+            // Snapchat gives no typing box to other apps: a Reply button that opens the chat in Snapchat.
+            bar.addView(pill("Reply", fg, bg, false) { open(sbn) }, blp())
         }
         bar.addView(pill("Open", fg, bg, false) { open(sbn) }, blp())
         if (count > 1) {
@@ -1041,8 +1052,8 @@ class PanelActivity : Activity() {
             dismissFromShade(sbn, 800L)
             if (viewing?.key == sbn.key) viewing = null
             expanded = null
-            refresh()
             TilesWidget.refresh(applicationContext)
+            finish()
             return
         }
         if (t.contains("view") || t.contains("open") || t.contains("play") || t.contains("watch")) {
