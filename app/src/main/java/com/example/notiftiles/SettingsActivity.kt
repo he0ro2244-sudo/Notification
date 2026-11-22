@@ -237,6 +237,7 @@ class SettingsActivity : Activity() {
         // ---- Wording of the widget
         col.addView(title("Widget wording", 16f, 20))
         col.addView(hint("Change the text shown when there are no messages, and the word before the weather update time. Empty + Save = original wording. Colours: see Text colour per part below."))
+        col.addView(toggleRaw("Show the \"Nothing new\" message in the widget", Prefs.showEmptyText(this)) { Prefs.setShowEmptyText(this, it); applyLook() })
         col.addView(textPref("Empty message text", Prefs.emptyText(this)) { Prefs.setEmptyText(this, it) })
         col.addView(textPref("Update word (before the time)", Prefs.updatedLabel(this)) { Prefs.setUpdatedLabel(this, it) })
 

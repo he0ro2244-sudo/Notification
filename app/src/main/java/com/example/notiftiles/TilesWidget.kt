@@ -267,6 +267,11 @@ class TilesWidget : AppWidgetProvider() {
             rv.setViewLayoutWidth(R.id.wset, gs + 6f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wset, gs + 4f, TypedValue.COMPLEX_UNIT_DIP)
             txt(rv, ctx, R.id.empty_txt, Extras.quietText(ctx) ?: Prefs.emptyText(ctx), 13f, false)
+            // Hide only the "Nothing new" wording; the snooze / quiet-hours message always stays visible.
+            rv.setViewVisibility(
+                R.id.empty_txt,
+                if (Prefs.showEmptyText(ctx) || Extras.quietText(ctx) != null) android.view.View.VISIBLE else android.view.View.GONE
+            )
             rv.setTextColor(R.id.empty_txt, Prefs.partColor(ctx, "empty").let { if (it != 0) it else sub })
             rv.setViewVisibility(R.id.wrefresh, if (Prefs.refreshShow(ctx)) android.view.View.VISIBLE else android.view.View.GONE)
             val rc = Prefs.partColor(ctx, "refresh").let { if (it != 0) it else if (ic != 0) ic else Feed.alpha(sub, 0x99) }

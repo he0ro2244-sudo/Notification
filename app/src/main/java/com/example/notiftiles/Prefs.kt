@@ -239,6 +239,9 @@ object Prefs {
     const val UPDATED_DEFAULT = "Updated"
     fun emptyText(c: Context): String = (sp(c).getString("look_empty_text", "") ?: "").ifBlank { EMPTY_DEFAULT }
     fun setEmptyText(c: Context, v: String) = sp(c).edit().putString("look_empty_text", v.trim()).apply()
+    // Show or hide the widget's "Nothing new" message (the refresh button stays)
+    fun showEmptyText(c: Context): Boolean = sp(c).getBoolean("look_empty_show", true)
+    fun setShowEmptyText(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_empty_show", v).apply()
     fun updatedLabel(c: Context): String = (sp(c).getString("look_updated_text", "") ?: "").ifBlank { UPDATED_DEFAULT }
     fun setUpdatedLabel(c: Context, v: String) = sp(c).edit().putString("look_updated_text", v.trim()).apply()
     fun partColor(c: Context, k: String): Int = sp(c).getInt("look_pc_$k", 0)

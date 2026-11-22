@@ -1,3 +1,6 @@
+NEW IN v0.9.26: Look & colors > Widget wording has a switch to show or hide the widget's "Nothing new" message (the
+snooze / quiet-hours message still shows). The weather "Updated" line already has its own switch.
+
 NEW IN v0.9.25: Look & colors now shows the installed version under its title.
 
 NEW IN v0.9.24: Exit navigation now proves itself: it presses Exit, checks the Maps notification is really gone, and if not it
