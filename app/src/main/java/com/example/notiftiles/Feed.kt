@@ -270,6 +270,27 @@ object Feed {
                 val summary = (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0
                 !summary || (it.packageName to it.notification.group) !in withKids
             }
-            .sortedWith(compareByDescending<StatusBarNotification> { it.packageName in pinned }.thenByDescending { it.postTime })
+            .sortedWith(order(c, pinned))
+    }
+
+    /** Pinned apps first, then the order chosen in Look & colors (newest first unless changed). */
+    private fun order(c: Context, pinned: Set<String>): Comparator<StatusBarNotification> {
+        val pinFirst = compareByDescending<StatusBarNotification> { it.packageName in pinned }
+        return when (Prefs.sortMode(c)) {
+            1 -> pinFirst.thenBy { it.postTime }
+            2 -> {
+                val mine = Prefs.appOrder(c)
+                pinFirst
+                    .thenBy { val i = mine.indexOf(it.packageName); if (i < 0) Int.MAX_VALUE else i }
+                    .thenByDescending { it.postTime }
+            }
+            3 -> {
+                val names = HashMap<String, String>()
+                pinFirst
+                    .thenBy { names.getOrPut(it.packageName) { label(c, it.packageName).lowercase() } }
+                    .thenByDescending { it.postTime }
+            }
+            else -> pinFirst.thenByDescending { it.postTime }
+        }
     }
 }

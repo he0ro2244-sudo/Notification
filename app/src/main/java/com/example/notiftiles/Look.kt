@@ -37,7 +37,11 @@ object Look {
         "sans-serif" to "Default",
         "sans-serif-medium" to "Medium",
         "sans-serif-light" to "Light",
+        "sans-serif-thin" to "Thin",
         "sans-serif-condensed" to "Condensed",
+        "sans-serif-condensed-light" to "Condensed light",
+        "sans-serif-smallcaps" to "Small caps",
+        "serif-monospace" to "Typewriter",
         "sans-serif-black" to "Black",
         "serif" to "Serif",
         "monospace" to "Mono",
@@ -92,9 +96,17 @@ object Look {
         return s
     }
 
+    /** Letter case chosen in Look & colors (widget text only; never used for clock / date patterns). */
+    fun caseOf(ctx: Context, text: String): String = when (Prefs.textCase(ctx)) {
+        1 -> text.uppercase()
+        2 -> text.lowercase()
+        3 -> text.split(" ").joinToString(" ") { w -> w.replaceFirstChar { it.uppercaseChar() } }
+        else -> text
+    }
+
     /** Widget text with font + size. */
     fun setText(rv: RemoteViews, ctx: Context, id: Int, text: String, baseSp: Float, designedBold: Boolean) {
-        rv.setTextViewText(id, span(ctx, text, designedBold))
+        rv.setTextViewText(id, span(ctx, caseOf(ctx, text), designedBold))
         rv.setTextViewTextSize(id, TypedValue.COMPLEX_UNIT_SP, baseSp * scale(ctx))
     }
 
@@ -123,6 +135,50 @@ object Look {
         }
         if (v is ViewGroup) {
             for (i in 0 until v.childCount) applyTree(v.getChildAt(i), ctx)
+        }
+    }
+
+    /**
+     * A "3D" version of one of the built-in icons: the icon in [color] with a light top, a darker bottom and a
+     * soft shadow underneath. Used for the widget's mic, settings and refresh icons when 3D icons are on.
+     */
+    fun icon3d(ctx: Context, resId: Int, color: Int, dpSize: Float): Bitmap? {
+        return try {
+            val d = ctx.getDrawable(resId)?.mutate() ?: return null
+            val px = (dpSize * ctx.resources.displayMetrics.density).toInt().coerceIn(32, 192)
+            val pad = (px * 0.08f).toInt()
+            val glyph = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+            d.setBounds(pad, pad, px - pad, px - pad)
+            d.setTint(color or 0xFF000000.toInt())
+            d.draw(Canvas(glyph))
+
+            val out = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+            val oc = Canvas(out)
+
+            // soft drop shadow
+            val blur = Paint(Paint.ANTI_ALIAS_FLAG)
+            blur.maskFilter = android.graphics.BlurMaskFilter(px * 0.04f, android.graphics.BlurMaskFilter.Blur.NORMAL)
+            val off = IntArray(2)
+            val shadow = glyph.extractAlpha(blur, off)
+            val sp = Paint(Paint.ANTI_ALIAS_FLAG)
+            sp.color = 0xAA000000.toInt()
+            oc.drawBitmap(shadow, off[0] + px * 0.03f, off[1] + px * 0.05f, sp)
+
+            // light on top, dark at the bottom, only where the icon is
+            val lit = glyph.copy(Bitmap.Config.ARGB_8888, true)
+            val gp = Paint(Paint.ANTI_ALIAS_FLAG)
+            gp.shader = android.graphics.LinearGradient(
+                0f, pad.toFloat(), 0f, (px - pad).toFloat(),
+                intArrayOf(0xB3FFFFFF.toInt(), 0x00FFFFFF, 0x66000000),
+                floatArrayOf(0f, 0.5f, 1f),
+                Shader.TileMode.CLAMP
+            )
+            gp.xfermode = android.graphics.PorterDuffXfermode(android.graphics.PorterDuff.Mode.SRC_ATOP)
+            Canvas(lit).drawRect(0f, 0f, px.toFloat(), px.toFloat(), gp)
+            oc.drawBitmap(lit, 0f, 0f, null)
+            out
+        } catch (e: Exception) {
+            null
         }
     }
 

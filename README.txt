@@ -1,3 +1,19 @@
+NEW IN v0.9.27: Easier colours, show / hide, scrolling, grouping and order. Nothing from older versions was removed and every
+new setting starts on the old behaviour.
+- Colour picker: tap any row under Text colour per part (or the "+" circle at the end of any colour row) for a big palette,
+  hue / strength / light sliders and a hex box; Auto puts a part back. The long list of swatch rows is now one row per part.
+  New colour parts: widget tiles (app name, message title, message text) and the page buttons.
+- Show / hide items (own group in Look & colors): clock, weather, date, Where to?, fast dial, names, refresh icon, Updated,
+  Nothing new, plus the widget header (title, count, mic, + Note, Clear all, settings icon), the tile parts (app name, count,
+  title, text) and the same parts in the panel. Hidden parts can be switched back on there any time.
+- More fonts (Thin, Condensed light, Small caps, Typewriter) and a Letter case choice for the widget text (UPPERCASE,
+  lowercase, Each Word). 3D icons switch (Shapes, circles & borders): widget mic, settings and refresh get a lit top, dark
+  bottom and soft shadow.
+- Scroll, pages & grouping: Scroll up / down (as before) or Pages (widget: < 1/3 > buttons; panel: swipe left / right or tap
+  the arrows), tiles per page, and Endless (pages wrap around; the widget list repeats when you reach its end).
+  Group messages: one tile per chat (as before) or one tile per app with all its chats together. Order of the tiles: newest
+  first (as before), oldest first, my own order (move apps with the up / down arrows) or app name A-Z. Pinned apps stay first.
+
 NEW IN v0.9.26: Look & colors > Widget wording has a switch to show or hide the widget's "Nothing new" message (the
 snooze / quiet-hours message still shows). The weather "Updated" line already has its own switch.
 

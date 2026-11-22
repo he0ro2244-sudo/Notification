@@ -112,6 +112,7 @@ class PanelActivity : Activity() {
         title.setTag(R.id.nt_grp, "head")
         title.setTypeface(null, Typeface.BOLD)
         title.setTextColor(cText)
+        title.visibility = if (Prefs.showItem(this, "p_title")) View.VISIBLE else View.GONE
         header.addView(title)
 
         badge = TextView(this)
@@ -136,6 +137,7 @@ class PanelActivity : Activity() {
         addNote.setTypeface(null, Typeface.BOLD)
         addNote.setTextColor(Prefs.accent(this))
         addNote.setPadding(dp(8), dp(6), dp(8), dp(6))
+        addNote.visibility = if (Prefs.showItem(this, "p_note")) View.VISIBLE else View.GONE
         addNote.setOnClickListener {
             if (openNotesDirect()) return@setOnClickListener
             expanded = "note:new"
@@ -149,6 +151,7 @@ class PanelActivity : Activity() {
         clear.setTag(R.id.nt_grp, "clear")
         clear.setTextColor(if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub)
         clear.setPadding(dp(8), dp(6), dp(8), dp(6))
+        clear.visibility = if (Prefs.showItem(this, "p_clear")) View.VISIBLE else View.GONE
         clear.setOnClickListener {
             if (Prefs.clearMode(this) == 1) {
                 Extras.markAllRead(this)
@@ -296,7 +299,7 @@ class PanelActivity : Activity() {
         val items = if (svc == null) emptyList() else Feed.items(this, true)
         val notes = Prefs.notes(this)
         badge.text = items.size.toString()
-        badge.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
+        badge.visibility = if (items.isEmpty() || !Prefs.showItem(this, "p_badge")) View.GONE else View.VISIBLE
 
         val key = expanded
         if (key != null) {
@@ -327,10 +330,12 @@ class PanelActivity : Activity() {
                 )
             )
         }
-        val counts = items.groupingBy { it.packageName }.eachCount()
+        val allTiles = Arrange.tiles(this, items, 3)
+        val pagesOn = Prefs.scrollMode(this) == 1
         val cells = ArrayList<View>()
-        for (sbn in items) cells.add(compact(sbn, counts[sbn.packageName] ?: 1))
-        for (n in notes) cells.add(noteTile(n))
+        for (t in Arrange.slice(this, "p", allTiles)) cells.add(compact(t.sbn, t.count, t.title, t.text))
+        val onLastPage = Arrange.pageNow(this, "p", allTiles.size) >= Arrange.pageCount(this, allTiles.size) - 1
+        if (!pagesOn || onLastPage) for (n in notes) cells.add(noteTile(n))
         if (cells.isEmpty()) {
             if (svc != null) list.addView(note("Nothing new from your apps. Tap + Note to write something down."))
             return
@@ -340,6 +345,58 @@ class PanelActivity : Activity() {
             list.addView(rowOf(cells[i], cells.getOrNull(i + 1)))
             i += 2
         }
+        if (pagesOn && (Arrange.pageCount(this, allTiles.size) > 1 || Prefs.loop(this))) list.addView(pageBar(allTiles.size))
+    }
+
+    // ‹ 1/3 › under the tiles when pages are on (swiping left / right does the same)
+    private fun pageBar(total: Int): View {
+        val n = Arrange.pageCount(this, total)
+        val now = Arrange.pageNow(this, "p", total)
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER
+        fun btn(t: String, delta: Int): TextView {
+            val b = TextView(this)
+            b.text = t
+            b.textSize = 24f
+            b.setTextColor(Prefs.accent(this))
+            b.setPadding(dp(24), dp(2), dp(24), dp(2))
+            b.setOnClickListener {
+                Arrange.move(this, "p", total, delta)
+                refresh()
+            }
+            return b
+        }
+        row.addView(btn("‹", -1))
+        val label = TextView(this)
+        label.text = "${now + 1}/$n"
+        label.textSize = 13f
+        label.setTextColor(cSub)
+        label.setTag(R.id.nt_grp, "small")
+        row.addView(label)
+        row.addView(btn("›", 1))
+        return row
+    }
+
+    private val swipe by lazy {
+        android.view.GestureDetector(this, object : android.view.GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(e1: android.view.MotionEvent?, e2: android.view.MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (Prefs.scrollMode(this@PanelActivity) != 1 || expanded != null) return false
+                val dx = e2.x - (e1?.x ?: e2.x)
+                if (Math.abs(dx) > dp(80) && Math.abs(velocityX) > Math.abs(velocityY) * 1.5f) {
+                    val total = Arrange.tileCount(this@PanelActivity, Feed.items(this@PanelActivity, true))
+                    Arrange.move(this@PanelActivity, "p", total, if (dx < 0) 1 else -1)
+                    refresh()
+                    return true
+                }
+                return false
+            }
+        })
+    }
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        swipe.onTouchEvent(ev)
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun rowOf(a: View, b: View?): View {
@@ -380,7 +437,7 @@ class PanelActivity : Activity() {
         return t
     }
 
-    private fun compact(sbn: StatusBarNotification, count: Int): View {
+    private fun compact(sbn: StatusBarNotification, count: Int, title: String? = null, text: String? = null): View {
         val st = Feed.style(this, sbn.packageName)
         val bg = st.bg(dark)
         val fg = st.fg(dark)
@@ -394,13 +451,13 @@ class PanelActivity : Activity() {
         head.orientation = LinearLayout.HORIZONTAL
         head.gravity = Gravity.CENTER_VERTICAL
         val ic = appIcon(sbn.packageName, 22)
-        if (ic != null) head.addView(ic)
+        if (ic != null && Prefs.showItem(this, "p_icon")) head.addView(ic)
         head.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
-        head.addView(countBadge(count, bg, fg))
+        if (Prefs.showItem(this, "p_cnt")) head.addView(countBadge(count, bg, fg))
         card.addView(head)
 
         val t = TextView(this)
-        t.text = Feed.title(sbn)
+        t.text = title ?: Feed.title(sbn)
         t.textSize = 14f
         t.setTag(R.id.nt_grp, "title")
         t.setTypeface(null, Typeface.BOLD)
@@ -408,16 +465,16 @@ class PanelActivity : Activity() {
         t.maxLines = 1
         t.ellipsize = TextUtils.TruncateAt.END
         t.setPadding(0, dp(8), 0, 0)
-        card.addView(t)
+        if (Prefs.showItem(this, "p_title_t")) card.addView(t)
 
         val m = TextView(this)
-        m.text = Feed.recentText(this, sbn, 3)
+        m.text = text ?: Feed.recentText(this, sbn, 3)
         m.textSize = 13f
         m.setTag(R.id.nt_grp, "text")
         m.setTextColor(Feed.alpha(fg, 0xDD))
         m.maxLines = 6
         m.ellipsize = TextUtils.TruncateAt.END
-        card.addView(m)
+        if (Prefs.showItem(this, "p_text")) card.addView(m)
 
         card.setOnClickListener {
             expanded = sbn.key

@@ -219,6 +219,10 @@ class SettingsActivity : Activity() {
             Prefs.setBoldMode(this, it.toInt()); applyLook(); rebuild()
         })
         col.addView(toggleRaw("Italic", Prefs.italic(this)) { Prefs.setItalic(this, it); applyLook(); updateFontPreview() })
+        col.addView(hint("Letter case (widget text)"))
+        col.addView(choiceRow(listOf("0" to "As typed", "1" to "UPPERCASE", "2" to "lowercase", "3" to "Each Word"), Prefs.textCase(this).toString(), false) {
+            Prefs.setTextCase(this, it.toInt()); applyLook(); rebuild()
+        })
         col.addView(seekRange("Text size", Prefs.fontScale(this), 70, 160, "%") { Prefs.setFontScale(this, it); updateFontPreview() })
         val sample = TextView(this)
         sample.text = "Aa  12:45  The quick brown fox"
@@ -245,14 +249,12 @@ class SettingsActivity : Activity() {
         col.addView(title("Text colour (widget)", 16f, 20))
         col.addView(swatchRow(textColors, Prefs.textColor(this)) { Prefs.setTextColor(this, it); applyLook(); rebuild() })
         col.addView(title("Text colour per part", 14f, 12))
-        col.addView(hint("Each part can have its own colour. The first swatch (automatic) follows the overall text colour above."))
+        col.addView(hint("Tap a row to pick its colour (big palette, sliders or a hex code). The grey Auto dot follows the overall text colour above; the Auto button in the picker puts a part back."))
         for ((k, label) in Prefs.WIDGET_PARTS) {
-            col.addView(hint(label))
-            col.addView(swatchRow(textColors, Prefs.partColor(this, k)) { Prefs.setPartColor(this, k, it); applyLook(); rebuild() })
+            col.addView(colorRow(label, Prefs.partColor(this, k)) { Prefs.setPartColor(this, k, it); applyLook(); rebuild() })
         }
         for ((g, label) in Prefs.PANEL_GROUPS) {
-            col.addView(hint("Panel: $label"))
-            col.addView(swatchRow(textColors, Prefs.grpColor(this, g)) { Prefs.setGrpColor(this, g, it); applyLook(); rebuild() })
+            col.addView(colorRow("Panel: $label", Prefs.grpColor(this, g)) { Prefs.setGrpColor(this, g, it); applyLook(); rebuild() })
         }
         }
 
@@ -267,6 +269,7 @@ class SettingsActivity : Activity() {
         col.addView(toggleRaw("Refresh icon (centre of the widget)", Prefs.refreshShow(this)) { Prefs.setRefreshShow(this, it); applyLook() })
         col.addView(seekRange("Widget refresh icon", Prefs.refreshSize(this), 10, 32, " dp") { Prefs.setRefreshSize(this, it) })
         col.addView(seekRange("Widget mic icon", Prefs.micSize(this), 14, 40, " dp") { Prefs.setMicSize(this, it) })
+        col.addView(toggleRaw("3D icons (widget mic, settings, refresh)", Prefs.icons3d(this)) { Prefs.setIcons3d(this, it); applyLook() })
         col.addView(seekRange("Fast-dial circles", Prefs.dialSize(this), 30, 64, " dp") { Prefs.setDialSize(this, it) })
         col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
 
@@ -581,6 +584,70 @@ class SettingsActivity : Activity() {
         if (Prefs.quietOn(this)) {
             col.addView(timeRow("From", Prefs.quietStart(this)) { Prefs.setQuietStart(this, it); Extras.tick(this); applyLook(); rebuild() })
             col.addView(timeRow("Until", Prefs.quietEnd(this)) { Prefs.setQuietEnd(this, it); Extras.tick(this); applyLook(); rebuild() })
+        }
+
+        }
+
+        section("Show / hide items") {
+        col.addView(hint("Switch off anything you do not want to see. Nothing is deleted: switch it on again any time. You can always open Look & colors from the Notif Tiles app itself."))
+        col.addView(title("Widget top row and boxes", 16f, 12))
+        col.addView(toggle("Clock circle", "clock"))
+        col.addView(toggle("Weather circle", "weather"))
+        col.addView(toggle("Date circle", "date"))
+        col.addView(toggle("Maps \"Where to?\" box", "maps"))
+        col.addView(toggle("Fast-dial strip", "dial"))
+        col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
+        col.addView(toggleRaw("Refresh icon (centre of the widget)", Prefs.refreshShow(this)) { Prefs.setRefreshShow(this, it); applyLook() })
+        col.addView(toggleRaw("\"Updated\" time under the refresh icon", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); applyLook() })
+        col.addView(toggleRaw("\"Nothing new\" message", Prefs.showEmptyText(this)) { Prefs.setShowEmptyText(this, it); applyLook() })
+        col.addView(title("Widget header, tiles and panel", 16f, 16))
+        for ((k, label) in Prefs.SHOW_ITEMS) {
+            col.addView(toggleRaw(label, Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); applyLook() })
+        }
+
+        }
+
+        section("Scroll, pages & grouping") {
+        col.addView(title("Scrolling", 16f, 12))
+        col.addView(hint("Scroll = the list moves up and down (as before). Pages = a few tiles at a time: ‹ › buttons under the widget; in the panel you can also swipe left or right. (A home-screen widget cannot be swiped sideways, that is an Android limit.)"))
+        col.addView(choiceRow(listOf("0" to "Scroll up / down", "1" to "Pages"), Prefs.scrollMode(this).toString(), false) {
+            Prefs.setScrollMode(this, it.toInt()); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0); applyLook(); rebuild()
+        })
+        if (Prefs.scrollMode(this) == 1) {
+            col.addView(seekRange("Tiles per page", Prefs.pageSize(this), 2, 20, "") {
+                Prefs.setPageSize(this, it); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0)
+            })
+        }
+        col.addView(toggleRaw("Endless: pages wrap around, and the widget list repeats", Prefs.loop(this)) { Prefs.setLoop(this, it); applyLook() })
+
+        col.addView(title("Group messages", 16f, 20))
+        col.addView(hint("One tile per chat (as before), or one tile per app that shows all its chats together. Tapping a grouped tile opens its newest chat."))
+        col.addView(choiceRow(listOf("0" to "One tile per chat", "1" to "One tile per app"), Prefs.groupMode(this).toString(), false) {
+            Prefs.setGroupMode(this, it.toInt()); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0); applyLook(); rebuild()
+        })
+
+        col.addView(title("Order of the tiles", 16f, 20))
+        col.addView(hint("Pinned apps (Apps: pin, mute, colour) always stay first."))
+        col.addView(choiceRow(listOf("0" to "Newest first", "1" to "Oldest first", "2" to "My own order", "3" to "App name A-Z"), Prefs.sortMode(this).toString(), false) {
+            Prefs.setSortMode(this, it.toInt()); applyLook(); rebuild()
+        })
+        if (Prefs.sortMode(this) == 2) {
+            col.addView(hint("Use ▲ ▼ to move an app up or down."))
+            val enabledApps = Prefs.enabled(this).toList()
+            val saved = Prefs.appOrder(this).filter { it in enabledApps }
+            val mine = saved + enabledApps.filter { it !in saved }.sortedBy { Feed.label(this, it).lowercase() }
+            for ((i, pkg) in mine.withIndex()) {
+                val row = LinearLayout(this)
+                row.orientation = LinearLayout.HORIZONTAL
+                row.gravity = Gravity.CENTER_VERTICAL
+                val name = TextView(this)
+                name.text = "${i + 1}.  ${Feed.label(this, pkg)}"
+                name.textSize = 15f
+                row.addView(name, LinearLayout.LayoutParams(0, WRAP, 1f))
+                row.addView(moveButton("▲", i > 0) { moveApp(mine, i, i - 1) })
+                row.addView(moveButton("▼", i < mine.size - 1) { moveApp(mine, i, i + 1) })
+                col.addView(row)
+            }
         }
 
         }
@@ -1023,6 +1090,45 @@ class SettingsActivity : Activity() {
         return b
     }
 
+    private fun moveApp(order: List<String>, a: Int, b: Int) {
+        val l = order.toMutableList()
+        val t = l[a]
+        l[a] = l[b]
+        l[b] = t
+        Prefs.setAppOrder(this, l)
+        applyLook()
+        rebuild()
+    }
+
+    // One compact row per colour: the label, and a dot showing the colour. Tap it to open the picker.
+    private fun colorRow(label: String, current: Int, onPick: (Int) -> Unit): View {
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        row.setPadding(0, dp(4), 0, dp(4))
+        val name = TextView(this)
+        name.text = label
+        name.textSize = 15f
+        row.addView(name, LinearLayout.LayoutParams(0, WRAP, 1f))
+        val dot = TextView(this)
+        dot.gravity = Gravity.CENTER
+        dot.textSize = 11f
+        val d = GradientDrawable()
+        d.shape = GradientDrawable.OVAL
+        if (current == 0) {
+            d.setColor(0xFF9E9E9E.toInt())
+            dot.text = "Auto"
+            dot.setTextColor(0xFFFFFFFF.toInt())
+        } else {
+            d.setColor(current)
+        }
+        d.setStroke(dp(1), 0x55888888)
+        dot.background = d
+        row.addView(dot, LinearLayout.LayoutParams(dp(44), dp(44)))
+        row.setOnClickListener { ColorPicker.show(this, label, current, true) { v -> onPick(v) } }
+        return row
+    }
+
     private fun swap(order: List<String>, a: Int, b: Int) {
         val l = order.toMutableList()
         val t = l[a]
@@ -1072,6 +1178,22 @@ class SettingsActivity : Activity() {
             lp.setMargins(0, dp(8), dp(8), dp(8))
             row.addView(tv, lp)
         }
+        // "+" = every other colour (palette, sliders, hex code)
+        val more = TextView(this)
+        more.gravity = Gravity.CENTER
+        more.textSize = 20f
+        more.text = "+"
+        more.setTextColor(0xFFFFFFFF.toInt())
+        val md = GradientDrawable(
+            GradientDrawable.Orientation.LEFT_RIGHT,
+            intArrayOf(c(0xFFEF4444), c(0xFFFACC15), c(0xFF4ADE80), c(0xFF22D3EE), c(0xFFA78BFA))
+        )
+        md.shape = GradientDrawable.OVAL
+        more.background = md
+        more.setOnClickListener { ColorPicker.show(this, "Pick a colour", selected, colors.contains(0)) { v -> onPick(v) } }
+        val mlp = LinearLayout.LayoutParams(dp(44), dp(44))
+        mlp.setMargins(0, dp(8), dp(8), dp(8))
+        row.addView(more, mlp)
         return hs
     }
 

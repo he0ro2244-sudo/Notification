@@ -232,7 +232,11 @@ object Prefs {
         "empty" to "Widget: Nothing new text",
         "updated" to "Widget: Updated line (weather)",
         "dialletter" to "Widget: fast-dial letters (inside circles)",
-        "dialnames" to "Widget: fast-dial names (under circles)"
+        "dialnames" to "Widget: fast-dial names (under circles)",
+        "tapp" to "Widget tiles: app name",
+        "ttitle" to "Widget tiles: message title",
+        "ttext" to "Widget tiles: message text",
+        "pages" to "Widget: page buttons"
     )
     // Wording of the widget's empty message and of the weather "Updated" line (blank = original wording)
     const val EMPTY_DEFAULT = "Nothing new from your apps"
@@ -430,4 +434,58 @@ object Prefs {
         val base = if (v != 0) v else c.getColor(R.color.nt_bg)
         return ((widgetAlpha(c) * 255 / 100) shl 24) or (base and 0xFFFFFF)
     }
+
+    // ---- Show / hide any item (default: shown) ----
+    val SHOW_ITEMS = listOf(
+        "w_title" to "Widget: Inbox title",
+        "w_count" to "Widget: message count badge",
+        "w_mic" to "Widget: mic icon",
+        "w_note" to "Widget: + Note",
+        "w_clear" to "Widget: Clear all / Read all",
+        "w_gear" to "Widget: settings icon",
+        "t_app" to "Widget tiles: app name",
+        "t_cnt" to "Widget tiles: count badge",
+        "t_title" to "Widget tiles: message title",
+        "t_text" to "Widget tiles: message text",
+        "p_title" to "Panel: Inbox title",
+        "p_badge" to "Panel: message count badge",
+        "p_note" to "Panel: + Note",
+        "p_clear" to "Panel: Clear all / Read all",
+        "p_icon" to "Panel tiles: app icon",
+        "p_cnt" to "Panel tiles: count badge",
+        "p_title_t" to "Panel tiles: message title",
+        "p_text" to "Panel tiles: message text"
+    )
+    fun showItem(c: Context, k: String): Boolean = sp(c).getBoolean("lay_item_$k", true)
+    fun setShowItem(c: Context, k: String, v: Boolean) = sp(c).edit().putBoolean("lay_item_$k", v).apply()
+
+    // ---- Font format: letter case of the widget text, and 3D icons ----
+    /** 0 = as typed, 1 = UPPERCASE, 2 = lowercase, 3 = Each Word Capital (widget text only) */
+    fun textCase(c: Context): Int = sp(c).getInt("look_case", 0).coerceIn(0, 3)
+    fun setTextCase(c: Context, v: Int) = sp(c).edit().putInt("look_case", v).apply()
+    fun icons3d(c: Context): Boolean = sp(c).getBoolean("look_3d", false)
+    fun setIcons3d(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_3d", v).apply()
+
+    // ---- Scrolling, pages, grouping and order of the messages ----
+    /** 0 = scroll up / down (as before), 1 = pages (widget: ‹ › buttons; panel: swipe left / right or ‹ ›) */
+    fun scrollMode(c: Context): Int = sp(c).getInt("scr_mode", 0).coerceIn(0, 1)
+    fun setScrollMode(c: Context, v: Int) = sp(c).edit().putInt("scr_mode", v).apply()
+    /** Tiles per page. */
+    fun pageSize(c: Context): Int = sp(c).getInt("scr_size", 6).coerceIn(2, 20)
+    fun setPageSize(c: Context, v: Int) = sp(c).edit().putInt("scr_size", v).apply()
+    /** Current page (0 = first) of "w" (widget) or "p" (panel). */
+    fun page(c: Context, key: String): Int = sp(c).getInt("scr_page_$key", 0).coerceAtLeast(0)
+    fun setPage(c: Context, key: String, v: Int) = sp(c).edit().putInt("scr_page_$key", v).apply()
+    /** Endless: pages wrap around, and the widget list repeats when you reach its end. */
+    fun loop(c: Context): Boolean = sp(c).getBoolean("scr_loop", false)
+    fun setLoop(c: Context, v: Boolean) = sp(c).edit().putBoolean("scr_loop", v).apply()
+    /** 0 = one tile per chat (as before), 1 = one tile per app (all its chats together) */
+    fun groupMode(c: Context): Int = sp(c).getInt("scr_group", 0).coerceIn(0, 1)
+    fun setGroupMode(c: Context, v: Int) = sp(c).edit().putInt("scr_group", v).apply()
+    /** 0 = newest first (as before), 1 = oldest first, 2 = my own app order, 3 = app name A-Z */
+    fun sortMode(c: Context): Int = sp(c).getInt("scr_sort", 0).coerceIn(0, 3)
+    fun setSortMode(c: Context, v: Int) = sp(c).edit().putInt("scr_sort", v).apply()
+    fun appOrder(c: Context): List<String> =
+        (sp(c).getString("scr_order", "") ?: "").split(",").filter { it.isNotBlank() }
+    fun setAppOrder(c: Context, l: List<String>) = sp(c).edit().putString("scr_order", l.joinToString(",")).apply()
 }

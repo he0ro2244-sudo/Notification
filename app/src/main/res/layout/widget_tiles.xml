@@ -562,5 +562,46 @@
                 android:visibility="gone" />
         </LinearLayout>
     </FrameLayout>
+
+    <LinearLayout
+        android:id="@+id/pagebar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/wprev"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="22dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="22dp"
+            android:paddingBottom="2dp"
+            android:text="‹"
+            android:textColor="@color/nt_badge"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/wpage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1/1"
+            android:textColor="@color/nt_badge"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/wnext"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="22dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="22dp"
+            android:paddingBottom="2dp"
+            android:text="›"
+            android:textColor="@color/nt_badge"
+            android:textSize="24sp" />
+    </LinearLayout>
 </LinearLayout>
 </FrameLayout>
