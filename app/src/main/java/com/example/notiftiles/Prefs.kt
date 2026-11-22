@@ -205,6 +205,8 @@ object Prefs {
     fun setBorderPanel(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_bpanel", v).apply()
     fun borderTiles(c: Context): Boolean = sp(c).getBoolean("look_btiles", true)
     fun setBorderTiles(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_btiles", v).apply()
+    fun borderWidget(c: Context): Boolean = sp(c).getBoolean("look_bwidget", false)
+    fun setBorderWidget(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_bwidget", v).apply()
 
     // ---- Panel text sizes per part (percent, on top of the overall text size) ----
     val PANEL_GROUPS = listOf(

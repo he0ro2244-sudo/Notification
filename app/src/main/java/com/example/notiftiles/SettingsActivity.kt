@@ -341,12 +341,13 @@ class SettingsActivity : Activity() {
 
         // ---- Borders
         col.addView(title("Borders", 16f, 20))
-        col.addView(hint("A line around the panel and the message tiles. Thickness 0 = no border."))
+        col.addView(hint("A line around the panel, the message tiles and the widget. Thickness 0 = no border."))
         col.addView(seekRange("Thickness", Prefs.borderWidth(this), 0, 6, " dp") { Prefs.setBorderWidth(this, it) })
         col.addView(hint("Colour (first one = automatic)"))
-        col.addView(swatchRow(borderColors, Prefs.borderColor(this)) { Prefs.setBorderColor(this, it); rebuild() })
+        col.addView(swatchRow(borderColors, Prefs.borderColor(this)) { Prefs.setBorderColor(this, it); TilesWidget.refresh(applicationContext); rebuild() })
         col.addView(toggleRaw("Border around the panel", Prefs.borderPanel(this)) { Prefs.setBorderPanel(this, it) })
         col.addView(toggleRaw("Border around message tiles", Prefs.borderTiles(this)) { Prefs.setBorderTiles(this, it) })
+        col.addView(toggleRaw("Border around the widget (home screen)", Prefs.borderWidget(this)) { Prefs.setBorderWidget(this, it); applyLook() })
 
         }
 

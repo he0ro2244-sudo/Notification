@@ -1,3 +1,7 @@
+NEW IN v0.9.47: New switch in Look & colors > Borders: "Border around the widget (home screen)". It draws a line around the whole
+home-screen widget (clock to Inbox row) using the same Thickness and Colour as the other borders (Thickness 0 = none). Off until you
+switch it on. Nothing else changed.
+
 NEW IN v0.9.46: The panel closes at once again after Open Snapchat (no 15 s wait). New in Settings: "Allow opening Snapchat (answer once)"
 - it opens Snapchat from the settings screen so the phone's question can be answered calmly (Allow for 30 days).
 

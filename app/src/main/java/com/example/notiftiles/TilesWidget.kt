@@ -270,6 +270,25 @@ class TilesWidget : AppWidgetProvider() {
 
             // ---- Backgrounds: colour + opacity, then the optional pictures
             rv.setColorStateList(R.id.root, "setBackgroundTintList", ColorStateList.valueOf(Prefs.widgetBgArgb(ctx)))
+
+            // ---- Border around the whole widget (overlay on top of everything; off by default)
+            val bw = Prefs.borderWidth(ctx)
+            if (Prefs.borderWidget(ctx) && bw > 0) {
+                val auto = (Look.contrast(Prefs.widgetBgArgb(ctx)) and 0xFFFFFF) or 0x99000000.toInt()
+                val res = when (bw.coerceIn(1, 6)) {
+                    1 -> R.drawable.nt_wborder_1
+                    2 -> R.drawable.nt_wborder_2
+                    3 -> R.drawable.nt_wborder_3
+                    4 -> R.drawable.nt_wborder_4
+                    5 -> R.drawable.nt_wborder_5
+                    else -> R.drawable.nt_wborder_6
+                }
+                rv.setInt(R.id.wborder, "setBackgroundResource", res)
+                rv.setColorStateList(R.id.wborder, "setBackgroundTintList", ColorStateList.valueOf(Look.borderColor(ctx, auto)))
+                rv.setViewVisibility(R.id.wborder, View.VISIBLE)
+            } else {
+                rv.setViewVisibility(R.id.wborder, View.GONE)
+            }
             bgImage(rv, ctx, R.id.wbgimg, "widget")
             bgImage(rv, ctx, R.id.dialimg, "dial")
             val dbg = Prefs.dialBg(ctx)
