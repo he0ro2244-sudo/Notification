@@ -171,6 +171,10 @@ object Prefs {
     fun autoLocation(c: Context): Boolean = sp(c).getBoolean("dest_auto_loc", true)
     fun setAutoLocation(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_auto_loc", v).apply()
 
+    // Closing the Google Maps pop-up (picture-in-picture window) also ends the navigation (needs the Accessibility helper)
+    fun exitOnPopupClose(c: Context): Boolean = sp(c).getBoolean("nav_exit_popup", true)
+    fun setExitOnPopupClose(c: Context, v: Boolean) = sp(c).edit().putBoolean("nav_exit_popup", v).apply()
+
     // "Where to?" opens the Google Maps search screen directly (the Accessibility helper taps Maps' search bar)
     fun mapsSearchDirect(c: Context): Boolean = sp(c).getBoolean("dest_maps_direct", false)
     fun setMapsSearchDirect(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_maps_direct", v).apply()

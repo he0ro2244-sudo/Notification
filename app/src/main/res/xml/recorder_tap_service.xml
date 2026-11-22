@@ -4,7 +4,7 @@
     android:accessibilityFeedbackType="feedbackGeneric"
     android:canPerformGestures="true"
     android:canRetrieveWindowContent="true"
-    android:accessibilityFlags="flagReportViewIds"
+    android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
     android:description="@string/rec_tap_desc"
     android:notificationTimeout="100"
     android:packageNames="com.google.android.apps.maps,com.coloros.soundrecorder,com.oplus.soundrecorder,com.oneplus.soundrecorder,com.google.android.apps.recorder,com.sec.android.app.voicenote,com.android.soundrecorder,com.miui.soundrecorder,com.huawei.soundrecorder,com.motorola.soundrecorder,com.sonymobile.androidapp.audiorecorder,com.nothing.soundrecorder,com.lge.voicerecorder,com.google.android.apps.weather,com.sec.android.daemonapp,com.miui.weather2,com.huawei.android.totemweather,net.oneplus.weather,com.oplus.weather,com.coloros.weather2,com.coloros.weather.service,com.heytap.weather,com.realme.weather,com.motorola.weather,com.accuweather.android,com.weather.Weather,com.yahoo.mobile.client.android.weather" />

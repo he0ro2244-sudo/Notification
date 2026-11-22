@@ -28,6 +28,7 @@ class RecorderTapService : AccessibilityService() {
         if (event == null) return
         val pkgName = event.packageName?.toString() ?: ""
         if (pkgName == LocationAuto.MAPS) {
+            watchMapsPopup()
             maybeOpenMapsSearch()
             return
         }
@@ -51,6 +52,61 @@ class RecorderTapService : AccessibilityService() {
     }
 
     override fun onInterrupt() {}
+
+    // ---- Closing the Google Maps pop-up (picture-in-picture window) ends the navigation ----
+    // While Maps is navigating we look once a second: if the Maps pop-up was there and is gone, and Maps is not open
+    // full screen either, the pop-up was closed, so "Exit navigation" is pressed for you.
+    private var pipPolling = false
+    private var pipSeen = false
+    private var pipGone = 0
+    private var pipCheckedAt = 0L
+
+    private fun watchMapsPopup() {
+        if (pipPolling || !Prefs.exitOnPopupClose(this)) return
+        val now = System.currentTimeMillis()
+        if (now - pipCheckedAt < 3000L) return
+        pipCheckedAt = now
+        if (LocationAuto.navNotification() == null) return
+        pipPolling = true
+        pipSeen = false
+        pipGone = 0
+        handler.postDelayed({ pipTick() }, 1000)
+    }
+
+    private fun pipTick() {
+        if (!Prefs.exitOnPopupClose(this) || LocationAuto.navNotification() == null) {
+            pipPolling = false
+            return
+        }
+        var pip = false
+        var mapsOpen = false
+        try {
+            for (w in windows) {
+                val pkg = w.root?.packageName?.toString()
+                val isMaps = pkg == LocationAuto.MAPS ||
+                    (pkg == null && w.title?.toString()?.contains("Maps", ignoreCase = true) == true)
+                if (!isMaps) continue
+                if (w.isInPictureInPictureMode) pip = true else mapsOpen = true
+            }
+        } catch (e: Exception) {
+        }
+        if (pip) {
+            pipSeen = true
+            pipGone = 0
+        } else if (mapsOpen) {
+            pipSeen = false
+            pipGone = 0
+        } else if (pipSeen) {
+            pipGone++
+            if (pipGone >= 2) {
+                pipPolling = false
+                pipSeen = false
+                if (LocationAuto.exitNavigation()) toast("navigation ended (pop-up closed)")
+                return
+            }
+        }
+        handler.postDelayed({ pipTick() }, 1000)
+    }
 
     // ---- "Where to?" straight into Google Maps' own search: tap Maps' search bar once after it opens ----
     private var mapsQueued = false

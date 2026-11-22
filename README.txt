@@ -1,6 +1,9 @@
-Notif Tiles v0.9.16
+Notif Tiles v0.9.17
 
-LATEST (v0.9.16) - older versions are listed below, newest at the bottom.
+LATEST (v0.9.17) - older versions are listed below, newest at the bottom.
+
+NEW IN v0.9.17: Closing the small Google Maps pop-up now also exits the navigation (needs the Accessibility helper ON; switch in
+Look & colors > Where to?). Opening the pop-up to full screen does not end it.
 
 NEW IN v0.9.16: Weather city box now shows the current city and a small list of matching places while you type
 (tap one to use it). The refresh icon no longer opens the phone's weather app.
