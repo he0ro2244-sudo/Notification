@@ -254,30 +254,40 @@ object Feed {
         replied[key] = System.currentTimeMillis()
     }
 
-    /** True when the newest message of the chat is written by the phone's owner (not by the other person). */
     @Suppress("DEPRECATION")
-    fun lastFromSelf(n: StatusBarNotification): Boolean {
-        val ex = n.notification.extras
-        return try {
-            val arr = ex.getParcelableArray(Notification.EXTRA_MESSAGES) ?: return false
-            val msgs = Notification.MessagingStyle.Message.getMessagesFromBundleArray(arr)
-            val last = msgs.maxByOrNull { it.timestamp } ?: return false
-            val self = ex.getCharSequence(Notification.EXTRA_SELF_DISPLAY_NAME)?.toString().orEmpty()
-            val who = last.senderPerson?.name?.toString().orEmpty()
-            who.isEmpty() || who == "You" || (self.isNotEmpty() && who == self)
-        } catch (e: Exception) {
-            false
-        }
+    private fun newestMessage(n: StatusBarNotification): Notification.MessagingStyle.Message? = try {
+        val arr = n.notification.extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+        if (arr == null) null else Notification.MessagingStyle.Message.getMessagesFromBundleArray(arr).maxByOrNull { it.timestamp }
+    } catch (e: Exception) {
+        null
     }
 
-    /** A chat we just replied to, re-posted by the app with our own reply as its newest message. */
+    private fun isSelfName(n: StatusBarNotification, who: String): Boolean {
+        if (who.isEmpty()) return false
+        val self = n.notification.extras.getCharSequence(Notification.EXTRA_SELF_DISPLAY_NAME)?.toString().orEmpty()
+        return who == "You" || who == "أنت" || (self.isNotEmpty() && who == self)
+    }
+
+    /** True when the newest message of the chat is written by the phone's owner (named as the app names "me"). */
+    fun ownLast(n: StatusBarNotification): Boolean {
+        val m = newestMessage(n) ?: return false
+        return isSelfName(n, m.senderPerson?.name?.toString().orEmpty())
+    }
+
+    /**
+     * A chat we just replied to, re-posted by the app. After our reply nothing newer than the reply itself is in it
+     * (its newest message is our own reply or the message we already answered), so it is not a new message.
+     */
     fun isEcho(n: StatusBarNotification): Boolean {
         val t = replied[n.key] ?: return false
-        if (System.currentTimeMillis() - t > 120000L) {
+        val now = System.currentTimeMillis()
+        if (now - t > 180000L) {
             replied.remove(n.key)
             return false
         }
-        return lastFromSelf(n)
+        val m = newestMessage(n)
+            ?: return n.postTime <= t + 60000L // no message list (some apps): anything re-posted within a minute
+        return m.timestamp <= t + 4000L || ownLast(n)
     }
 
     /** All messages, one per line. */
@@ -332,7 +342,7 @@ object Feed {
             .filter { it.packageName in enabled && it.packageName != c.packageName && it.packageName !in muted }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
             .filter { it.postTime > (handled[it.key] ?: 0L) }
-            .filter { !isEcho(it) }
+            .filter { !isEcho(it) && !ownLast(it) }
             .filter { title(it).isNotEmpty() || text(it).isNotEmpty() }
             .filter {
                 val summary = (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0

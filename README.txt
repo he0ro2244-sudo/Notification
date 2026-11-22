@@ -1,3 +1,7 @@
+NEW IN v0.9.34: A chat you just replied to stays gone. After a reply the app re-posts the chat; it is now recognised by its time
+(nothing newer than your reply is in it) instead of by the sender name, which Arabic phones and some apps write differently.
+A chat whose newest message is your own (named You / أنت / your own name) is also never counted as new.
+
 NEW IN v0.9.33: Replies and photos.
 - Sending a reply no longer shows the "Sent" pop-up that stayed on screen: the reply box says "Sent ✓" for a moment instead.
 - The message you replied to no longer comes back a few seconds later when the app re-posts the chat with your own reply in
