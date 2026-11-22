@@ -746,6 +746,7 @@ class PanelActivity : Activity() {
             // Like swiping it away: hidden for now (apps that re-post, like WhatsApp, cannot bring it back), but not read.
             // A newer message shows again together with the older unread ones. The panel closes.
             Feed.markDismissed(this, sbn, Feed.handledStamp(sbn))
+            ActionLog.add(this, "x on " + Feed.label(this, sbn.packageName) + ": hidden like a swipe, nothing marked read, panel closed")
             NotifListener.instance?.cancelNotification(sbn.key)
             viewing = null
             expanded = null
@@ -803,7 +804,7 @@ class PanelActivity : Activity() {
         card.addView(mediaBox, picLp)
         val hasPhotoWord = Feed.photoHint(this, sbn)
         Thread {
-            val md = Feed.media(this, sbn, 1024)
+            val md = if (sbn.packageName == "com.snapchat.android") null else Feed.media(this, sbn, 1024)
             if (md == null && hasPhotoWord) {
                 // Instagram / Snapchat do not hand the photo to other apps: say so clearly and open the app on tap.
                 runOnUiThread {
@@ -841,6 +842,14 @@ class PanelActivity : Activity() {
 
         val actions = n.actions?.toList() ?: emptyList()
         val snap = sbn.packageName == "com.snapchat.android"
+        ActionLog.add(
+            this,
+            "card " + Feed.label(this, sbn.packageName) + ": tap on card = " + ActionLog.kind(n.contentIntent) + "; buttons: " +
+                (if (actions.isEmpty()) "none" else actions.joinToString(", ") {
+                    "'" + it.title + "' (" + ActionLog.kind(it.actionIntent) +
+                        (if (it.remoteInputs?.isNotEmpty() == true) ", typing box" + (if (it.remoteInputs?.any { r -> r.allowFreeFormInput } == true) "" else " choices-only") else "") + ")"
+                })
+        )
         val reply = actions.firstOrNull { a ->
             a.actionIntent != null && a.remoteInputs?.any { it.allowFreeFormInput } == true
         } ?: (if (snap) actions.firstOrNull { a ->
@@ -965,6 +974,7 @@ class PanelActivity : Activity() {
         RemoteInput.setResultsSource(intent, RemoteInput.SOURCE_FREE_FORM_INPUT)
         try {
             a.actionIntent.send(this, 0, intent)
+            ActionLog.add(this, "Send: reply handed to the app ('" + a.title + "'); the app gives no answer whether it arrived")
             et.setText("")
             // No pop-up toast (it stayed on screen for seconds): a short "Sent ✓" in the reply box instead.
             val oldHint = et.hint
@@ -988,6 +998,7 @@ class PanelActivity : Activity() {
             // The panel closes by itself once the reply is sent.
             finish()
         } catch (e: PendingIntent.CanceledException) {
+            ActionLog.add(this, "Send FAILED: the app's reply button expired (" + e.javaClass.simpleName + ")")
             toast("Couldn't send. Open the app to reply.")
         }
     }
@@ -1035,9 +1046,48 @@ class PanelActivity : Activity() {
         false
     }
 
+    // Snapchat's own buttons only work while Snapchat is already running (that is why View / Reply / Open did nothing).
+    // So: start Snapchat first, then send the chat / button a moment later.
+    private fun openSnapchat(sbn: StatusBarNotification, pi: PendingIntent?) {
+        try {
+            packageManager.getLaunchIntentForPackage(sbn.packageName)
+                ?.let { startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+        } catch (e: Exception) {
+        }
+        val target = pi ?: sbn.notification.contentIntent
+        if (target == null) {
+            ActionLog.add(this, "Snapchat: started the app; Snapchat gave nothing to send to the chat")
+            return
+        }
+        ActionLog.add(this, "Snapchat: started the app, sending its " + (if (pi == null) "chat" else "button") + " (" + ActionLog.kind(target) + ") in 0.9 s")
+        val opts = balOptions()
+        val app = applicationContext
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            try {
+                target.send(app, 0, null, null, null, null, opts)
+                ActionLog.add(app, "Snapchat: sent to Snapchat OK (if nothing opened, Snapchat ignored it)")
+            } catch (e: Exception) {
+                ActionLog.add(app, "Snapchat: sending FAILED: " + e.javaClass.simpleName + " " + (e.message ?: ""))
+            }
+        }, 900L)
+    }
+
     private fun runAction(sbn: StatusBarNotification, a: Notification.Action) {
+        val title = a.title.toString().lowercase()
+        if (sbn.packageName == "com.snapchat.android" && !(title.contains("read") && !title.contains("unread"))) {
+            if (Prefs.countRead(this)) {
+                Feed.markDone(this, sbn, Feed.handledStamp(sbn))
+                dismissFromShade(sbn, 4000L)
+            }
+            viewing = null
+            openSnapchat(sbn, a.actionIntent)
+            finish()
+            return
+        }
         val pi = a.actionIntent
-        if (!fire(pi)) {
+        val fired = fire(pi)
+        ActionLog.add(this, "Button '" + a.title + "' on " + Feed.label(this, sbn.packageName) + " (" + ActionLog.kind(pi) + "): " + (if (fired) "sent" else "FAILED, the button expired"))
+        if (!fired) {
             toast("That action expired, opening the app instead")
             open(sbn)
             return
@@ -1068,13 +1118,20 @@ class PanelActivity : Activity() {
     private fun open(sbn: StatusBarNotification) {
         if (Prefs.countRead(this)) {
             Feed.markDone(this, sbn, Feed.handledStamp(sbn))
-            dismissFromShade(sbn, 1500L)
+            dismissFromShade(sbn, if (sbn.packageName == "com.snapchat.android") 4000L else 1500L)
         }
         viewing = null
+        if (sbn.packageName == "com.snapchat.android") {
+            openSnapchat(sbn, null)
+            finish()
+            return
+        }
         try {
             val pi = sbn.notification.contentIntent
             if (pi != null) {
-                if (!fire(pi)) toast("Couldn't open")
+                val opened = fire(pi)
+                ActionLog.add(this, "Open " + Feed.label(this, sbn.packageName) + " (" + ActionLog.kind(pi) + "): " + (if (opened) "sent" else "FAILED, the chat link expired"))
+                if (!opened) toast("Couldn't open")
                 if ((sbn.notification.flags and Notification.FLAG_AUTO_CANCEL) != 0) {
                     NotifListener.instance?.cancelNotification(sbn.key)
                 }

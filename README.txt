@@ -1,3 +1,10 @@
+NEW IN v0.9.44: Settings > Button log. A short diary of what happened when you pressed x, Open, Reply, View, Like, Send... (which app,
+which button, what kind of thing it starts, sent or failed and why; also what buttons each app offers on its card). No message texts are
+stored. Use Copy and send it for fixing. Nothing else changed.
+
+NEW IN v0.9.43: Snapchat. View / Reply / Open now start Snapchat first and then send its chat (Snapchat's buttons only work while it is
+running), so they do something every time. The useless blue chat-bubble picture is no longer shown in the Snapchat card.
+
 NEW IN v0.9.42: x on a card now works like swiping a notification away: it only hides what is there now (nothing is marked read).
 When a new message comes, the card shows it together with the older unread ones, as the phone's own notification does.
 

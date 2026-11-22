@@ -160,6 +160,11 @@ class SettingsActivity : Activity() {
         chkAll.text = "Check everything"
         chkAll.setOnClickListener { showCheckEverything() }
         col.addView(chkAll)
+        val btnLog = Button(this)
+        btnLog.isAllCaps = false
+        btnLog.text = "Button log"
+        btnLog.setOnClickListener { ActionLog.show(this) }
+        col.addView(btnLog)
 
         category("LOOK")
         section("Themes & accent colour") {
