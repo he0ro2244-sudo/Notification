@@ -236,7 +236,7 @@ class TilesWidget : AppWidgetProvider() {
             if (Weather.showUpdated(ctx) && upd.isNotEmpty()) {
                 rv.setViewVisibility(R.id.wupdated, android.view.View.VISIBLE)
                 rv.setTextViewText(R.id.wupdated, Look.span(ctx, upd, false))
-                rv.setTextViewTextSize(R.id.wupdated, TypedValue.COMPLEX_UNIT_SP, 10f * Look.scale(ctx))
+                rv.setTextViewTextSize(R.id.wupdated, TypedValue.COMPLEX_UNIT_SP, 10f * Look.scale(ctx) * Prefs.updSize(ctx) / 100f)
             } else {
                 rv.setViewVisibility(R.id.wupdated, android.view.View.GONE)
             }

@@ -1,3 +1,6 @@
+NEW IN v0.9.31: the weather "Updated" line has its own size slider (Look & colors > Text, fonts & colours > Widget wording).
+Show / hide, wording and colour were already there.
+
 NEW IN v0.9.30: With "One tile per app", opening a grouped tile now shows every chat of that app in one card (newest first).
 Tap a chat's name to open it and reply to it; the reply box at the bottom answers the chat shown first.
 

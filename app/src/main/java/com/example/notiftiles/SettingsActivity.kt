@@ -274,6 +274,7 @@ class SettingsActivity : Activity() {
         col.addView(toggleRaw("Show the \"Nothing new\" message in the widget", Prefs.showEmptyText(this)) { Prefs.setShowEmptyText(this, it); applyLook() })
         col.addView(textPref("Empty message text", Prefs.emptyText(this)) { Prefs.setEmptyText(this, it) })
         col.addView(textPref("Update word (before the time)", Prefs.updatedLabel(this)) { Prefs.setUpdatedLabel(this, it) })
+        col.addView(seekRange("Size of the Updated line", Prefs.updSize(this), 50, 250, "%") { Prefs.setUpdSize(this, it); applyLook() })
 
         // ---- Colours of text and shapes
         col.addView(title("Text colour (widget)", 16f, 20))
