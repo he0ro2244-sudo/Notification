@@ -397,14 +397,15 @@ class TilesWidget : AppWidgetProvider() {
             rv.setViewVisibility(R.id.wset, vis(Prefs.showItem(ctx, "w_gear"), View.GONE))
 
             // ---- Pages (‹ 1/3 ›)
-            val pages = Prefs.scrollMode(ctx) == 1
+            val pages = Prefs.pagesOn(ctx)
             rv.setViewVisibility(R.id.pagebar, if (pages) View.VISIBLE else View.GONE)
             if (pages) {
                 val total = Arrange.tileCount(ctx, Feed.items(ctx))
                 val n = Arrange.pageCount(ctx, total)
                 val now = Arrange.pageNow(ctx, "w", total)
                 val pc = Prefs.partColor(ctx, "pages").let { if (it != 0) it else Prefs.accent(ctx) }
-                txt(rv, ctx, R.id.wpage, "${now + 1}/$n", 12f, false)
+                val pn = Arrange.pageName(ctx, "w")
+                txt(rv, ctx, R.id.wpage, (if (pn != null) "$pn  " else "") + "${now + 1}/$n", 12f, false)
                 rv.setTextColor(R.id.wpage, pc)
                 rv.setTextColor(R.id.wprev, pc)
                 rv.setTextColor(R.id.wnext, pc)
@@ -485,12 +486,14 @@ class TilesService : RemoteViewsService() {
 
 class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFactory {
     private var tiles: List<Tile> = emptyList()
+    private var shortcuts: List<String> = emptyList()
 
     override fun onCreate() {}
 
     override fun onDataSetChanged() {
         // One tile per chat (or per app when grouped), in the chosen order; only the current page when pages are on.
         tiles = Arrange.slice(ctx, "w", Arrange.tiles(ctx, Feed.items(ctx), 4))
+        shortcuts = Arrange.shortcuts(ctx, "w")
     }
 
     override fun onDestroy() {}
@@ -498,9 +501,35 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
     // Endless scrolling: the list repeats when you reach its end (only with 3 or more tiles, and not in pages mode)
     private fun endless(): Boolean = Prefs.loop(ctx) && Prefs.scrollMode(ctx) == 0 && tiles.size >= 3
 
-    override fun getCount(): Int = if (endless()) tiles.size * 30 else tiles.size
+    override fun getCount(): Int = if (endless()) tiles.size * 30 else tiles.size + shortcuts.size
+
+    // My pages: an app shortcut tile (tap opens the app).
+    private fun shortcutView(pkg: String): RemoteViews {
+        val dark = Feed.isDark(ctx)
+        val st = Feed.style(ctx, pkg)
+        val bg = st.bg(dark)
+        val fg = st.fg(dark)
+        val rv = RemoteViews(ctx.packageName, R.layout.widget_tile)
+        rv.setColorStateList(R.id.tile_root, "setBackgroundTintList", ColorStateList.valueOf(bg))
+        Look.setText(rv, ctx, R.id.appname, Feed.label(ctx, pkg), 11f, false)
+        rv.setTextColor(R.id.appname, Prefs.partColor(ctx, "tapp").let { if (it != 0) it else Feed.alpha(fg, 0xCC) })
+        Look.setText(rv, ctx, R.id.title, "Shortcut", 13f, true)
+        rv.setTextColor(R.id.title, Prefs.partColor(ctx, "ttitle").let { if (it != 0) it else fg })
+        Look.setText(rv, ctx, R.id.text, "Tap to open", 12f, false)
+        rv.setTextColor(R.id.text, Prefs.partColor(ctx, "ttext").let { if (it != 0) it else Feed.alpha(fg, 0xDD) })
+        rv.setViewVisibility(R.id.cnt, View.GONE)
+        rv.setViewVisibility(R.id.appname, if (Prefs.showItem(ctx, "t_app")) View.VISIBLE else View.INVISIBLE)
+        rv.setViewVisibility(R.id.title, if (Prefs.showItem(ctx, "t_title")) View.VISIBLE else View.GONE)
+        rv.setViewVisibility(R.id.text, if (Prefs.showItem(ctx, "t_text")) View.VISIBLE else View.GONE)
+        rv.setOnClickFillInIntent(R.id.tile_root, Intent().putExtra("launch", pkg))
+        return rv
+    }
 
     override fun getViewAt(position: Int): RemoteViews? {
+        if (!endless() && position >= tiles.size) {
+            val pkg = shortcuts.getOrNull(position - tiles.size) ?: return null
+            return shortcutView(pkg)
+        }
         if (tiles.isEmpty()) return null
         val tile = tiles[position % tiles.size]
         val sbn = tile.sbn
@@ -537,6 +566,7 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
     override fun getLoadingView(): RemoteViews? = null
     override fun getViewTypeCount(): Int = 1
     override fun getItemId(position: Int): Long {
+        if (!endless() && position >= tiles.size) return ("sc" + shortcuts.getOrNull(position - tiles.size)).hashCode().toLong()
         if (tiles.isEmpty()) return position.toLong()
         return tiles[position % tiles.size].sbn.key.hashCode().toLong()
     }

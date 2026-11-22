@@ -6,6 +6,9 @@ import android.service.notification.StatusBarNotification
 /** One tile on the widget or in the panel: one chat, or all the chats of one app when grouping is on. */
 class Tile(val sbn: StatusBarNotification, val count: Int, val title: String, val text: String)
 
+/** One of "My pages": a name, the apps whose messages show on it and the app shortcuts on it. */
+data class CPage(val name: String, val apps: List<String>, val shortcuts: List<String>)
+
 // Grouping, pages and the order of the message tiles. With every setting at its default nothing changes.
 object Arrange {
 
@@ -38,7 +41,10 @@ object Arrange {
 
     // ---- Pages ----
 
+    fun customOn(c: Context): Boolean = Prefs.scrollMode(c) == 2
+
     fun pageCount(c: Context, total: Int): Int {
+        if (customOn(c)) return maxOf(1, Prefs.customPages(c).size)
         val size = Prefs.pageSize(c)
         return if (total <= 0) 1 else (total + size - 1) / size
     }
@@ -48,10 +54,53 @@ object Arrange {
         Prefs.page(c, key).coerceIn(0, pageCount(c, total) - 1)
 
     /** Only the tiles of the current page when pages are on; otherwise everything. */
-    fun <T> slice(c: Context, key: String, list: List<T>): List<T> {
-        if (Prefs.scrollMode(c) != 1) return list
+    fun slice(c: Context, key: String, list: List<Tile>): List<Tile> {
+        val mode = Prefs.scrollMode(c)
+        if (mode == 0) return list
+        if (mode == 2) {
+            val pages = Prefs.customPages(c)
+            if (pages.isEmpty()) return list
+            val now = pageNow(c, key, list.size)
+            val assigned = pages.flatMap { it.apps }.toSet()
+            // An app that is on no page shows on page 1.
+            return list.filter { val p = it.sbn.packageName; p in pages[now].apps || (now == 0 && p !in assigned) }
+        }
         val size = Prefs.pageSize(c)
         return list.drop(pageNow(c, key, list.size) * size).take(size)
+    }
+
+    /** My pages: the app shortcuts of the current page. */
+    fun shortcuts(c: Context, key: String): List<String> {
+        if (!customOn(c)) return emptyList()
+        val pages = Prefs.customPages(c)
+        return pages.getOrNull(pageNow(c, key, 0))?.shortcuts ?: emptyList()
+    }
+
+    /** My pages: name of the current page (null when My pages is off). */
+    fun pageName(c: Context, key: String): String? {
+        if (!customOn(c)) return null
+        return Prefs.customPages(c).getOrNull(pageNow(c, key, 0))?.name
+    }
+
+    fun addPage(c: Context, name: String) {
+        val l = Prefs.customPages(c)
+        val n = name.trim().ifEmpty { "Page ${l.size + 1}" }
+        Prefs.setCustomPages(c, l + CPage(n, emptyList(), emptyList()))
+    }
+
+    /** Puts [pkg]'s messages on page [to] (an app is on one page at a time). */
+    fun moveApp(c: Context, pkg: String, to: Int) {
+        val l = Prefs.customPages(c)
+        if (to !in l.indices) return
+        Prefs.setCustomPages(c, l.mapIndexed { i, p ->
+            val rest = p.apps.filter { it != pkg }
+            if (i == to) p.copy(apps = rest + pkg) else p.copy(apps = rest)
+        })
+    }
+
+    fun removeShortcut(c: Context, page: Int, pkg: String) {
+        val l = Prefs.customPages(c)
+        Prefs.setCustomPages(c, l.mapIndexed { i, p -> if (i == page) p.copy(shortcuts = p.shortcuts.filter { it != pkg }) else p })
     }
 
     /** Next page (+1) or previous page (-1); wraps around when endless scrolling is on. */

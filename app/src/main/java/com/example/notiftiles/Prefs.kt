@@ -468,7 +468,27 @@ object Prefs {
 
     // ---- Scrolling, pages, grouping and order of the messages ----
     /** 0 = scroll up / down (as before), 1 = pages (widget: ‹ › buttons; panel: swipe left / right or ‹ ›) */
-    fun scrollMode(c: Context): Int = sp(c).getInt("scr_mode", 0).coerceIn(0, 1)
+    fun scrollMode(c: Context): Int = sp(c).getInt("scr_mode", 0).coerceIn(0, 2)
+    /** True for both Pages and My pages (the page bar and swiping are on). */
+    fun pagesOn(c: Context): Boolean = scrollMode(c) >= 1
+    /** My pages: pages you add yourself, each with its own apps and shortcuts. Stored as one JSON text. */
+    fun customPages(c: Context): List<CPage> {
+        val s = sp(c).getString("pg_custom", "") ?: ""
+        if (s.isBlank()) return emptyList()
+        return try {
+            val a = org.json.JSONArray(s)
+            fun strs(j: org.json.JSONArray?): List<String> = if (j == null) emptyList() else (0 until j.length()).map { j.getString(it) }
+            (0 until a.length()).map {
+                val o = a.getJSONObject(it)
+                CPage(o.optString("n", "Page"), strs(o.optJSONArray("a")), strs(o.optJSONArray("s")))
+            }
+        } catch (e: Exception) { emptyList() }
+    }
+    fun setCustomPages(c: Context, l: List<CPage>) {
+        val a = org.json.JSONArray()
+        for (p in l) a.put(org.json.JSONObject().put("n", p.name).put("a", org.json.JSONArray(p.apps)).put("s", org.json.JSONArray(p.shortcuts)))
+        sp(c).edit().putString("pg_custom", a.toString()).apply()
+    }
     fun setScrollMode(c: Context, v: Int) = sp(c).edit().putInt("scr_mode", v).apply()
     /** Tiles per page. */
     fun pageSize(c: Context): Int = sp(c).getInt("scr_size", 6).coerceIn(2, 20)

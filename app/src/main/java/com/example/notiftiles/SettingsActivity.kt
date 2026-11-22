@@ -435,7 +435,7 @@ class SettingsActivity : Activity() {
         col.addView(toggleRaw("Closing the Maps pop-up also exits navigation", Prefs.exitOnPopupClose(this)) { Prefs.setExitOnPopupClose(this, it) })
         col.addView(hint("Needs the Accessibility helper ON. When you close the small Google Maps window, Notif Tiles presses Exit navigation for you (Location then switches off too, if that option is set up). Opening the pop-up to full screen does not end it."))
         col.addView(toggleRaw("Switch Location off again when navigation ends", Prefs.autoLocationOff(this)) { Prefs.setAutoLocationOff(this, it) })
-        col.addView(hint(if (LocationAuto.canWrite(this)) "Permission granted: Location is switched on and off by Notif Tiles with no pop-up. Location is switched off again once the Google Maps navigation notification is gone (if it was already on before, only with the next switch on)." else "Needs a one-time permission. Without it Android always shows its Turn on pop-up and Location stays on until you switch it off yourself. In Termux, with adb connected to this phone, run: adb shell pm grant com.example.notiftiles android.permission.WRITE_SECURE_SETTINGS"))
+        col.addView(hint(if (LocationAuto.canWrite(this)) "Permission granted: Location is switched on and off by Notif Tiles with no pop-up. Location is switched off again once the Google Maps navigation notification is gone (if it was already on before, only with the next switch on)." else "Needs a one-time permission. Without it Android always shows its Turn on pop-up and Location stays on until you switch it off yourself. Run the command below once (Developer options only needed for that moment, you can switch them off afterwards). It stays through every update installed over the old version; only an uninstall removes it."))
         col.addView(toggleRaw("...even if Location was already on before", Prefs.locOffAlways(this)) { Prefs.setLocOffAlways(this, it) })
         val locTest = Button(this)
         locTest.isAllCaps = false
@@ -444,6 +444,17 @@ class SettingsActivity : Activity() {
             LocationAuto.testOff(this) { msg -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show() }
         }
         col.addView(locTest)
+        if (!LocationAuto.canWrite(this)) {
+            val cp = Button(this)
+            cp.isAllCaps = false
+            cp.text = "Copy the adb command"
+            cp.setOnClickListener {
+                val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("adb", "adb shell pm grant com.example.notiftiles android.permission.WRITE_SECURE_SETTINGS"))
+                Toast.makeText(this, "Copied. Paste it in Termux (adb connected).", Toast.LENGTH_LONG).show()
+            }
+            col.addView(cp)
+        }
         val selfCheck = Button(this)
         selfCheck.isAllCaps = false
         selfCheck.text = "Self-check: what works and what does not"
@@ -609,10 +620,13 @@ class SettingsActivity : Activity() {
 
         section("Scroll, pages & grouping") {
         col.addView(title("Scrolling", 16f, 12))
-        col.addView(hint("Scroll = the list moves up and down (as before). Pages = a few tiles at a time: ‹ › buttons under the widget; in the panel you can also swipe left or right. (A home-screen widget cannot be swiped sideways, that is an Android limit.)"))
-        col.addView(choiceRow(listOf("0" to "Scroll up / down", "1" to "Pages"), Prefs.scrollMode(this).toString(), false) {
-            Prefs.setScrollMode(this, it.toInt()); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0); applyLook(); rebuild()
+        col.addView(hint("Scroll = the list moves up and down (as before). My pages = pages you add yourself, each with its own apps and shortcuts, even when there are no messages. Pages = a few tiles at a time: ‹ › buttons under the widget; in the panel you can also swipe left or right. (A home-screen widget cannot be swiped sideways, that is an Android limit.)"))
+        col.addView(choiceRow(listOf("0" to "Scroll up / down", "1" to "Pages", "2" to "My pages"), Prefs.scrollMode(this).toString(), false) {
+            Prefs.setScrollMode(this, it.toInt()); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0)
+            if (it == "2" && Prefs.customPages(this).isEmpty()) Prefs.setCustomPages(this, listOf(CPage("Page 1", emptyList(), emptyList())))
+            applyLook(); rebuild()
         })
+        if (Prefs.scrollMode(this) == 2) pagesEditor()
         if (Prefs.scrollMode(this) == 1) {
             col.addView(seekRange("Tiles per page", Prefs.pageSize(this), 2, 20, "") {
                 Prefs.setPageSize(this, it); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0)
@@ -1078,6 +1092,108 @@ class SettingsActivity : Activity() {
             row.addView(b)
         }
         return hs
+    }
+
+    // ---- My pages editor ----
+    private fun smallBtn(label: String, action: () -> Unit): View {
+        val b = Button(this)
+        b.text = label
+        b.isAllCaps = false
+        b.minWidth = 0
+        b.minimumWidth = 0
+        b.setOnClickListener { action() }
+        return b
+    }
+
+    private fun savePages(l: List<CPage>) {
+        Prefs.setCustomPages(this, l)
+        applyLook(); rebuild()
+    }
+
+    private fun pagesEditor() {
+        val pages = Prefs.customPages(this)
+        col.addView(title("My pages", 16f, 20))
+        col.addView(hint("Add pages any time, even with no messages. Put apps on a page (their messages show there), add app shortcuts, and move pages left or right. Apps you do not put on a page show on page 1. In the panel: long-press a tile to move its app to another page, and use + in the page bar to add a page. The widget changes page with its ‹ › buttons; the panel also swipes left and right. Inside a page the list scrolls up and down."))
+        for ((i, p) in pages.withIndex()) {
+            col.addView(title("${i + 1}. ${p.name}", 15f, 14))
+            val apps = if (p.apps.isEmpty()) "none" else p.apps.joinToString { Feed.label(this, it) }
+            val sc = if (p.shortcuts.isEmpty()) "none" else p.shortcuts.joinToString { Feed.label(this, it) }
+            col.addView(hint("Apps: $apps\nShortcuts: $sc"))
+            val r1 = LinearLayout(this)
+            r1.orientation = LinearLayout.HORIZONTAL
+            r1.addView(smallBtn("Apps") { pickPageApps(i) })
+            r1.addView(smallBtn("Shortcuts") { pickPageShortcuts(i) })
+            r1.addView(smallBtn("Rename") { askPageName(p.name) { n -> savePages(pages.mapIndexed { j, q -> if (j == i) q.copy(name = n) else q }) } })
+            col.addView(r1)
+            val r2 = LinearLayout(this)
+            r2.orientation = LinearLayout.HORIZONTAL
+            r2.addView(moveButton("‹ Left", i > 0) { swapPages(pages, i, i - 1) })
+            r2.addView(moveButton("Right ›", i < pages.size - 1) { swapPages(pages, i, i + 1) })
+            r2.addView(smallBtn("Delete") {
+                AlertDialog.Builder(this).setTitle("Delete page \"${p.name}\"?")
+                    .setMessage("Its apps go back to page 1. Nothing else is lost.")
+                    .setPositiveButton("Delete") { _, _ ->
+                        Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0)
+                        savePages(pages.filterIndexed { j, _ -> j != i })
+                    }.setNegativeButton("Cancel", null).show()
+            })
+            col.addView(r2)
+        }
+        val add = Button(this)
+        add.isAllCaps = false
+        add.text = "+ Add page"
+        add.setOnClickListener {
+            askPageName("") { n -> savePages(pages + CPage(n.ifEmpty { "Page ${pages.size + 1}" }, emptyList(), emptyList())) }
+        }
+        col.addView(add)
+    }
+
+    private fun askPageName(current: String, done: (String) -> Unit) {
+        val et = EditText(this)
+        et.setText(current)
+        et.hint = "Page name"
+        AlertDialog.Builder(this).setTitle("Page name").setView(et)
+            .setPositiveButton("OK") { _, _ -> done(et.text.toString().trim()) }
+            .setNegativeButton("Cancel", null).show()
+    }
+
+    private fun swapPages(pages: List<CPage>, a: Int, b: Int) {
+        val l = pages.toMutableList()
+        val t = l[a]; l[a] = l[b]; l[b] = t
+        Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0)
+        savePages(l)
+    }
+
+    private fun pickPageApps(i: Int) {
+        val pages = Prefs.customPages(this)
+        val pkgs = Prefs.enabled(this).sortedBy { Feed.label(this, it).lowercase() }
+        if (pkgs.isEmpty()) { Toast.makeText(this, "No apps chosen yet. Choose them on the main screen first.", Toast.LENGTH_LONG).show(); return }
+        val checked = BooleanArray(pkgs.size) { pkgs[it] in pages[i].apps }
+        AlertDialog.Builder(this).setTitle("Apps on \"${pages[i].name}\"")
+            .setMultiChoiceItems(pkgs.map { Feed.label(this, it) }.toTypedArray(), checked) { _, which, on -> checked[which] = on }
+            .setPositiveButton("OK") { _, _ ->
+                val chosen = pkgs.filterIndexed { k, _ -> checked[k] }
+                // An app lives on one page: choosing it here takes it off the others.
+                savePages(pages.mapIndexed { j, p ->
+                    if (j == i) p.copy(apps = p.apps.filter { it !in pkgs } + chosen)
+                    else p.copy(apps = p.apps.filter { it !in chosen })
+                })
+            }.setNegativeButton("Cancel", null).show()
+    }
+
+    private fun pickPageShortcuts(i: Int) {
+        val pages = Prefs.customPages(this)
+        val launch = android.content.Intent(android.content.Intent.ACTION_MAIN).addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+        val all = packageManager.queryIntentActivities(launch, 0).map { it.activityInfo.packageName }.distinct()
+            .filter { it != packageName }.sortedBy { Feed.label(this, it).lowercase() }
+        if (all.isEmpty()) { Toast.makeText(this, "No apps found", Toast.LENGTH_SHORT).show(); return }
+        val checked = BooleanArray(all.size) { all[it] in pages[i].shortcuts }
+        AlertDialog.Builder(this).setTitle("Shortcuts on \"${pages[i].name}\"")
+            .setMultiChoiceItems(all.map { Feed.label(this, it) }.toTypedArray(), checked) { _, which, on -> checked[which] = on }
+            .setPositiveButton("OK") { _, _ ->
+                val chosen = all.filterIndexed { k, _ -> checked[k] }
+                savePages(pages.mapIndexed { j, p -> if (j == i) p.copy(shortcuts = p.shortcuts.filter { it !in all } + chosen) else p })
+            }.setNegativeButton("Cancel", null).show()
     }
 
     private fun moveButton(label: String, enabled: Boolean, action: () -> Unit): View {

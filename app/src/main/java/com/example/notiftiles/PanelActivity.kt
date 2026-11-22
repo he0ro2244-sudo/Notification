@@ -65,6 +65,7 @@ class PanelActivity : Activity() {
         cBg = Prefs.panelBgColor(this)
         cText = if (dark) 0xFFECECEF.toInt() else 0xFF1B1B1F.toInt()
         cSub = if (dark) 0xFFA8A8B0.toInt() else 0xFF5E5E66.toInt()
+        intent?.getStringExtra("launch")?.let { launchApp(it); finish(); return }
         expanded = intent?.getStringExtra("key")
         if (expanded == "note:new" && openNotesDirect()) expanded = null
 
@@ -188,6 +189,7 @@ class PanelActivity : Activity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        intent.getStringExtra("launch")?.let { launchApp(it); return }
         finishViewing()
         expanded = intent.getStringExtra("key")
         if (expanded == "note:new" && openNotesDirect()) expanded = null
@@ -331,13 +333,15 @@ class PanelActivity : Activity() {
             )
         }
         val allTiles = Arrange.tiles(this, items, 3)
-        val pagesOn = Prefs.scrollMode(this) == 1
+        val pagesOn = Prefs.pagesOn(this)
         val cells = ArrayList<View>()
         for (t in Arrange.slice(this, "p", allTiles)) cells.add(compact(t.sbn, t.count, t.title, t.text))
+        for (pkg in Arrange.shortcuts(this, "p")) cells.add(shortcutTile(pkg))
         val onLastPage = Arrange.pageNow(this, "p", allTiles.size) >= Arrange.pageCount(this, allTiles.size) - 1
         if (!pagesOn || onLastPage) for (n in notes) cells.add(noteTile(n))
         if (cells.isEmpty()) {
             if (svc != null) list.addView(note("Nothing new from your apps. Tap + Note to write something down."))
+            if (pagesOn && Arrange.customOn(this)) list.addView(pageBar(allTiles.size))
             return
         }
         var i = 0
@@ -345,7 +349,7 @@ class PanelActivity : Activity() {
             list.addView(rowOf(cells[i], cells.getOrNull(i + 1)))
             i += 2
         }
-        if (pagesOn && (Arrange.pageCount(this, allTiles.size) > 1 || Prefs.loop(this))) list.addView(pageBar(allTiles.size))
+        if (pagesOn && (Arrange.pageCount(this, allTiles.size) > 1 || Prefs.loop(this) || Arrange.customOn(this))) list.addView(pageBar(allTiles.size))
     }
 
     // ‹ 1/3 › under the tiles when pages are on (swiping left / right does the same)
@@ -369,19 +373,96 @@ class PanelActivity : Activity() {
         }
         row.addView(btn("‹", -1))
         val label = TextView(this)
-        label.text = "${now + 1}/$n"
+        label.text = (Arrange.pageName(this, "p")?.let { "$it  " } ?: "") + "${now + 1}/$n"
         label.textSize = 13f
         label.setTextColor(cSub)
         label.setTag(R.id.nt_grp, "small")
         row.addView(label)
         row.addView(btn("›", 1))
+        if (Arrange.customOn(this)) {
+            val plus = TextView(this)
+            plus.text = "＋"
+            plus.textSize = 22f
+            plus.setTextColor(Prefs.accent(this))
+            plus.setPadding(dp(16), dp(2), dp(16), dp(2))
+            plus.setOnClickListener { addPageDialog() }
+            row.addView(plus)
+        }
         return row
+    }
+
+    // ---- My pages helpers ----
+    private fun launchApp(pkg: String) {
+        packageManager.getLaunchIntentForPackage(pkg)?.let {
+            try { startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) {}
+        }
+    }
+
+    private fun addPageDialog() {
+        val et = EditText(this)
+        et.hint = "Page name"
+        android.app.AlertDialog.Builder(this).setTitle("Add a page").setView(et)
+            .setPositiveButton("Add") { _, _ ->
+                Arrange.addPage(this, et.text.toString())
+                Prefs.setPage(this, "p", Prefs.customPages(this).size - 1)
+                TilesWidget.refresh(applicationContext)
+                refresh()
+            }
+            .setNegativeButton("Cancel", null).show()
+    }
+
+    private fun movePicker(pkg: String) {
+        val names = Prefs.customPages(this).map { it.name }.toTypedArray()
+        if (names.isEmpty()) return
+        android.app.AlertDialog.Builder(this).setTitle("Move " + Feed.label(this, pkg) + " to page")
+            .setItems(names) { _, i ->
+                Arrange.moveApp(this, pkg, i)
+                TilesWidget.refresh(applicationContext)
+                refresh()
+            }.show()
+    }
+
+    private fun shortcutTile(pkg: String): View {
+        val st = Feed.style(this, pkg)
+        val bg = st.bg(dark)
+        val fg = st.fg(dark)
+        val card = LinearLayout(this)
+        card.orientation = LinearLayout.VERTICAL
+        card.background = tileBg(bg, fg, 16)
+        card.setPadding(dp(10), dp(10), dp(10), dp(10))
+        card.minimumHeight = dp(104)
+        appIcon(pkg, 28)?.let { card.addView(it) }
+        val t = TextView(this)
+        t.text = Feed.label(this, pkg)
+        t.textSize = 14f
+        t.setTypeface(null, Typeface.BOLD)
+        t.setTextColor(fg)
+        t.maxLines = 1
+        t.ellipsize = TextUtils.TruncateAt.END
+        t.setPadding(0, dp(8), 0, 0)
+        card.addView(t)
+        val m = TextView(this)
+        m.text = "Shortcut"
+        m.textSize = 12f
+        m.setTextColor(Feed.alpha(fg, 0xDD))
+        card.addView(m)
+        card.setOnClickListener { launchApp(pkg) }
+        card.setOnLongClickListener {
+            android.app.AlertDialog.Builder(this).setTitle("Remove " + Feed.label(this, pkg) + " shortcut?")
+                .setPositiveButton("Remove") { _, _ ->
+                    Arrange.removeShortcut(this, Arrange.pageNow(this, "p", 0), pkg)
+                    TilesWidget.refresh(applicationContext)
+                    refresh()
+                }.setNegativeButton("Cancel", null).show()
+            true
+        }
+        return card
     }
 
     private val swipe by lazy {
         android.view.GestureDetector(this, object : android.view.GestureDetector.SimpleOnGestureListener() {
             override fun onFling(e1: android.view.MotionEvent?, e2: android.view.MotionEvent, velocityX: Float, velocityY: Float): Boolean {
-                if (Prefs.scrollMode(this@PanelActivity) != 1 || expanded != null) return false
+                if (!Prefs.pagesOn(this@PanelActivity) || expanded != null) return false
                 val dx = e2.x - (e1?.x ?: e2.x)
                 if (Math.abs(dx) > dp(80) && Math.abs(velocityX) > Math.abs(velocityY) * 1.5f) {
                     val total = Arrange.tileCount(this@PanelActivity, Feed.items(this@PanelActivity, true))
@@ -476,6 +557,7 @@ class PanelActivity : Activity() {
         m.ellipsize = TextUtils.TruncateAt.END
         if (Prefs.showItem(this, "p_text")) card.addView(m)
 
+        if (Arrange.customOn(this)) card.setOnLongClickListener { movePicker(sbn.packageName); true }
         card.setOnClickListener {
             expanded = sbn.key
             refresh()

@@ -1,3 +1,10 @@
+NEW IN v0.9.28: My pages. Look & colors > Scroll, pages & grouping > My pages. Add pages any time (even with no messages),
+rename, delete and move them left / right. Per page: choose the apps whose messages show there (an app is on one page; apps on
+no page show on page 1) and add app shortcuts (a tile that opens the app). Panel: long-press a message tile to move its app to
+another page, long-press a shortcut to remove it, + in the page bar adds a page, swipe left / right to change page. Widget: ‹ ›
+buttons (an Android limit: a widget cannot be swiped sideways). Inside a page the list scrolls up and down.
+Also: "Copy the adb command" button under Where to? and clearer text about the one-time permission (it stays through updates).
+
 NEW IN v0.9.27: Easier colours, show / hide, scrolling, grouping and order. Nothing from older versions was removed and every
 new setting starts on the old behaviour.
 - Colour picker: tap any row under Text colour per part (or the "+" circle at the end of any colour row) for a big palette,

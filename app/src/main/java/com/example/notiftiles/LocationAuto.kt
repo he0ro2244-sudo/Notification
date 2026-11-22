@@ -129,7 +129,7 @@ object LocationAuto {
         }
         sb.append(
             if (canWrite(c)) "✔ Location permission (adb): granted\n"
-            else "✘ Location permission (adb): NOT granted, so Google's Turn on pop-up appears. Run: adb shell pm grant com.example.notiftiles android.permission.WRITE_SECURE_SETTINGS\n"
+            else "✘ Location permission (adb): NOT granted, so Google's Turn on pop-up appears. Granted once with adb, it stays through updates (not uninstall). Run: adb shell pm grant com.example.notiftiles android.permission.WRITE_SECURE_SETTINGS\n"
         )
         sb.append(if (isOn(c)) "• Location is ON now\n" else "• Location is OFF now\n")
         sb.append(if (RecorderTapService.enabled(c)) "✔ Accessibility helper: ON\n" else "✘ Accessibility helper: OFF (needed for closing the pop-up and for the backup Exit)\n")
