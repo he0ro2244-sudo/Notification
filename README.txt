@@ -12,6 +12,7 @@ stop, the saved file name. Files: Internal storage > Recordings > NotifTiles.
 Notes: new switch in Look & colors > Notes, "+ Note opens the notes app straight away". Off (default) keeps the type-here box.
 Message time stamp (Look & colors > Text, fonts & text colours): Smart = only the time today, "Yesterday, time", older shows the date.
 Other choices: Date + time (the old look), Time only, None.
+Photos: when a chat app sends a photo and lets other apps read it, the photo is shown inside the opened message card in the panel.
 
 NEW IN v0.9.15
 Settings icon is now a real icon (not a text character), so its colour and size follow Look & colors

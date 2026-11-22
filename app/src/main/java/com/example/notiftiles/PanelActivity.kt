@@ -603,6 +603,27 @@ class PanelActivity : Activity() {
             card.addView(m)
         }
 
+        // Photo sent with the message, shown here so you do not have to open the app (when the app provides it).
+        val pic = ImageView(this)
+        pic.adjustViewBounds = true
+        pic.scaleType = ImageView.ScaleType.FIT_CENTER
+        pic.maxHeight = dp(280)
+        pic.background = rounded(0x22808080, 12)
+        pic.clipToOutline = true
+        pic.visibility = View.GONE
+        val picLp = LinearLayout.LayoutParams(MATCH, WRAP)
+        picLp.topMargin = dp(8)
+        card.addView(pic, picLp)
+        Thread {
+            val bmp = Feed.picture(this, sbn, 1024)
+            if (bmp != null) {
+                runOnUiThread {
+                    pic.setImageBitmap(bmp)
+                    pic.visibility = View.VISIBLE
+                }
+            }
+        }.start()
+
         val actions = n.actions?.toList() ?: emptyList()
         val reply = actions.firstOrNull { a ->
             a.actionIntent != null && a.remoteInputs?.any { it.allowFreeFormInput } == true

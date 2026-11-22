@@ -4,7 +4,9 @@ import android.app.Notification
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.net.Uri
 import android.service.notification.StatusBarNotification
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -105,6 +107,63 @@ object Feed {
         if (android.text.format.DateUtils.isToday(ts)) return time
         if (android.text.format.DateUtils.isToday(ts + android.text.format.DateUtils.DAY_IN_MILLIS)) return "Yesterday, $time"
         return full
+    }
+
+    /**
+     * The photo that came with the notification, if the app gives us one (a big picture, or the picture of a photo
+     * message). Not the sender's avatar. Blocking: call it from a background thread. Null when there is none or when
+     * the app does not let other apps read it.
+     */
+    @Suppress("DEPRECATION")
+    fun picture(c: Context, n: StatusBarNotification, maxPx: Int): Bitmap? {
+        val ex = n.notification.extras
+        try {
+            val raw = ex.get(Notification.EXTRA_PICTURE_ICON) ?: ex.get(Notification.EXTRA_PICTURE)
+            if (raw is Bitmap) return raw
+            if (raw is android.graphics.drawable.Icon) {
+                val d = raw.loadDrawable(c)
+                if (d != null) {
+                    val w = d.intrinsicWidth
+                    val h = d.intrinsicHeight
+                    if (w > 0 && h > 0) {
+                        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+                        d.setBounds(0, 0, w, h)
+                        d.draw(Canvas(bmp))
+                        return bmp
+                    }
+                }
+            }
+        } catch (e: Exception) {
+        }
+        try {
+            val arr = ex.getParcelableArray(Notification.EXTRA_MESSAGES) ?: return null
+            val msgs = Notification.MessagingStyle.Message.getMessagesFromBundleArray(arr)
+            for (m in msgs.sortedByDescending { it.timestamp }) {
+                val uri = m.dataUri ?: continue
+                val mime = m.dataMimeType ?: continue
+                if (!mime.startsWith("image/")) continue
+                val b = decode(c, uri, maxPx)
+                if (b != null) return b
+            }
+        } catch (e: Exception) {
+        }
+        return null
+    }
+
+    private fun decode(c: Context, uri: Uri, maxPx: Int): Bitmap? {
+        return try {
+            val bounds = BitmapFactory.Options()
+            bounds.inJustDecodeBounds = true
+            c.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            var sample = 1
+            while (bounds.outWidth / (sample * 2) >= maxPx && bounds.outHeight / (sample * 2) >= maxPx) sample *= 2
+            val o = BitmapFactory.Options()
+            o.inSampleSize = sample
+            c.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, o) }
+        } catch (e: Exception) {
+            null
+        }
     }
 
     /** All messages, one per line. */
