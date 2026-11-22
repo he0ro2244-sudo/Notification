@@ -147,7 +147,7 @@ class PanelActivity : Activity() {
         clear.text = "Clear all"
         clear.textSize = 14f
         clear.setTag(R.id.nt_grp, "clear")
-        clear.setTextColor(cSub)
+        clear.setTextColor(if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub)
         clear.setPadding(dp(8), dp(6), dp(8), dp(6))
         clear.setOnClickListener { clearAll() }
         header.addView(clear)
@@ -155,7 +155,7 @@ class PanelActivity : Activity() {
         val gear = ImageView(this)
         gear.setImageResource(R.drawable.ic_gear)
         val gsz = dp((22 * Prefs.grpSize(this, "gear") / 100f).toInt().coerceAtLeast(10))
-        gear.setColorFilter(Prefs.grpColor(this, "gear").let { if (it != 0) it else cSub })
+        gear.setColorFilter(Prefs.grpColor(this, "gear").let { if (it != 0) it else if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub })
         gear.setPadding(dp(4), dp(2), dp(2), dp(2))
         gear.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))

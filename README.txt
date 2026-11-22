@@ -1,6 +1,12 @@
-Notif Tiles v0.9.19
+Notif Tiles v0.9.20
 
-LATEST (v0.9.19) - older versions are listed below, newest at the bottom.
+LATEST (v0.9.20) - older versions are listed below, newest at the bottom.
+
+NEW IN v0.9.20: Themes now set the whole look: icon colour, font, shape of the circles, circle colour and borders (Look & colors >
+Themes & accent). Clear all, the settings icon, the refresh icon and the mic now follow the theme's icon colour (new row "Icons &
+Clear all colour" under Accent colour; a colour picked per part still wins). More shapes for the clock / weather / date / fast-dial
+circles: Round, Rounded square, Square, Teardrop, Leaf, Diamond, Hexagon, Octagon (Look & colors > Shapes, circles & borders).
+Picking a theme puts the per-part colours of mic, Clear all, settings and refresh back to automatic so the theme colour shows.
 
 NEW IN v0.9.19: Videos sent in a chat are shown in the opened message card with a play button and play right there (when the chat
 app lets Notif Tiles read the video). If the app only gives a still picture, tapping play opens the chat.

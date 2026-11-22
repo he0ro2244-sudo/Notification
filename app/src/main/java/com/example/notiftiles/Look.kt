@@ -45,6 +45,29 @@ object Look {
         "cursive" to "Cursive"
     )
 
+    // Shapes for the clock / weather / date and fast-dial shapes
+    val SHAPES = listOf(
+        "0" to "Round",
+        "1" to "Rounded square",
+        "2" to "Square",
+        "3" to "Teardrop",
+        "4" to "Leaf",
+        "5" to "Diamond",
+        "6" to "Hexagon",
+        "7" to "Octagon"
+    )
+
+    fun shapeRes(ctx: Context): Int = when (Prefs.shape(ctx)) {
+        1 -> R.drawable.nt_squircle_bg
+        2 -> R.drawable.nt_shape_square
+        3 -> R.drawable.nt_shape_teardrop
+        4 -> R.drawable.nt_shape_leaf
+        5 -> R.drawable.nt_shape_diamond
+        6 -> R.drawable.nt_shape_hexagon
+        7 -> R.drawable.nt_shape_octagon
+        else -> R.drawable.nt_circle_bg
+    }
+
     fun scale(ctx: Context): Float = Prefs.fontScale(ctx) / 100f
 
     private fun boldFor(ctx: Context, designed: Boolean): Boolean = when (Prefs.boldMode(ctx)) {

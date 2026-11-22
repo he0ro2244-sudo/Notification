@@ -51,18 +51,28 @@ class SettingsActivity : Activity() {
 
     private class Theme(
         val name: String, val panel: Int, val scrim: Int, val scrimA: Int,
-        val widget: Int, val widgetA: Int, val accent: Int
+        val widget: Int, val widgetA: Int, val accent: Int,
+        // extras: icon colour, font, shape (index in Look.SHAPES), circle colour, border thickness + colour
+        val icon: Int = 0, val font: String = "sans-serif", val shape: Int = 0,
+        val circle: Int = 0, val bw: Int = 0, val bc: Int = 0
     )
 
     private val themes = listOf(
         Theme("Auto", 0, c(0xFF000000), 40, 0, 93, c(0xFF3B82F6)),
-        Theme("Midnight", c(0xFF0B1020), c(0xFF000000), 55, c(0xFF0B1020), 90, c(0xFF60A5FA)),
-        Theme("Ocean", c(0xFF0F3D4C), c(0xFF04202A), 50, c(0xFF0F3D4C), 90, c(0xFF22D3EE)),
-        Theme("Forest", c(0xFF14301F), c(0xFF05140A), 50, c(0xFF14301F), 90, c(0xFF4ADE80)),
-        Theme("Sunset", c(0xFF3B1D2A), c(0xFF1A0A12), 50, c(0xFF3B1D2A), 90, c(0xFFFB923C)),
-        Theme("Rose", c(0xFFFCE7F3), c(0xFF000000), 30, c(0xFFFCE7F3), 92, c(0xFFDB2777)),
-        Theme("Light", c(0xFFFFFFFF), c(0xFF000000), 30, c(0xFFFFFFFF), 92, c(0xFF3B82F6)),
-        Theme("AMOLED", c(0xFF000000), c(0xFF000000), 60, c(0xFF000000), 100, c(0xFFA78BFA))
+        Theme("Midnight", c(0xFF0B1020), c(0xFF000000), 55, c(0xFF0B1020), 90, c(0xFF60A5FA),
+            icon = c(0xFF60A5FA), font = "sans-serif-medium", shape = 1, circle = c(0xFF16203A), bw = 1, bc = c(0xFF60A5FA)),
+        Theme("Ocean", c(0xFF0F3D4C), c(0xFF04202A), 50, c(0xFF0F3D4C), 90, c(0xFF22D3EE),
+            icon = c(0xFF22D3EE), font = "sans-serif-light", shape = 6, circle = c(0xFF14566A), bw = 1, bc = c(0xFF22D3EE)),
+        Theme("Forest", c(0xFF14301F), c(0xFF05140A), 50, c(0xFF14301F), 90, c(0xFF4ADE80),
+            icon = c(0xFF4ADE80), font = "serif", shape = 4, circle = c(0xFF1E4A2E), bw = 1, bc = c(0xFF4ADE80)),
+        Theme("Sunset", c(0xFF3B1D2A), c(0xFF1A0A12), 50, c(0xFF3B1D2A), 90, c(0xFFFB923C),
+            icon = c(0xFFFB923C), font = "casual", shape = 3, circle = c(0xFF5A2D40)),
+        Theme("Rose", c(0xFFFCE7F3), c(0xFF000000), 30, c(0xFFFCE7F3), 92, c(0xFFDB2777),
+            icon = c(0xFFDB2777), font = "sans-serif", shape = 0, circle = c(0xFFF9C9E1), bw = 1, bc = c(0xFFDB2777)),
+        Theme("Light", c(0xFFFFFFFF), c(0xFF000000), 30, c(0xFFFFFFFF), 92, c(0xFF3B82F6),
+            icon = c(0xFF3B82F6), font = "sans-serif", shape = 1, circle = c(0xFFEEF2F7), bw = 1, bc = c(0xFFD0D5DD)),
+        Theme("AMOLED", c(0xFF000000), c(0xFF000000), 60, c(0xFF000000), 100, c(0xFFA78BFA),
+            icon = c(0xFFA78BFA), font = "sans-serif-condensed", shape = 7, circle = c(0xFF121212), bw = 1, bc = c(0xFFA78BFA))
     )
 
     private val accents = intArrayOf(
@@ -151,6 +161,9 @@ class SettingsActivity : Activity() {
         // ---- Accent colour
         col.addView(title("Accent colour (buttons, badge)", 16f, 20))
         col.addView(swatchRow(accents, Prefs.accent(this)) { Prefs.setAccent(this, it); applyLook(); rebuild() })
+        col.addView(title("Icons & Clear all colour (mic, settings, refresh)", 16f, 20))
+        col.addView(hint("Themes set this too. Auto = the normal grey. A colour picked for one part under Text colour per part still wins."))
+        col.addView(swatchRow(intArrayOf(0) + accents, Prefs.iconColor(this)) { Prefs.setIconColor(this, it); applyLook(); rebuild() })
 
         }
 
@@ -236,8 +249,8 @@ class SettingsActivity : Activity() {
         section("Shapes, circles & borders") {
         // ---- Sizes and shape
         col.addView(title("Sizes & shape", 16f, 20))
-        col.addView(choiceRow(listOf("0" to "Round", "1" to "Rounded square"), if (Prefs.squareShape(this)) "1" else "0", false) {
-            Prefs.setSquareShape(this, it == "1"); applyLook(); rebuild()
+        col.addView(choiceRow(Look.SHAPES, Prefs.shape(this).toString(), false) {
+            Prefs.setShape(this, it.toInt()); applyLook(); rebuild()
         })
         col.addView(seekRange("Clock / weather / date circles", Prefs.topSize(this), 36, 72, " dp") { Prefs.setTopSize(this, it) })
         col.addView(seekRange("Widget settings icon", Prefs.gearSize(this), 14, 40, " dp") { Prefs.setGearSize(this, it) })
@@ -902,6 +915,17 @@ class SettingsActivity : Activity() {
                 Prefs.setWidgetBg(this, t.widget)
                 Prefs.setWidgetAlpha(this, t.widgetA)
                 Prefs.setAccent(this, t.accent)
+                // The theme also sets icons, font, shape, circles and borders
+                Prefs.setIconColor(this, t.icon)
+                Prefs.setFontFamily(this, t.font)
+                Prefs.setShape(this, t.shape)
+                Prefs.setCircleColor(this, t.circle)
+                Prefs.setDialCircle(this, t.circle)
+                Prefs.setBorderWidth(this, t.bw)
+                Prefs.setBorderColor(this, t.bc)
+                // own colours of the icon parts would hide the theme icon colour, so they go back to automatic
+                for (k in listOf("mic", "clear", "gear", "refresh")) Prefs.setPartColor(this, k, 0)
+                for (g in listOf("clear", "gear")) Prefs.setGrpColor(this, g, 0)
                 applyLook()
                 rebuild()
             }

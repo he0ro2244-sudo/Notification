@@ -248,15 +248,16 @@ class TilesWidget : AppWidgetProvider() {
             rv.setTextColor(R.id.hdr_title, Prefs.partColor(ctx, "title").let { if (it != 0) it else main })
             txt(rv, ctx, R.id.wnote, "+ Note", 13f, true)
             txt(rv, ctx, R.id.wclear, "Clear all", 13f, false)
-            rv.setTextColor(R.id.wclear, Prefs.partColor(ctx, "clear").let { if (it != 0) it else sub })
-            rv.setInt(R.id.wset, "setColorFilter", Prefs.partColor(ctx, "gear").let { if (it != 0) it else sub })
+            val ic = Prefs.iconColor(ctx)
+            rv.setTextColor(R.id.wclear, Prefs.partColor(ctx, "clear").let { if (it != 0) it else if (ic != 0) ic else sub })
+            rv.setInt(R.id.wset, "setColorFilter", Prefs.partColor(ctx, "gear").let { if (it != 0) it else if (ic != 0) ic else sub })
             val gs = Prefs.gearSize(ctx).toFloat()
             rv.setViewLayoutWidth(R.id.wset, gs + 6f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wset, gs + 4f, TypedValue.COMPLEX_UNIT_DIP)
             txt(rv, ctx, R.id.empty_txt, "Nothing new from your apps", 13f, false)
             rv.setTextColor(R.id.empty_txt, sub)
             rv.setViewVisibility(R.id.wrefresh, if (Prefs.refreshShow(ctx)) android.view.View.VISIBLE else android.view.View.GONE)
-            val rc = Prefs.partColor(ctx, "refresh").let { if (it != 0) it else Feed.alpha(sub, 0x99) }
+            val rc = Prefs.partColor(ctx, "refresh").let { if (it != 0) it else if (ic != 0) ic else Feed.alpha(sub, 0x99) }
             rv.setInt(R.id.wrefresh, "setColorFilter", rc)
             rv.setTextColor(R.id.wupdated, Feed.alpha(sub, 0x99))
             val rs = Prefs.refreshSize(ctx).toFloat()
@@ -268,7 +269,7 @@ class TilesWidget : AppWidgetProvider() {
             val circleTint = ColorStateList.valueOf(if (circ != 0) circ else ctx.getColor(R.color.nt_circle))
             val circleText = if (ov != 0) ov else if (circ != 0) Look.contrast(circ) else ctx.getColor(R.color.nt_text)
             val circleSub = if (ov != 0 || circ != 0) Feed.alpha(circleText, 0xB3) else ctx.getColor(R.color.nt_sub)
-            val shapeRes = if (Prefs.squareShape(ctx)) R.drawable.nt_squircle_bg else R.drawable.nt_circle_bg
+            val shapeRes = Look.shapeRes(ctx)
             val topSize = Prefs.topSize(ctx).toFloat()
             val clockFmt = Prefs.clockFmt(ctx)
             val f12 = if (clockFmt == 2) "HH:mm" else "h:mm"
@@ -355,7 +356,7 @@ class TilesWidget : AppWidgetProvider() {
             rv.setTextColor(R.id.wnote, Prefs.partColor(ctx, "note").let { if (it != 0) it else accent })
             val recNow = RecordService.running()
             rv.setImageViewResource(R.id.wmic, if (recNow) R.drawable.ic_stop else R.drawable.ic_mic)
-            rv.setInt(R.id.wmic, "setColorFilter", if (recNow) 0xFFE53935.toInt() else Prefs.partColor(ctx, "mic").let { if (it != 0) it else accent })
+            rv.setInt(R.id.wmic, "setColorFilter", if (recNow) 0xFFE53935.toInt() else Prefs.partColor(ctx, "mic").let { if (it != 0) it else if (Prefs.iconColor(ctx) != 0) Prefs.iconColor(ctx) else accent })
             val ms = Prefs.micSize(ctx).toFloat()
             rv.setViewLayoutWidth(R.id.wmic, ms + 12f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wmic, ms + 4f, TypedValue.COMPLEX_UNIT_DIP)

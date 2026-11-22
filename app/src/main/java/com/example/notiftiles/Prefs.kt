@@ -267,6 +267,16 @@ object Prefs {
     fun dialCircle(c: Context): Int = sp(c).getInt("look_dialcircle", 0)
     fun setDialCircle(c: Context, v: Int) = sp(c).edit().putInt("look_dialcircle", v).apply()
     fun squareShape(c: Context): Boolean = sp(c).getBoolean("look_square", false)
+    // Shape of the clock / weather / date / fast-dial shapes: index into Look.SHAPES (old Round / Rounded square choice is kept)
+    fun shape(c: Context): Int {
+        val s = sp(c)
+        return if (s.contains("look_shape")) s.getInt("look_shape", 0).coerceIn(0, Look.SHAPES.size - 1)
+        else if (squareShape(c)) 1 else 0
+    }
+    fun setShape(c: Context, v: Int) = sp(c).edit().putInt("look_shape", v).putBoolean("look_square", v == 1).apply()
+    // Colour of the icons and the Clear all button (mic, settings, refresh), set by the themes (0 = automatic)
+    fun iconColor(c: Context): Int = sp(c).getInt("look_icon", 0)
+    fun setIconColor(c: Context, v: Int) = sp(c).edit().putInt("look_icon", v).apply()
     fun setSquareShape(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_square", v).apply()
     fun gearSize(c: Context): Int = sp(c).getInt("look_szgear", 22)
     fun setGearSize(c: Context, v: Int) = sp(c).edit().putInt("look_szgear", v).apply()
