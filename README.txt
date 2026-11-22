@@ -1,3 +1,6 @@
+NEW IN v0.9.45: Snapchat card has ONE button, "Open Snapchat" (View / Reply / Open did the same thing). After you press it the panel
+stays open for up to 15 s so the phone's "Notif Tiles wants to open Snapchat" question does not vanish; tap "Allow for 30 days".
+
 NEW IN v0.9.44: Settings > Button log. A short diary of what happened when you pressed x, Open, Reply, View, Like, Send... (which app,
 which button, what kind of thing it starts, sent or failed and why; also what buttons each app offers on its card). No message texts are
 stored. Use Copy and send it for fixing. Nothing else changed.

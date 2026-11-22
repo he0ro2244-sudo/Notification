@@ -931,14 +931,13 @@ class PanelActivity : Activity() {
         bar.orientation = LinearLayout.HORIZONTAL
         bar.setPadding(0, dp(10), 0, 0)
         val blp = { LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(6) } }
-        for (a in others) {
-            bar.addView(pill(a.title.toString(), fg, bg, false) { runAction(sbn, a) }, blp())
+        // Snapchat: View / Reply / Open all only open Snapchat, so one honest button.
+        if (!snap) {
+            for (a in others) {
+                bar.addView(pill(a.title.toString(), fg, bg, false) { runAction(sbn, a) }, blp())
+            }
         }
-        if (snap && reply == null && others.none { it.title.toString().contains("reply", true) }) {
-            // Snapchat gives no typing box to other apps: a Reply button that opens the chat in Snapchat.
-            bar.addView(pill("Reply", fg, bg, false) { open(sbn) }, blp())
-        }
-        bar.addView(pill("Open", fg, bg, false) { open(sbn) }, blp())
+        bar.addView(pill(if (snap) "Open Snapchat" else "Open", fg, bg, false) { open(sbn) }, blp())
         if (count > 1) {
             bar.addView(pill("Clear $count", fg, bg, false) { clearApp(sbn.packageName) }, blp())
         }
@@ -1054,22 +1053,29 @@ class PanelActivity : Activity() {
                 ?.let { startActivity(it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
         } catch (e: Exception) {
         }
+        val h = android.os.Handler(android.os.Looper.getMainLooper())
+        // The panel stays open for a while: the phone's "wants to open Snapchat" question disappears if the panel closes
+        // at once. Tap "Allow for 30 days" there. Then the panel closes by itself.
+        toast("Opening Snapchat…")
+        h.postDelayed({ if (!isFinishing) finish() }, 15000L)
         val target = pi ?: sbn.notification.contentIntent
         if (target == null) {
             ActionLog.add(this, "Snapchat: started the app; Snapchat gave nothing to send to the chat")
             return
         }
-        ActionLog.add(this, "Snapchat: started the app, sending its " + (if (pi == null) "chat" else "button") + " (" + ActionLog.kind(target) + ") in 0.9 s")
+        ActionLog.add(this, "Snapchat: started the app, sending its " + (if (pi == null) "chat" else "button") + " (" + ActionLog.kind(target) + ") after 2.5 s and 8 s")
         val opts = balOptions()
         val app = applicationContext
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-            try {
-                target.send(app, 0, null, null, null, null, opts)
-                ActionLog.add(app, "Snapchat: sent to Snapchat OK (if nothing opened, Snapchat ignored it)")
-            } catch (e: Exception) {
-                ActionLog.add(app, "Snapchat: sending FAILED: " + e.javaClass.simpleName + " " + (e.message ?: ""))
-            }
-        }, 900L)
+        for (d in longArrayOf(2500L, 8000L)) {
+            h.postDelayed({
+                try {
+                    target.send(app, 0, null, null, null, null, opts)
+                    ActionLog.add(app, "Snapchat: sent to Snapchat OK after " + (d / 1000.0) + " s (if nothing opened, Snapchat ignored it)")
+                } catch (e: Exception) {
+                    ActionLog.add(app, "Snapchat: sending FAILED: " + e.javaClass.simpleName + " " + (e.message ?: ""))
+                }
+            }, d)
+        }
     }
 
     private fun runAction(sbn: StatusBarNotification, a: Notification.Action) {
@@ -1081,7 +1087,6 @@ class PanelActivity : Activity() {
             }
             viewing = null
             openSnapchat(sbn, a.actionIntent)
-            finish()
             return
         }
         val pi = a.actionIntent
@@ -1123,7 +1128,6 @@ class PanelActivity : Activity() {
         viewing = null
         if (sbn.packageName == "com.snapchat.android") {
             openSnapchat(sbn, null)
-            finish()
             return
         }
         try {
