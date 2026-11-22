@@ -1,3 +1,13 @@
+NEW IN v0.9.24: Exit navigation now proves itself: it presses Exit, checks the Maps notification is really gone, and if not it
+taps Exit inside Maps; every result is shown in a message. Look & colors > Where to? has a "Self-check" button (shows
+notification access, the Maps Exit button, the adb Location permission and the Accessibility helper) and "Test: exit navigation
+now". When Google's Location pop-up appears, a message says why. Nothing from older versions was removed.
+
+NEW IN v0.9.23: Exit navigation is more reliable. If the Google Maps notification has no Exit button to press, the Accessibility
+helper now opens Maps and taps its own Exit button (when ON). The right Maps notification is picked even when Maps shows several.
+Location: after switching on with the one-time permission, Notif Tiles checks that Android really did it, and if not the normal
+Google "Turn on" pop-up is used. Nothing from older versions was removed.
+
 Notif Tiles v0.9.22
 
 LATEST (v0.9.22) - older versions are listed below, newest at the bottom.

@@ -435,6 +435,20 @@ class SettingsActivity : Activity() {
             LocationAuto.testOff(this) { msg -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show() }
         }
         col.addView(locTest)
+        val selfCheck = Button(this)
+        selfCheck.isAllCaps = false
+        selfCheck.text = "Self-check: what works and what does not"
+        selfCheck.setOnClickListener {
+            AlertDialog.Builder(this).setTitle("Where to? / Exit / Location").setMessage(LocationAuto.report(this)).setPositiveButton("OK", null).show()
+        }
+        col.addView(selfCheck)
+        val exitTest = Button(this)
+        exitTest.isAllCaps = false
+        exitTest.text = "Test: exit navigation now"
+        exitTest.setOnClickListener {
+            LocationAuto.exitSolid(this) { msg -> Toast.makeText(applicationContext, msg, Toast.LENGTH_LONG).show() }
+        }
+        col.addView(exitTest)
         col.addView(toggleRaw("Voice (mic) button", Prefs.voiceButton(this)) { Prefs.setVoiceButton(this, it) })
         col.addView(toggleRaw("Place suggestions while typing", Prefs.suggestions(this)) { Prefs.setSuggestions(this, it) })
         col.addView(toggleRaw("Remember recent places", Prefs.rememberPlaces(this)) { Prefs.setRememberPlaces(this, it) })

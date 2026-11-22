@@ -64,12 +64,12 @@ class DestinationActivity : Activity() {
         if (savedInstanceState == null && intent?.getBooleanExtra("exit_if_nav", false) == true &&
             LocationAuto.navNotification() != null
         ) {
-            val ended = LocationAuto.exitNavigation()
-            Toast.makeText(this, if (ended) "Navigation ended" else "Open Google Maps to end navigation", Toast.LENGTH_SHORT).show()
-            if (ended) {
-                finish()
-                return
+            Toast.makeText(this, "Ending navigation…", Toast.LENGTH_SHORT).show()
+            LocationAuto.exitSolid(this) { msg ->
+                Toast.makeText(applicationContext, msg, Toast.LENGTH_LONG).show()
+                if (!isFinishing) finish()
             }
+            return
         }
         if (savedInstanceState != null || locationOn() || !Prefs.autoLocation(this)) {
             showSearch()
@@ -79,6 +79,11 @@ class DestinationActivity : Activity() {
         if (LocationAuto.turnOn(this)) {
             showSearch()
             return
+        }
+        if (!LocationAuto.canWrite(this)) {
+            Toast.makeText(this, "Using Google's pop-up: the one-time adb permission is not granted (see Look & colors > Where to? > Self-check)", Toast.LENGTH_LONG).show()
+        } else {
+            Toast.makeText(this, "Using Google's pop-up: Android refused the silent Location switch", Toast.LENGTH_LONG).show()
         }
         // Location is off: show Google's one-tap "turn on location" prompt, then the search box.
         try {
@@ -173,9 +178,11 @@ class DestinationActivity : Activity() {
             ex.background = rounded(0xFFD93025.toInt(), 14)
             ex.setPadding(dp(12), dp(12), dp(12), dp(12))
             ex.setOnClickListener {
-                val ok = LocationAuto.exitNavigation()
-                Toast.makeText(this, if (ok) "Navigation ended" else "Open Google Maps to end navigation", Toast.LENGTH_SHORT).show()
-                if (ok) finish()
+                Toast.makeText(this, "Ending navigation…", Toast.LENGTH_SHORT).show()
+                LocationAuto.exitSolid(this) { msg ->
+                    Toast.makeText(applicationContext, msg, Toast.LENGTH_LONG).show()
+                    if (!isFinishing) finish()
+                }
             }
             val elp = LinearLayout.LayoutParams(MATCH, WRAP)
             elp.bottomMargin = dp(10)

@@ -30,6 +30,7 @@ class RecorderTapService : AccessibilityService() {
         if (pkgName == LocationAuto.MAPS) {
             watchMapsPopup()
             maybeOpenMapsSearch()
+            maybeExitFromMapsScreen()
             return
         }
         if (pkgName in Weather.APPS) {
@@ -90,7 +91,7 @@ class RecorderTapService : AccessibilityService() {
             for (w in windows) {
                 val pkg = w.root?.packageName?.toString()
                 val isMaps = pkg == LocationAuto.MAPS ||
-                    (pkg == null && w.title?.toString()?.contains("Maps", ignoreCase = true) == true)
+                    (pkg == null && (w.isInPictureInPictureMode || w.title?.toString()?.contains("Maps", ignoreCase = true) == true))
                 if (!isMaps) continue
                 if (w.isInPictureInPictureMode) pip = true else mapsOpen = true
             }
@@ -107,8 +108,8 @@ class RecorderTapService : AccessibilityService() {
             if (pipGone >= 2) {
                 pipPolling = false
                 pipSeen = false
-                if (LocationAuto.exitNavigation()) {
-                    toast("navigation ended (pop-up closed)")
+                LocationAuto.exitSolid(this) { msg ->
+                    toast(msg)
                     // Switch Location off right away (checked again a little later in case Maps was slow to end)
                     for (d in longArrayOf(600L, 1500L, 3000L)) {
                         handler.postDelayed({
@@ -132,6 +133,45 @@ class RecorderTapService : AccessibilityService() {
             mapsQueued = false
             if (System.currentTimeMillis() <= mapsSearchUntil && clickMapsSearch()) mapsSearchUntil = 0L
         }, 600)
+    }
+
+    // ---- Exit navigation from inside Maps (used only when the notification has no Exit button to press) ----
+    private var exitQueued = false
+
+    private fun maybeExitFromMapsScreen() {
+        if (System.currentTimeMillis() > mapsExitUntil || exitQueued) return
+        exitQueued = true
+        handler.postDelayed({
+            exitQueued = false
+            if (System.currentTimeMillis() <= mapsExitUntil && clickMapsExit()) {
+                mapsExitUntil = 0L
+                toast("navigation ended")
+                for (d in longArrayOf(800L, 2000L, 4000L)) {
+                    handler.postDelayed({
+                        if (LocationAuto.navNotification() == null) LocationAuto.release(this)
+                    }, d)
+                }
+            }
+        }, 700)
+    }
+
+    private fun clickMapsExit(): Boolean {
+        val root = rootInActiveWindow ?: return false
+        if ((root.packageName?.toString() ?: "") != LocationAuto.MAPS) return false
+        // findAccessibilityNodeInfosByText also matches the content description (the "X" button has no text)
+        for (label in listOf("Exit navigation", "Exit", "إنهاء")) {
+            for (n in root.findAccessibilityNodeInfosByText(label)) {
+                if (!n.isVisibleToUser) continue
+                var t: AccessibilityNodeInfo? = n
+                var depth = 0
+                while (t != null && !t.isClickable && depth < 6) {
+                    t = t.parent
+                    depth++
+                }
+                if (t != null && t.isClickable && t.performAction(AccessibilityNodeInfo.ACTION_CLICK)) return true
+            }
+        }
+        return false
     }
 
     private fun clickMapsSearch(): Boolean {
@@ -325,6 +365,7 @@ class RecorderTapService : AccessibilityService() {
         var pendingUntil = 0L
         /** Set by "Where to?" (Maps search option): until then, tap the search bar of the next Google Maps window. */
         @Volatile var mapsSearchUntil = 0L
+        @Volatile var mapsExitUntil = 0L
         /** Set by the widget's refresh button: read the weather app, then close it again. */
         @Volatile var autoCloseUntil = 0L
 
