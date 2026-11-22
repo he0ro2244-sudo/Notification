@@ -144,12 +144,20 @@ class PanelActivity : Activity() {
         header.addView(addNote)
 
         val clear = TextView(this)
-        clear.text = "Clear all"
+        clear.text = if (Prefs.clearMode(this) == 1) "Read all" else "Clear all"
         clear.textSize = 14f
         clear.setTag(R.id.nt_grp, "clear")
         clear.setTextColor(if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub)
         clear.setPadding(dp(8), dp(6), dp(8), dp(6))
-        clear.setOnClickListener { clearAll() }
+        clear.setOnClickListener {
+            if (Prefs.clearMode(this) == 1) {
+                Extras.markAllRead(this)
+                TilesWidget.refresh(applicationContext)
+                refresh()
+            } else {
+                clearAll()
+            }
+        }
         header.addView(clear)
 
         val gear = ImageView(this)
@@ -285,7 +293,7 @@ class PanelActivity : Activity() {
     private fun refreshInner() {
         list.removeAllViews()
         val svc = NotifListener.instance
-        val items = if (svc == null) emptyList() else Feed.items(this)
+        val items = if (svc == null) emptyList() else Feed.items(this, true)
         val notes = Prefs.notes(this)
         badge.text = items.size.toString()
         badge.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
@@ -373,7 +381,7 @@ class PanelActivity : Activity() {
     }
 
     private fun compact(sbn: StatusBarNotification, count: Int): View {
-        val st = Feed.style(sbn.packageName)
+        val st = Feed.style(this, sbn.packageName)
         val bg = st.bg(dark)
         val fg = st.fg(dark)
         val card = LinearLayout(this)
@@ -564,7 +572,7 @@ class PanelActivity : Activity() {
 
     private fun expandedCard(sbn: StatusBarNotification, count: Int): View {
         val n = sbn.notification
-        val st = Feed.style(sbn.packageName)
+        val st = Feed.style(this, sbn.packageName)
         val bg = st.bg(dark)
         val fg = st.fg(dark)
 
@@ -816,7 +824,7 @@ class PanelActivity : Activity() {
 
     private fun clearApp(pkg: String) {
         val svc = NotifListener.instance ?: return
-        val keys = Feed.items(this).filter { it.packageName == pkg && it.isClearable }
+        val keys = Feed.items(this, true).filter { it.packageName == pkg && it.isClearable }
             .map { it.key }.toTypedArray()
         expanded = null
         if (keys.isNotEmpty()) svc.cancelNotifications(keys)
@@ -824,7 +832,7 @@ class PanelActivity : Activity() {
 
     private fun clearAll() {
         val svc = NotifListener.instance ?: return
-        val keys = Feed.items(this).filter { it.isClearable }.map { it.key }.toTypedArray()
+        val keys = Feed.items(this, true).filter { it.isClearable }.map { it.key }.toTypedArray()
         if (keys.isNotEmpty()) svc.cancelNotifications(keys)
     }
 

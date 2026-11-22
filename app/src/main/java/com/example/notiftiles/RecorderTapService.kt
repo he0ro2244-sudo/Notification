@@ -78,6 +78,12 @@ class RecorderTapService : AccessibilityService() {
             pipPolling = false
             return
         }
+        // Screen off: nothing can be closed, so scan far less often (saves battery)
+        val pm = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+        if (!pm.isInteractive) {
+            handler.postDelayed({ pipTick() }, 5000)
+            return
+        }
         var pip = false
         var mapsOpen = false
         try {
@@ -101,7 +107,15 @@ class RecorderTapService : AccessibilityService() {
             if (pipGone >= 2) {
                 pipPolling = false
                 pipSeen = false
-                if (LocationAuto.exitNavigation()) toast("navigation ended (pop-up closed)")
+                if (LocationAuto.exitNavigation()) {
+                    toast("navigation ended (pop-up closed)")
+                    // Switch Location off right away (checked again a little later in case Maps was slow to end)
+                    for (d in longArrayOf(600L, 1500L, 3000L)) {
+                        handler.postDelayed({
+                            if (LocationAuto.navNotification() == null) LocationAuto.release(this)
+                        }, d)
+                    }
+                }
                 return
             }
         }

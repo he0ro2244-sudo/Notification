@@ -229,9 +229,18 @@ object Prefs {
         "weather" to "Widget: weather",
         "date" to "Widget: date",
         "where" to "Widget: Where to?",
+        "empty" to "Widget: Nothing new text",
+        "updated" to "Widget: Updated line (weather)",
         "dialletter" to "Widget: fast-dial letters (inside circles)",
         "dialnames" to "Widget: fast-dial names (under circles)"
     )
+    // Wording of the widget's empty message and of the weather "Updated" line (blank = original wording)
+    const val EMPTY_DEFAULT = "Nothing new from your apps"
+    const val UPDATED_DEFAULT = "Updated"
+    fun emptyText(c: Context): String = (sp(c).getString("look_empty_text", "") ?: "").ifBlank { EMPTY_DEFAULT }
+    fun setEmptyText(c: Context, v: String) = sp(c).edit().putString("look_empty_text", v.trim()).apply()
+    fun updatedLabel(c: Context): String = (sp(c).getString("look_updated_text", "") ?: "").ifBlank { UPDATED_DEFAULT }
+    fun setUpdatedLabel(c: Context, v: String) = sp(c).edit().putString("look_updated_text", v.trim()).apply()
     fun partColor(c: Context, k: String): Int = sp(c).getInt("look_pc_$k", 0)
     fun setPartColor(c: Context, k: String, v: Int) = sp(c).edit().putInt("look_pc_$k", v).apply()
     fun grpColor(c: Context, g: String): Int = sp(c).getInt("look_gc_$g", 0)
@@ -355,6 +364,51 @@ object Prefs {
         for ((k, v) in m) o.put(k, v)
         sp(c).edit().putString("handled", o.toString()).apply()
     }
+
+    // ---- Snooze and quiet hours (minutes of the day) ----
+    fun snoozeUntil(c: Context): Long = sp(c).getLong("sn_until", 0L)
+    fun setSnoozeUntil(c: Context, v: Long) = sp(c).edit().putLong("sn_until", v).apply()
+    fun quietOn(c: Context): Boolean = sp(c).getBoolean("sn_quiet", false)
+    fun setQuietOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("sn_quiet", v).apply()
+    fun quietStart(c: Context): Int = sp(c).getInt("sn_qstart", 22 * 60)
+    fun setQuietStart(c: Context, v: Int) = sp(c).edit().putInt("sn_qstart", v).apply()
+    fun quietEnd(c: Context): Int = sp(c).getInt("sn_qend", 7 * 60)
+    fun setQuietEnd(c: Context, v: Int) = sp(c).edit().putInt("sn_qend", v).apply()
+
+    // ---- What the Clear all button does: 0 = clear the notifications, 1 = only mark them read ----
+    fun clearMode(c: Context): Int = sp(c).getInt("look_clearmode", 0)
+    fun setClearMode(c: Context, v: Int) = sp(c).edit().putInt("look_clearmode", v).apply()
+
+    // ---- Per app: pinned to the top, muted, own tile colour (0 = automatic) ----
+    fun pinned(c: Context): Set<String> = HashSet(sp(c).getStringSet("app_pinned", emptySet()) ?: emptySet())
+    fun setPinned(c: Context, pkg: String, on: Boolean) {
+        val s = HashSet(pinned(c))
+        if (on) s.add(pkg) else s.remove(pkg)
+        sp(c).edit().putStringSet("app_pinned", s).apply()
+    }
+    fun muted(c: Context): Set<String> = HashSet(sp(c).getStringSet("app_muted", emptySet()) ?: emptySet())
+    fun setMuted(c: Context, pkg: String, on: Boolean) {
+        val s = HashSet(muted(c))
+        if (on) s.add(pkg) else s.remove(pkg)
+        sp(c).edit().putStringSet("app_muted", s).apply()
+    }
+    fun appColor(c: Context, pkg: String): Int = sp(c).getInt("look_appc_$pkg", 0)
+    fun setAppColor(c: Context, pkg: String, v: Int) = sp(c).edit().putInt("look_appc_$pkg", v).apply()
+
+    // ---- Automatic day / night theme ----
+    fun autoTheme(c: Context): Boolean = sp(c).getBoolean("look_auto", false)
+    fun setAutoTheme(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_auto", v).apply()
+    fun autoDayTheme(c: Context): Int = sp(c).getInt("look_auto_day", 6)
+    fun setAutoDayTheme(c: Context, v: Int) = sp(c).edit().putInt("look_auto_day", v).apply()
+    fun autoNightTheme(c: Context): Int = sp(c).getInt("look_auto_night", 1)
+    fun setAutoNightTheme(c: Context, v: Int) = sp(c).edit().putInt("look_auto_night", v).apply()
+    fun autoDayStart(c: Context): Int = sp(c).getInt("look_auto_ds", 7 * 60)
+    fun setAutoDayStart(c: Context, v: Int) = sp(c).edit().putInt("look_auto_ds", v).apply()
+    fun autoNightStart(c: Context): Int = sp(c).getInt("look_auto_ns", 19 * 60)
+    fun setAutoNightStart(c: Context, v: Int) = sp(c).edit().putInt("look_auto_ns", v).apply()
+    /** Which phase (1 = day, 0 = night) was applied last, -1 = none yet. */
+    fun autoLast(c: Context): Int = sp(c).getInt("look_auto_last", -1)
+    fun setAutoLast(c: Context, v: Int) = sp(c).edit().putInt("look_auto_last", v).apply()
 
     /** Panel sheet colour actually used. */
     fun panelBgColor(c: Context): Int {

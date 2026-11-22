@@ -44,7 +44,7 @@ object Weather {
         val sh = shown(c) ?: return ""
         if (sh.time == 0L) return ""
         val time = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(sh.time))
-        return "Updated $time · ${sh.label}"
+        return "${Prefs.updatedLabel(c)} $time · ${sh.label}"
     }
 
     // ---- Temperature copied from the phone's own weather app (read on screen by the helper) ----

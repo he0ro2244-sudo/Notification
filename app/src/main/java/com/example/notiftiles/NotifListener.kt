@@ -21,6 +21,7 @@ class NotifListener : NotificationListenerService() {
         } catch (e: Exception) {
         }
         if (Prefs.locOwned(this)) watchLocation()
+        Extras.tick(this)
         changed()
     }
 
@@ -30,10 +31,19 @@ class NotifListener : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         Prefs.addSeen(this, sbn.packageName)
+        if (sbn.packageName == LocationAuto.MAPS && (sbn.notification.flags and Notification.FLAG_ONGOING_EVENT) != 0 && Prefs.locOwned(this)) {
+            Prefs.setLocSeen(this, true)
+        }
         changed()
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
+        // Google Maps navigation ended: switch Location off straight away instead of waiting for the next check.
+        if (sbn.packageName == LocationAuto.MAPS && Prefs.locOwned(this) && Prefs.locSeen(this)) {
+            handler.postDelayed({
+                if (LocationAuto.navNotification() == null) LocationAuto.release(this)
+            }, 1000)
+        }
         changed()
     }
 
@@ -71,14 +81,14 @@ class NotifListener : NotificationListenerService() {
                     return
                 }
             }
-            handler.postDelayed(this, 10000)
+            handler.postDelayed(this, 20000)
         }
     }
 
     fun watchLocation() {
         gone = 0
         handler.removeCallbacks(locCheck)
-        handler.postDelayed(locCheck, 10000)
+        handler.postDelayed(locCheck, 20000)
     }
 
     private fun refreshWidget() {

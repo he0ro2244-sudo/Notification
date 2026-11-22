@@ -235,9 +235,22 @@ object Feed {
         null
     }
 
-    fun items(c: Context): List<StatusBarNotification> {
+    /** Tile colours of one app: the colour picked for it in Look & colors, else the built-in style. */
+    fun style(c: Context, pkg: String): Style {
+        val own = Prefs.appColor(c, pkg)
+        if (own == 0) return style(pkg)
+        val bg = own.toLong() and 0xFFFFFFFFL
+        val fg = Look.contrast(own).toLong() and 0xFFFFFFFFL
+        return Style(bg, fg, bg, fg)
+    }
+
+    /** [showAlways]: the panel passes true so it still lists messages hidden by snooze / quiet hours. */
+    fun items(c: Context, showAlways: Boolean = false): List<StatusBarNotification> {
         val svc = NotifListener.instance ?: return emptyList()
+        if (!showAlways && Extras.quietActive(c)) return emptyList()
         val enabled = Prefs.enabled(c)
+        val muted = Prefs.muted(c)
+        val pinned = Prefs.pinned(c)
         val handled = Prefs.handledMap(c)
         val all: List<StatusBarNotification> = try {
             svc.activeNotifications?.toList() ?: emptyList()
@@ -249,7 +262,7 @@ object Feed {
             .map { it.packageName to it.notification.group }
             .toSet()
         return all
-            .filter { it.packageName in enabled && it.packageName != c.packageName }
+            .filter { it.packageName in enabled && it.packageName != c.packageName && it.packageName !in muted }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
             .filter { it.postTime > (handled[it.key] ?: 0L) }
             .filter { title(it).isNotEmpty() || text(it).isNotEmpty() }
@@ -257,6 +270,6 @@ object Feed {
                 val summary = (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0
                 !summary || (it.packageName to it.notification.group) !in withKids
             }
-            .sortedByDescending { it.postTime }
+            .sortedWith(compareByDescending<StatusBarNotification> { it.packageName in pinned }.thenByDescending { it.postTime })
     }
 }

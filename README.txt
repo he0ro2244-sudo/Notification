@@ -1,6 +1,20 @@
-Notif Tiles v0.9.20
+Notif Tiles v0.9.22
 
-LATEST (v0.9.20) - older versions are listed below, newest at the bottom.
+LATEST (v0.9.22) - older versions are listed below, newest at the bottom.
+
+NEW IN v0.9.22: Quiet & snooze (Look & colors > Quiet & snooze): snooze the widget for 30 min / 1 h / 3 h / until 7:00, or set quiet
+hours; the widget and its count stay empty and say "Snoozed until ..." while the panel still lists your messages.
+Mark all read: Look & colors > Counts, choose what the Clear all button does (Clear all or Mark all read; the button then says
+Read all). Apps: pin, mute, colour (own section): pinned apps come first, muted apps are hidden, each app can have its own tile
+colour. Auto theme (Themes & accent): day theme and night theme switch by themselves at times you choose. While Google Maps is
+navigating, the Where to? box on the widget turns into a red "Exit navigation" (one tap). Battery: the Location-off check no
+longer runs every few seconds (the notification event does it instantly, with a 20 second safety check), the pop-up watcher
+slows down while the screen is off, and snooze / quiet hours / auto theme share a single inexact alarm (none when unused).
+
+NEW IN v0.9.21: Location now switches off straight away when the Google Maps navigation ends (closing the pop-up, Exit
+navigation, or any other way), instead of waiting for the next check. The widget's "Nothing new from your apps" text and the
+"Updated 14:05" word can be changed (Look & colors > Text, fonts & text colours > Widget wording) and both have their own colour
+under Text colour per part.
 
 NEW IN v0.9.20: Themes now set the whole look: icon colour, font, shape of the circles, circle colour and borders (Look & colors >
 Themes & accent). Clear all, the settings icon, the refresh icon and the mic now follow the theme's icon colour (new row "Icons &

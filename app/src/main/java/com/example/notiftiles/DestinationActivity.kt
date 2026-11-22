@@ -60,6 +60,17 @@ class DestinationActivity : Activity() {
             WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE or
                 WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         )
+        // Tapped on the widget while navigating: end the navigation right away, no screen
+        if (savedInstanceState == null && intent?.getBooleanExtra("exit_if_nav", false) == true &&
+            LocationAuto.navNotification() != null
+        ) {
+            val ended = LocationAuto.exitNavigation()
+            Toast.makeText(this, if (ended) "Navigation ended" else "Open Google Maps to end navigation", Toast.LENGTH_SHORT).show()
+            if (ended) {
+                finish()
+                return
+            }
+        }
         if (savedInstanceState != null || locationOn() || !Prefs.autoLocation(this)) {
             showSearch()
             return

@@ -49,32 +49,6 @@ class SettingsActivity : Activity() {
         c(0xFF000000), c(0xFF1C1C20), c(0xFF1E3A8A), c(0xFF7C3AED), c(0xFF0F766E), c(0xFF3E2723)
     )
 
-    private class Theme(
-        val name: String, val panel: Int, val scrim: Int, val scrimA: Int,
-        val widget: Int, val widgetA: Int, val accent: Int,
-        // extras: icon colour, font, shape (index in Look.SHAPES), circle colour, border thickness + colour
-        val icon: Int = 0, val font: String = "sans-serif", val shape: Int = 0,
-        val circle: Int = 0, val bw: Int = 0, val bc: Int = 0
-    )
-
-    private val themes = listOf(
-        Theme("Auto", 0, c(0xFF000000), 40, 0, 93, c(0xFF3B82F6)),
-        Theme("Midnight", c(0xFF0B1020), c(0xFF000000), 55, c(0xFF0B1020), 90, c(0xFF60A5FA),
-            icon = c(0xFF60A5FA), font = "sans-serif-medium", shape = 1, circle = c(0xFF16203A), bw = 1, bc = c(0xFF60A5FA)),
-        Theme("Ocean", c(0xFF0F3D4C), c(0xFF04202A), 50, c(0xFF0F3D4C), 90, c(0xFF22D3EE),
-            icon = c(0xFF22D3EE), font = "sans-serif-light", shape = 6, circle = c(0xFF14566A), bw = 1, bc = c(0xFF22D3EE)),
-        Theme("Forest", c(0xFF14301F), c(0xFF05140A), 50, c(0xFF14301F), 90, c(0xFF4ADE80),
-            icon = c(0xFF4ADE80), font = "serif", shape = 4, circle = c(0xFF1E4A2E), bw = 1, bc = c(0xFF4ADE80)),
-        Theme("Sunset", c(0xFF3B1D2A), c(0xFF1A0A12), 50, c(0xFF3B1D2A), 90, c(0xFFFB923C),
-            icon = c(0xFFFB923C), font = "casual", shape = 3, circle = c(0xFF5A2D40)),
-        Theme("Rose", c(0xFFFCE7F3), c(0xFF000000), 30, c(0xFFFCE7F3), 92, c(0xFFDB2777),
-            icon = c(0xFFDB2777), font = "sans-serif", shape = 0, circle = c(0xFFF9C9E1), bw = 1, bc = c(0xFFDB2777)),
-        Theme("Light", c(0xFFFFFFFF), c(0xFF000000), 30, c(0xFFFFFFFF), 92, c(0xFF3B82F6),
-            icon = c(0xFF3B82F6), font = "sans-serif", shape = 1, circle = c(0xFFEEF2F7), bw = 1, bc = c(0xFFD0D5DD)),
-        Theme("AMOLED", c(0xFF000000), c(0xFF000000), 60, c(0xFF000000), 100, c(0xFFA78BFA),
-            icon = c(0xFFA78BFA), font = "sans-serif-condensed", shape = 7, circle = c(0xFF121212), bw = 1, bc = c(0xFFA78BFA))
-    )
-
     private val accents = intArrayOf(
         c(0xFF3B82F6), c(0xFF22D3EE), c(0xFF4ADE80), c(0xFFFACC15),
         c(0xFFFB923C), c(0xFFEF4444), c(0xFFDB2777), c(0xFFA78BFA)
@@ -165,6 +139,30 @@ class SettingsActivity : Activity() {
         col.addView(hint("Themes set this too. Auto = the normal grey. A colour picked for one part under Text colour per part still wins."))
         col.addView(swatchRow(intArrayOf(0) + accents, Prefs.iconColor(this)) { Prefs.setIconColor(this, it); applyLook(); rebuild() })
 
+        // ---- Automatic day / night theme
+        col.addView(title("Auto theme (day / night)", 16f, 20))
+        col.addView(hint("Switches theme by itself at the times below. Uses one small alarm per change, nothing runs in the background."))
+        col.addView(toggleRaw("Switch theme automatically", Prefs.autoTheme(this)) {
+            Prefs.setAutoTheme(this, it); Prefs.setAutoLast(this, -1); Extras.tick(this); applyLook(); rebuild()
+        })
+        if (Prefs.autoTheme(this)) {
+            val names = Themes.LIST.mapIndexed { i, t -> i.toString() to t.name }
+            col.addView(hint("Day theme"))
+            col.addView(choiceRow(names, Prefs.autoDayTheme(this).toString(), false) {
+                Prefs.setAutoDayTheme(this, it.toInt()); Prefs.setAutoLast(this, -1); Extras.tick(this); applyLook(); rebuild()
+            })
+            col.addView(hint("Night theme"))
+            col.addView(choiceRow(names, Prefs.autoNightTheme(this).toString(), false) {
+                Prefs.setAutoNightTheme(this, it.toInt()); Prefs.setAutoLast(this, -1); Extras.tick(this); applyLook(); rebuild()
+            })
+            col.addView(timeRow("Day starts", Prefs.autoDayStart(this)) {
+                Prefs.setAutoDayStart(this, it); Prefs.setAutoLast(this, -1); Extras.tick(this); applyLook(); rebuild()
+            })
+            col.addView(timeRow("Night starts", Prefs.autoNightStart(this)) {
+                Prefs.setAutoNightStart(this, it); Prefs.setAutoLast(this, -1); Extras.tick(this); applyLook(); rebuild()
+            })
+        }
+
         }
 
         section("Backgrounds & pictures") {
@@ -230,6 +228,12 @@ class SettingsActivity : Activity() {
         for ((g, label) in Prefs.PANEL_GROUPS) {
             col.addView(seekRange(label, Prefs.grpSize(this, g), 60, 220, "%") { Prefs.setGrpSize(this, g, it) })
         }
+
+        // ---- Wording of the widget
+        col.addView(title("Widget wording", 16f, 20))
+        col.addView(hint("Change the text shown when there are no messages, and the word before the weather update time. Empty + Save = original wording. Colours: see Text colour per part below."))
+        col.addView(textPref("Empty message text", Prefs.emptyText(this)) { Prefs.setEmptyText(this, it) })
+        col.addView(textPref("Update word (before the time)", Prefs.updatedLabel(this)) { Prefs.setUpdatedLabel(this, it) })
 
         // ---- Colours of text and shapes
         col.addView(title("Text colour (widget)", 16f, 20))
@@ -538,13 +542,53 @@ class SettingsActivity : Activity() {
 
         }
 
+        section("Quiet & snooze") {
+        col.addView(title("Snooze", 16f, 20))
+        col.addView(hint(Extras.quietText(this)?.let { "$it. The widget stays empty until then; the panel still lists your messages." }
+            ?: "While snoozed the widget and its count stay empty. Your messages stay in the panel and in the phone's notification shade."))
+        col.addView(choiceRow(listOf("30" to "30 min", "60" to "1 hour", "180" to "3 hours", "tom" to "Until 7:00", "0" to "Cancel"), "", false) {
+            val until = when (it) {
+                "0" -> 0L
+                "tom" -> Extras.nextAt(7 * 60)
+                else -> System.currentTimeMillis() + it.toLong() * 60000L
+            }
+            Prefs.setSnoozeUntil(this, until); Extras.tick(this); applyLook(); rebuild()
+        })
+        col.addView(title("Quiet hours", 16f, 20))
+        col.addView(toggleRaw("Keep the widget quiet during these hours", Prefs.quietOn(this)) {
+            Prefs.setQuietOn(this, it); Extras.tick(this); applyLook(); rebuild()
+        })
+        if (Prefs.quietOn(this)) {
+            col.addView(timeRow("From", Prefs.quietStart(this)) { Prefs.setQuietStart(this, it); Extras.tick(this); applyLook(); rebuild() })
+            col.addView(timeRow("Until", Prefs.quietEnd(this)) { Prefs.setQuietEnd(this, it); Extras.tick(this); applyLook(); rebuild() })
+        }
+
+        }
+
+        section("Apps: pin, mute, colour") {
+        col.addView(hint("Pinned apps are listed first. Muted apps are hidden from the widget, the panel and the counts. A colour changes that app's tiles."))
+        val pkgs = Prefs.enabled(this).sortedBy { Feed.label(this, it).lowercase() }
+        if (pkgs.isEmpty()) col.addView(hint("No apps chosen yet. Choose them on the main screen first."))
+        for (p in pkgs) {
+            col.addView(title(Feed.label(this, p), 14f, 12))
+            col.addView(toggleRaw("Pin to top", p in Prefs.pinned(this)) { Prefs.setPinned(this, p, it); applyLook() })
+            col.addView(toggleRaw("Mute", p in Prefs.muted(this)) { Prefs.setMuted(this, p, it); applyLook() })
+            col.addView(swatchRow(bgColors, Prefs.appColor(this, p)) { Prefs.setAppColor(this, p, it); applyLook(); rebuild() })
+        }
+
+        }
+
         section("Counts") {
         // ---- Counts
         col.addView(title("Counts", 16f, 20))
         col.addView(toggleRaw("Count drops after I read a message here", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
         col.addView(toggleRaw("Count drops after I reply here", Prefs.countReply(this)) { Prefs.setCountReply(this, it) })
         col.addView(toggleRaw("Also remove it from the phone's notification panel", Prefs.dismissHandled(this)) { Prefs.setDismissHandled(this, it) })
-        col.addView(hint("When you read, reply to or mark a message as read here, its notification is cleared from the phone's shade too. A new message from the same chat counts again."))
+        col.addView(hint("The Clear all button (widget and panel) does"))
+        col.addView(choiceRow(listOf("0" to "Clear all", "1" to "Mark all read"), Prefs.clearMode(this).toString(), false) {
+            Prefs.setClearMode(this, it.toInt()); applyLook(); rebuild()
+        })
+        col.addView(hint("Mark all read counts every message as read and, with the option above, clears it from the phone's shade, the same as opening it here. The button then says Read all.\n\nWhen you read, reply to or mark a message as read here, its notification is cleared from the phone's shade too. A new message from the same chat counts again."))
 
         }
 
@@ -609,6 +653,37 @@ class SettingsActivity : Activity() {
             row.addView(b)
         }
         return hs
+    }
+
+    private fun textPref(label: String, current: String, onSave: (String) -> Unit): View {
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
+        val et = EditText(this)
+        et.hint = label
+        et.setSingleLine(true)
+        et.setText(current)
+        row.addView(et, LinearLayout.LayoutParams(0, WRAP, 1f))
+        val b = Button(this)
+        b.text = "Save"
+        b.isAllCaps = false
+        b.setOnClickListener {
+            onSave(et.text.toString())
+            applyLook()
+            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
+        }
+        row.addView(b)
+        return row
+    }
+
+    private fun timeRow(label: String, minutes: Int, onPick: (Int) -> Unit): View {
+        val b = Button(this)
+        b.isAllCaps = false
+        b.text = "$label: ${Extras.fmt(minutes)}"
+        b.setOnClickListener {
+            android.app.TimePickerDialog(this, { _, h, m -> onPick(h * 60 + m) }, minutes / 60, minutes % 60, true).show()
+        }
+        return b
     }
 
     private fun placeField(label: String, key: String): View {
@@ -904,28 +979,12 @@ class SettingsActivity : Activity() {
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         hs.addView(row)
-        for (t in themes) {
+        for (t in Themes.LIST) {
             val b = Button(this)
             b.text = t.name
             b.isAllCaps = false
             b.setOnClickListener {
-                Prefs.setPanelBg(this, t.panel)
-                Prefs.setScrimColor(this, t.scrim)
-                Prefs.setScrimAlpha(this, t.scrimA)
-                Prefs.setWidgetBg(this, t.widget)
-                Prefs.setWidgetAlpha(this, t.widgetA)
-                Prefs.setAccent(this, t.accent)
-                // The theme also sets icons, font, shape, circles and borders
-                Prefs.setIconColor(this, t.icon)
-                Prefs.setFontFamily(this, t.font)
-                Prefs.setShape(this, t.shape)
-                Prefs.setCircleColor(this, t.circle)
-                Prefs.setDialCircle(this, t.circle)
-                Prefs.setBorderWidth(this, t.bw)
-                Prefs.setBorderColor(this, t.bc)
-                // own colours of the icon parts would hide the theme icon colour, so they go back to automatic
-                for (k in listOf("mic", "clear", "gear", "refresh")) Prefs.setPartColor(this, k, 0)
-                for (g in listOf("clear", "gear")) Prefs.setGrpColor(this, g, 0)
+                Themes.apply(this, t)
                 applyLook()
                 rebuild()
             }

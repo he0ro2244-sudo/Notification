@@ -19,11 +19,19 @@ class TilesWidget : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         if (intent.action == ACTION_CLEAR) {
-            val svc = NotifListener.instance
-            if (svc != null) {
-                val keys = Feed.items(context).filter { it.isClearable }.map { it.key }.toTypedArray()
-                if (keys.isNotEmpty()) svc.cancelNotifications(keys)
+            if (Prefs.clearMode(context) == 1) {
+                Extras.markAllRead(context)
+            } else {
+                val svc = NotifListener.instance
+                if (svc != null) {
+                    val keys = Feed.items(context).filter { it.isClearable }.map { it.key }.toTypedArray()
+                    if (keys.isNotEmpty()) svc.cancelNotifications(keys)
+                }
             }
+            refresh(context)
+        }
+        if (intent.action == ACTION_TICK) {
+            Extras.tick(context)
             refresh(context)
         }
         if (intent.action == ACTION_WEATHER) fetchWeatherAsync(context)
@@ -40,6 +48,7 @@ class TilesWidget : AppWidgetProvider() {
 
     override fun onEnabled(context: Context) {
         scheduleWeather(context)
+        Extras.tick(context)
     }
 
     override fun onDisabled(context: Context) {
@@ -49,6 +58,7 @@ class TilesWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         scheduleWeather(context)
+        Extras.tick(context)
         for (id in appWidgetIds) appWidgetManager.updateAppWidget(id, build(context, id))
         fetchWeatherAsync(context)
     }
@@ -101,6 +111,7 @@ class TilesWidget : AppWidgetProvider() {
         const val ACTION_CLEAR = "com.example.notiftiles.CLEAR_ALL"
         const val ACTION_REFRESH_ALL = "com.example.notiftiles.REFRESH_ALL"
         const val ACTION_WEATHER = "com.example.notiftiles.REFRESH_WEATHER"
+        const val ACTION_TICK = "com.example.notiftiles.TICK"
 
         private val W_CLOCK = intArrayOf(R.id.wclock0, R.id.wclock1, R.id.wclock2)
         private val W_WEATHER = intArrayOf(R.id.wweather0, R.id.wweather1, R.id.wweather2)
@@ -178,6 +189,7 @@ class TilesWidget : AppWidgetProvider() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             clickAll(rv, W_DATE, PendingIntent.getActivity(ctx, 7, cal, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             val where = Intent(ctx, DestinationActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                .putExtra("exit_if_nav", true)
             clickAll(rv, W_LOC, PendingIntent.getActivity(ctx, 5, where, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             setDynamic(rv, ctx)
             return rv
@@ -206,7 +218,7 @@ class TilesWidget : AppWidgetProvider() {
             val upd = Weather.updatedText(ctx)
             if (Weather.showUpdated(ctx) && upd.isNotEmpty()) {
                 rv.setViewVisibility(R.id.wupdated, android.view.View.VISIBLE)
-                rv.setTextViewText(R.id.wupdated, upd)
+                rv.setTextViewText(R.id.wupdated, Look.span(ctx, upd, false))
                 rv.setTextViewTextSize(R.id.wupdated, TypedValue.COMPLEX_UNIT_SP, 10f * Look.scale(ctx))
             } else {
                 rv.setViewVisibility(R.id.wupdated, android.view.View.GONE)
@@ -247,19 +259,19 @@ class TilesWidget : AppWidgetProvider() {
             txt(rv, ctx, R.id.hdr_title, "Inbox", 16f, true)
             rv.setTextColor(R.id.hdr_title, Prefs.partColor(ctx, "title").let { if (it != 0) it else main })
             txt(rv, ctx, R.id.wnote, "+ Note", 13f, true)
-            txt(rv, ctx, R.id.wclear, "Clear all", 13f, false)
+            txt(rv, ctx, R.id.wclear, if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all", 13f, false)
             val ic = Prefs.iconColor(ctx)
             rv.setTextColor(R.id.wclear, Prefs.partColor(ctx, "clear").let { if (it != 0) it else if (ic != 0) ic else sub })
             rv.setInt(R.id.wset, "setColorFilter", Prefs.partColor(ctx, "gear").let { if (it != 0) it else if (ic != 0) ic else sub })
             val gs = Prefs.gearSize(ctx).toFloat()
             rv.setViewLayoutWidth(R.id.wset, gs + 6f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wset, gs + 4f, TypedValue.COMPLEX_UNIT_DIP)
-            txt(rv, ctx, R.id.empty_txt, "Nothing new from your apps", 13f, false)
-            rv.setTextColor(R.id.empty_txt, sub)
+            txt(rv, ctx, R.id.empty_txt, Extras.quietText(ctx) ?: Prefs.emptyText(ctx), 13f, false)
+            rv.setTextColor(R.id.empty_txt, Prefs.partColor(ctx, "empty").let { if (it != 0) it else sub })
             rv.setViewVisibility(R.id.wrefresh, if (Prefs.refreshShow(ctx)) android.view.View.VISIBLE else android.view.View.GONE)
             val rc = Prefs.partColor(ctx, "refresh").let { if (it != 0) it else if (ic != 0) ic else Feed.alpha(sub, 0x99) }
             rv.setInt(R.id.wrefresh, "setColorFilter", rc)
-            rv.setTextColor(R.id.wupdated, Feed.alpha(sub, 0x99))
+            rv.setTextColor(R.id.wupdated, Prefs.partColor(ctx, "updated").let { if (it != 0) it else Feed.alpha(sub, 0x99) })
             val rs = Prefs.refreshSize(ctx).toFloat()
             rv.setViewLayoutWidth(R.id.wrefresh, rs + 12f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wrefresh, rs + 12f, TypedValue.COMPLEX_UNIT_DIP)
@@ -299,11 +311,15 @@ class TilesWidget : AppWidgetProvider() {
             for (i in 0 until 2) {
                 rv.setColorStateList(W_LOC[i], "setBackgroundTintList", circleTint)
             }
-            txt(rv, ctx, R.id.wwA, "Where to?", 12f, false)
-            txt(rv, ctx, R.id.wwB, "Where to?", 12f, false)
+            // While Google Maps is navigating this box becomes a one-tap red "Exit navigation"
+            val navigating = LocationAuto.navNotification() != null
+            val whereText = if (navigating) "Exit navigation" else "Where to?"
+            txt(rv, ctx, R.id.wwA, whereText, 12f, false)
+            txt(rv, ctx, R.id.wwB, whereText, 12f, false)
             val wc = Prefs.partColor(ctx, "where")
-            rv.setTextColor(R.id.wwA, if (wc != 0) wc else circleSub)
-            rv.setTextColor(R.id.wwB, if (wc != 0) wc else circleSub)
+            val whereColor = if (navigating) 0xFFE53935.toInt() else if (wc != 0) wc else circleSub
+            rv.setTextColor(R.id.wwA, whereColor)
+            rv.setTextColor(R.id.wwB, whereColor)
 
             // ---- Fast-dial circles
             val dark = Feed.isDark(ctx)
@@ -412,7 +428,7 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
     override fun getViewAt(position: Int): RemoteViews? {
         val sbn = items.getOrNull(position) ?: return null
         val dark = Feed.isDark(ctx)
-        val st = Feed.style(sbn.packageName)
+        val st = Feed.style(ctx, sbn.packageName)
         val bg = st.bg(dark)
         val fg = st.fg(dark)
 
