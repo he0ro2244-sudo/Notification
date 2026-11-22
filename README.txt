@@ -1,3 +1,8 @@
+NEW IN v0.9.37: What you send never comes back as new. The text of every reply sent from the panel is remembered for 10 minutes;
+when the app re-posts the chat with that same text as its newest message, it is hidden. "Done" is now also remembered per
+conversation (app + chat name), not only per notification, so it still holds when the app re-posts under a new id. The ignore
+window right after a reply is 10 seconds.
+
 NEW IN v0.9.36: The panel (the pop-up from the bottom) closes by itself right after a reply is sent.
 
 NEW IN v0.9.35: Messages you answered or read stay gone (rebuilt). Whether a chat is "new" is now decided by the time of its

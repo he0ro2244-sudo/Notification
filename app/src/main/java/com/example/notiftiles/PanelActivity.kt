@@ -284,7 +284,7 @@ class PanelActivity : Activity() {
         val v = viewing ?: return
         viewing = null
         if (Prefs.countRead(this)) {
-            Prefs.markHandled(this, v.key, Feed.handledStamp(v))
+            Feed.markDone(this, v, Feed.handledStamp(v))
             dismissFromShade(v)
             TilesWidget.refresh(applicationContext)
         }
@@ -943,12 +943,13 @@ class PanelActivity : Activity() {
             et.hint = "Sent ✓"
             et.postDelayed({ et.hint = oldHint }, 1200)
             val v = viewing
+            if (v != null) Feed.rememberSent(v, msg)
             if (v != null && Prefs.countReply(this)) {
                 // Everything in this chat up to now counts as answered: the app's "you replied" re-post carries only
                 // messages up to now, so it stays hidden; only a message that arrives later shows again.
                 val until = maxOf(Feed.handledStamp(v), System.currentTimeMillis()) +
-                    (if (Feed.hasMessages(v)) 6000L else 60000L)
-                Prefs.markHandled(this, v.key, until)
+                    (if (Feed.hasMessages(v)) 10000L else 60000L)
+                Feed.markDone(this, v, until)
                 dismissFromShade(v, 1500L)
                 sweepEcho(v.key)
                 viewing = null
@@ -977,7 +978,7 @@ class PanelActivity : Activity() {
                     null
                 }
                 if (n != null && n.isClearable && Prefs.dismissHandled(app) &&
-                    Feed.newestTs(n) <= (Prefs.handledMap(app)[key] ?: 0L)
+                    Feed.newestTs(n) <= Feed.handledUntil(app, n)
                 ) {
                     svc.cancelNotification(key)
                 }
@@ -1020,7 +1021,7 @@ class PanelActivity : Activity() {
         val t = a.title.toString().lowercase()
         if (t.contains("read") && !t.contains("unread")) {
             // "Mark as read" from the app's own button: handled here as well.
-            Prefs.markHandled(this, sbn.key, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
+            Feed.markDone(this, sbn, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
             dismissFromShade(sbn, 800L)
             if (viewing?.key == sbn.key) viewing = null
             expanded = null
@@ -1035,7 +1036,7 @@ class PanelActivity : Activity() {
 
     private fun open(sbn: StatusBarNotification) {
         if (Prefs.countRead(this)) {
-            Prefs.markHandled(this, sbn.key, Feed.handledStamp(sbn))
+            Feed.markDone(this, sbn, Feed.handledStamp(sbn))
             dismissFromShade(sbn, 1500L)
         }
         viewing = null

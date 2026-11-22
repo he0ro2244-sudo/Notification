@@ -78,7 +78,7 @@ object Feed {
                 msgs.addAll(Notification.MessagingStyle.Message.getMessagesFromBundleArray(it))
             }
             val seen = HashSet<String>()
-            val handledTs = if (unreadOnly) (Prefs.handledMap(c)[n.key] ?: 0L) else 0L
+            val handledTs = if (unreadOnly) handledUntil(c, n) else 0L
             val anySender = msgs.any { it.senderPerson != null }
             for (m in msgs.sortedBy { it.timestamp }) {
                 val t = m.text?.toString().orEmpty()
@@ -293,8 +293,53 @@ object Feed {
         return name == "You" || name == "أنت" || (self.isNotEmpty() && name == self)
     }
 
+    // ---- Done / answered: remembered per notification AND per conversation (an app may re-post under a new key) ----
+
+    private fun convKey(n: StatusBarNotification): String? {
+        val t = title(n)
+        return if (t.isEmpty()) null else "conv:" + n.packageName + "|" + t
+    }
+
+    /** The time up to which this chat counts as done (read or answered). */
+    fun handledUntil(c: Context, n: StatusBarNotification, map: Map<String, Long> = Prefs.handledMap(c)): Long {
+        val a = map[n.key] ?: 0L
+        val b = convKey(n)?.let { map[it] } ?: 0L
+        return maxOf(a, b)
+    }
+
+    fun markDone(c: Context, n: StatusBarNotification, until: Long) {
+        Prefs.markHandled(c, n.key, until)
+        convKey(n)?.let { Prefs.markHandled(c, it, until) }
+    }
+
+    private class Sent(val pkg: String, val title: String, val text: String, val time: Long)
+
+    private val sentList = java.util.concurrent.CopyOnWriteArrayList<Sent>()
+
+    /** Remember a reply sent from the panel, so the app's re-post with that very text is never shown as new. */
+    fun rememberSent(n: StatusBarNotification, text: String) {
+        val now = System.currentTimeMillis()
+        sentList.removeAll { now - it.time > 600000L }
+        sentList.add(Sent(n.packageName, title(n), text.trim(), now))
+    }
+
+    private fun matchesSent(n: StatusBarNotification): Boolean {
+        if (sentList.isEmpty()) return false
+        val now = System.currentTimeMillis()
+        sentList.removeAll { now - it.time > 600000L }
+        val m = messageList(n).maxByOrNull { it.timestamp }
+        val t = (m?.text?.toString() ?: text(n)).trim()
+        if (t.isEmpty()) return false
+        val ttl = title(n)
+        return sentList.any {
+            it.pkg == n.packageName && (it.title.isEmpty() || ttl.isEmpty() || it.title == ttl) &&
+                (t == it.text || t.endsWith(": " + it.text))
+        }
+    }
+
     /** True when the newest message of the chat was written by the phone's owner (so there is nothing new to read). */
     fun ownLast(n: StatusBarNotification): Boolean {
+        if (matchesSent(n)) return true
         val l = messageList(n)
         val last = l.maxByOrNull { it.timestamp } ?: return false
         return isOwnMsg(n, last, l.any { it.senderPerson != null })
@@ -351,7 +396,7 @@ object Feed {
         return all
             .filter { it.packageName in enabled && it.packageName != c.packageName && it.packageName !in muted }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
-            .filter { newestTs(it) > (handled[it.key] ?: 0L) }
+            .filter { newestTs(it) > handledUntil(c, it, handled) }
             .filter { !ownLast(it) }
             .filter { title(it).isNotEmpty() || text(it).isNotEmpty() }
             .filter {
