@@ -50,15 +50,52 @@ object LocationAuto {
 
     @Suppress("DEPRECATION")
     private fun setMode(c: Context, on: Boolean): Boolean {
-        return try {
-            Settings.Secure.putInt(
+        var ok = false
+        try {
+            ok = Settings.Secure.putInt(
                 c.contentResolver,
                 Settings.Secure.LOCATION_MODE,
                 if (on) Settings.Secure.LOCATION_MODE_HIGH_ACCURACY else Settings.Secure.LOCATION_MODE_OFF
             )
         } catch (e: Exception) {
-            false
         }
+        // Newer Android: ask the system's own switch too (may be refused on some phones; harmless then).
+        try {
+            val lm = c.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+            val m = LocationManager::class.java.getMethod(
+                "setLocationEnabledForUser", Boolean::class.javaPrimitiveType, android.os.UserHandle::class.java
+            )
+            m.invoke(lm, on, android.os.Process.myUserHandle())
+            ok = true
+        } catch (e: Throwable) {
+        }
+        return ok
+    }
+
+    /** Navigation is about to start from "Where to?": remember to switch Location off afterwards, even if it was already on. */
+    fun armForNavigation(c: Context) {
+        if (!canWrite(c) || !Prefs.autoLocationOff(c) || !Prefs.locOffAlways(c) || !isOn(c)) return
+        Prefs.setLocOwned(c, true)
+        NotifListener.instance?.watchLocation()
+    }
+
+    /** Settings test: switches Location off right now and reports what really happened. */
+    fun testOff(c: Context, done: (String) -> Unit) {
+        if (!canWrite(c)) {
+            done("Permission not granted yet: run the adb command shown above")
+            return
+        }
+        if (!isOn(c)) {
+            done("Location is already off. Turn it on, then try again")
+            return
+        }
+        val wrote = setMode(c, false)
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            done(
+                if (!isOn(c)) "Location switched off. This phone allows it"
+                else "Android refused (write " + (if (wrote) "accepted" else "failed") + ", Location still on)"
+            )
+        }, 700)
     }
 
     /** True when Location is on afterwards without any pop-up. False: no permission (or it failed), use the pop-up. */

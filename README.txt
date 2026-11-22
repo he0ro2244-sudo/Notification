@@ -1,6 +1,10 @@
-Notif Tiles v0.9.17
+Notif Tiles v0.9.18
 
-LATEST (v0.9.17) - older versions are listed below, newest at the bottom.
+LATEST (v0.9.18) - older versions are listed below, newest at the bottom.
+
+NEW IN v0.9.18: Location is now also switched off after a navigation started from Where to? when it was already on (switch
+"...even if Location was already on before"), and a test button "Test: switch Location off now" in Look & colors > Where to?
+shows whether this phone lets Notif Tiles do it (needs the one-time adb permission).
 
 NEW IN v0.9.17: Closing the small Google Maps pop-up now also exits the navigation (needs the Accessibility helper ON; switch in
 Look & colors > Where to?). Opening the pop-up to full screen does not end it.

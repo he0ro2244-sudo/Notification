@@ -171,6 +171,10 @@ object Prefs {
     fun autoLocation(c: Context): Boolean = sp(c).getBoolean("dest_auto_loc", true)
     fun setAutoLocation(c: Context, v: Boolean) = sp(c).edit().putBoolean("dest_auto_loc", v).apply()
 
+    // Also switch Location off after a navigation started from "Where to?" when Location was already on before
+    fun locOffAlways(c: Context): Boolean = sp(c).getBoolean("loc_off_always", true)
+    fun setLocOffAlways(c: Context, v: Boolean) = sp(c).edit().putBoolean("loc_off_always", v).apply()
+
     // Closing the Google Maps pop-up (picture-in-picture window) also ends the navigation (needs the Accessibility helper)
     fun exitOnPopupClose(c: Context): Boolean = sp(c).getBoolean("nav_exit_popup", true)
     fun setExitOnPopupClose(c: Context, v: Boolean) = sp(c).edit().putBoolean("nav_exit_popup", v).apply()

@@ -125,6 +125,7 @@ class DestinationActivity : Activity() {
         if (!Prefs.mapsSearchDirect(this) || LocationAuto.navNotification() != null) return false
         val i = packageManager.getLaunchIntentForPackage(MAPS) ?: return false
         if (RecorderTapService.enabled(this)) RecorderTapService.mapsSearchUntil = System.currentTimeMillis() + 8000L
+        LocationAuto.armForNavigation(this)
         startActivity(i)
         finish()
         return true
@@ -354,6 +355,7 @@ class DestinationActivity : Activity() {
         val q = raw.trim()
         if (q.isEmpty()) return
         if (Prefs.rememberPlaces(this)) Prefs.addRecent(this, q)
+        LocationAuto.armForNavigation(this)
         val enc = Uri.encode(q)
         val uri = if (mode == "driving" && Prefs.navNow(this)) {
             Uri.parse("google.navigation:q=$enc&mode=d")

@@ -409,7 +409,15 @@ class SettingsActivity : Activity() {
         col.addView(toggleRaw("Closing the Maps pop-up also exits navigation", Prefs.exitOnPopupClose(this)) { Prefs.setExitOnPopupClose(this, it) })
         col.addView(hint("Needs the Accessibility helper ON. When you close the small Google Maps window, Notif Tiles presses Exit navigation for you (Location then switches off too, if that option is set up). Opening the pop-up to full screen does not end it."))
         col.addView(toggleRaw("Switch Location off again when navigation ends", Prefs.autoLocationOff(this)) { Prefs.setAutoLocationOff(this, it) })
-        col.addView(hint(if (LocationAuto.canWrite(this)) "Permission granted: Location is switched on and off by Notif Tiles with no pop-up. It only switches off what it switched on itself, once the Google Maps navigation notification is gone." else "Needs a one-time permission. Without it Android always shows its Turn on pop-up and Location stays on until you switch it off yourself. In Termux, with adb connected to this phone, run: adb shell pm grant com.example.notiftiles android.permission.WRITE_SECURE_SETTINGS"))
+        col.addView(hint(if (LocationAuto.canWrite(this)) "Permission granted: Location is switched on and off by Notif Tiles with no pop-up. Location is switched off again once the Google Maps navigation notification is gone (if it was already on before, only with the next switch on)." else "Needs a one-time permission. Without it Android always shows its Turn on pop-up and Location stays on until you switch it off yourself. In Termux, with adb connected to this phone, run: adb shell pm grant com.example.notiftiles android.permission.WRITE_SECURE_SETTINGS"))
+        col.addView(toggleRaw("...even if Location was already on before", Prefs.locOffAlways(this)) { Prefs.setLocOffAlways(this, it) })
+        val locTest = Button(this)
+        locTest.isAllCaps = false
+        locTest.text = "Test: switch Location off now"
+        locTest.setOnClickListener {
+            LocationAuto.testOff(this) { msg -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show() }
+        }
+        col.addView(locTest)
         col.addView(toggleRaw("Voice (mic) button", Prefs.voiceButton(this)) { Prefs.setVoiceButton(this, it) })
         col.addView(toggleRaw("Place suggestions while typing", Prefs.suggestions(this)) { Prefs.setSuggestions(this, it) })
         col.addView(toggleRaw("Remember recent places", Prefs.rememberPlaces(this)) { Prefs.setRememberPlaces(this, it) })
