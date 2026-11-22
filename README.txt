@@ -1,3 +1,6 @@
+NEW IN v0.9.30: With "One tile per app", opening a grouped tile now shows every chat of that app in one card (newest first).
+Tap a chat's name to open it and reply to it; the reply box at the bottom answers the chat shown first.
+
 NEW IN v0.9.29: Look & colors is regrouped under five headings (LOOK, WIDGET AND PANEL, MESSAGES, TOOLS, SYSTEM) with clearer group names:
 Themes & accent colour, Backgrounds & pictures, Text, fonts & colours, Buttons, Shapes & borders, Widget: clock, weather & layout,
 Show / hide parts, Fast dial, Pages, scrolling & grouping, Apps, Counts & clearing, Quiet hours & snooze, Notes, Voice recorder,

@@ -820,6 +820,50 @@ class PanelActivity : Activity() {
             a.actionIntent != null && a.remoteInputs?.any { it.allowFreeFormInput } == true
         }
 
+        // One tile per app: also show the other chats of this app here, newest first (tap a name to open that chat).
+        if (Prefs.groupMode(this) == 1) {
+            val siblings = Feed.items(this, true)
+                .filter { it.packageName == sbn.packageName && it.key != sbn.key }
+                .sortedByDescending { it.postTime }
+            for (o in siblings) {
+                val line = View(this)
+                line.setBackgroundColor(Feed.alpha(fg, 0x33))
+                val llp = LinearLayout.LayoutParams(MATCH, dp(1))
+                llp.topMargin = dp(12)
+                card.addView(line, llp)
+                val ot = TextView(this)
+                ot.text = (Feed.title(o).ifEmpty { Feed.label(this, o.packageName) }) + "  ›"
+                ot.textSize = 16f
+                ot.setTag(R.id.nt_grp, "title")
+                ot.setTypeface(null, Typeface.BOLD)
+                ot.setTextColor(fg)
+                ot.setPadding(0, dp(10), 0, 0)
+                ot.setOnClickListener { expanded = o.key; refresh() }
+                card.addView(ot)
+                val otx = Feed.fullText(this, o)
+                if (otx.isNotEmpty()) {
+                    val om = TextView(this)
+                    om.text = otx
+                    om.textSize = 14f
+                    om.setTag(R.id.nt_grp, "text")
+                    om.setTextColor(Feed.alpha(fg, 0xEE))
+                    om.maxLines = 30
+                    om.ellipsize = TextUtils.TruncateAt.END
+                    om.setPadding(0, dp(2), 0, 0)
+                    card.addView(om)
+                }
+            }
+            if (siblings.isNotEmpty() && reply != null) {
+                val hintTv = TextView(this)
+                hintTv.text = "Reply goes to " + Feed.title(sbn).ifEmpty { Feed.label(this, sbn.packageName) } + " (tap another name to reply to it)"
+                hintTv.textSize = 12f
+                hintTv.setTag(R.id.nt_grp, "small")
+                hintTv.setTextColor(Feed.alpha(fg, 0xAA))
+                hintTv.setPadding(0, dp(12), 0, 0)
+                card.addView(hintTv)
+            }
+        }
+
         if (reply != null) {
             val row = LinearLayout(this)
             row.orientation = LinearLayout.HORIZONTAL
