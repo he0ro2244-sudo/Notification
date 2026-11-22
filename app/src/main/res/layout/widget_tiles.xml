@@ -605,9 +605,10 @@
     </LinearLayout>
 </LinearLayout>
 
-    <View
+    <ImageView
         android:id="@+id/wborder"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:importantForAccessibility="no"
         android:visibility="gone" />
 </FrameLayout>

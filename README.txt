@@ -1,3 +1,5 @@
+NEW IN v0.9.48: Fix for v0.9.47 (the widget could show as a blank white box). Nothing else changed.
+
 NEW IN v0.9.47: New switch in Look & colors > Borders: "Border around the widget (home screen)". It draws a line around the whole
 home-screen widget (clock to Inbox row) using the same Thickness and Colour as the other borders (Thickness 0 = none). Off until you
 switch it on. Nothing else changed.
