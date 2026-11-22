@@ -1,3 +1,8 @@
+NEW IN v0.9.42: x on a card now works like swiping a notification away: it only hides what is there now (nothing is marked read).
+When a new message comes, the card shows it together with the older unread ones, as the phone's own notification does.
+
+NEW IN v0.9.41: The panel also closes after a quick action button such as Like (Instagram). Mark as read and x already close it.
+
 NEW IN v0.9.40: Fixes in the panel. The x on an opened card now counts the message as handled (WhatsApp no longer brings it back)
 and closes the panel, same as Instagram's message going away. Mark as read (WhatsApp) closes the panel too. Snapchat now has a
 Reply button (it uses Snapchat's own reply box if offered, otherwise it opens the chat in Snapchat).

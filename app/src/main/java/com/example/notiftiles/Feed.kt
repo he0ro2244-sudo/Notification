@@ -307,6 +307,19 @@ object Feed {
         return maxOf(a, b)
     }
 
+    /** The time up to which the x (a plain dismiss, like a swipe) hid this chat. Unlike "done" it does not hide older lines. */
+    fun dismissedUntil(c: Context, n: StatusBarNotification, map: Map<String, Long> = Prefs.handledMap(c)): Long {
+        val a = map["dis:" + n.key] ?: 0L
+        val b = convKey(n)?.let { map["dis:$it"] } ?: 0L
+        return maxOf(a, b)
+    }
+
+    /** x on a card: hide what is there now, like swiping the notification; older unread lines come back with the next message. */
+    fun markDismissed(c: Context, n: StatusBarNotification, until: Long) {
+        Prefs.markHandled(c, "dis:" + n.key, until)
+        convKey(n)?.let { Prefs.markHandled(c, "dis:$it", until) }
+    }
+
     fun markDone(c: Context, n: StatusBarNotification, until: Long) {
         Prefs.markHandled(c, n.key, until)
         convKey(n)?.let { Prefs.markHandled(c, it, until) }
@@ -430,7 +443,7 @@ object Feed {
         return all
             .filter { it.packageName in enabled && it.packageName != c.packageName && it.packageName !in muted }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
-            .filter { newestTs(it) > handledUntil(c, it, handled) }
+            .filter { newestTs(it) > maxOf(handledUntil(c, it, handled), dismissedUntil(c, it, handled)) }
             .filter { !ownLast(it) }
             .filter { title(it).isNotEmpty() || text(it).isNotEmpty() }
             .filter {

@@ -743,8 +743,9 @@ class PanelActivity : Activity() {
         x.setTextColor(fg)
         x.setPadding(dp(14), 0, dp(2), 0)
         x.setOnClickListener {
-            // Counts as handled (so apps that re-post, like WhatsApp, do not bring it back) and the panel closes.
-            Feed.markDone(this, sbn, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
+            // Like swiping it away: hidden for now (apps that re-post, like WhatsApp, cannot bring it back), but not read.
+            // A newer message shows again together with the older unread ones. The panel closes.
+            Feed.markDismissed(this, sbn, Feed.handledStamp(sbn))
             NotifListener.instance?.cancelNotification(sbn.key)
             viewing = null
             expanded = null
@@ -1058,7 +1059,10 @@ class PanelActivity : Activity() {
         }
         if (t.contains("view") || t.contains("open") || t.contains("play") || t.contains("watch")) {
             open(sbn)
+            return
         }
+        // Any other quick action (Like, ...) is done: close the panel.
+        finish()
     }
 
     private fun open(sbn: StatusBarNotification) {
