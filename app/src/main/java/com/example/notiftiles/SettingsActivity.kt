@@ -422,7 +422,7 @@ class SettingsActivity : Activity() {
         }
         col.addView(cmp)
         col.addView(seekRange("Temperature adjust", Weather.offset(this), -6, 6, "°") { Weather.setOffset(this, it); applyLook() })
-        col.addView(toggleRaw("Show \"Updated\" time in the widget", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); applyLook() })
+        col.addView(toggleRaw("Show \"Updated\" time in the widget", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); TilesWidget.rebuildAll(applicationContext); applyLook(); rebuild() })
 
         }
 
@@ -436,7 +436,7 @@ class SettingsActivity : Activity() {
         col.addView(toggle("Fast-dial strip", "dial"))
         col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
         col.addView(toggleRaw("Refresh icon (centre of the widget)", Prefs.refreshShow(this)) { Prefs.setRefreshShow(this, it); applyLook() })
-        col.addView(toggleRaw("\"Updated\" time under the refresh icon", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); applyLook() })
+        col.addView(toggleRaw("\"Updated\" time under the refresh icon", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); TilesWidget.rebuildAll(applicationContext); applyLook(); rebuild() })
         col.addView(toggleRaw("\"Nothing new\" message", Prefs.showEmptyText(this)) { Prefs.setShowEmptyText(this, it); applyLook() })
         col.addView(title("Widget header, tiles and panel", 16f, 16))
         for ((k, label) in Prefs.SHOW_ITEMS) {

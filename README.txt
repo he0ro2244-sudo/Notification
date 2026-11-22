@@ -1,3 +1,7 @@
+NEW IN v0.9.32: The "Updated" show / hide switch now redraws the whole widget at once and clears the text when hidden; both
+switches for it (layout group and wording group) stay in step. The Updated line sits under the refresh icon in the middle of the
+widget, which is only shown while there are no messages.
+
 NEW IN v0.9.31: the weather "Updated" line has its own size slider (Look & colors > Text, fonts & colours > Widget wording).
 Show / hide, wording and colour were already there.
 

@@ -238,8 +238,18 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setTextViewText(R.id.wupdated, Look.span(ctx, upd, false))
                 rv.setTextViewTextSize(R.id.wupdated, TypedValue.COMPLEX_UNIT_SP, 10f * Look.scale(ctx) * Prefs.updSize(ctx) / 100f)
             } else {
+                rv.setTextViewText(R.id.wupdated, "")
                 rv.setViewVisibility(R.id.wupdated, android.view.View.GONE)
             }
+        }
+
+        /** Full redraw of every widget (not a partial update), for switches that must take effect at once. */
+        fun rebuildAll(ctx: Context) {
+            val mgr = AppWidgetManager.getInstance(ctx)
+            val ids = mgr.getAppWidgetIds(ComponentName(ctx, TilesWidget::class.java))
+            if (ids.isEmpty()) return
+            for (id in ids) mgr.updateAppWidget(id, build(ctx, id))
+            mgr.notifyAppWidgetViewDataChanged(ids, R.id.grid)
         }
 
         private fun bgImage(rv: RemoteViews, ctx: Context, viewId: Int, kind: String) {
