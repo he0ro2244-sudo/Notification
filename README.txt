@@ -1,3 +1,11 @@
+NEW IN v0.9.33: Replies and photos.
+- Sending a reply no longer shows the "Sent" pop-up that stayed on screen: the reply box says "Sent ✓" for a moment instead.
+- The message you replied to no longer comes back a few seconds later when the app re-posts the chat with your own reply in
+  it (it is removed again, but a real new message from the other person always stays).
+- Instagram and Snapchat do not give other apps the photo itself. A message that only says "sent a photo / image / video"
+  now shows a "Photo · tap to view in the app" box (tap opens the chat), and Snapchat's blue chat-bubble placeholder is no
+  longer shown as if it were the photo. WhatsApp photos still show in full.
+
 NEW IN v0.9.32: The "Updated" show / hide switch now redraws the whole widget at once and clears the text when hidden; both
 switches for it (layout group and wording group) stay in step. The Updated line sits under the refresh icon in the middle of the
 widget, which is only shown while there are no messages.

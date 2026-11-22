@@ -119,7 +119,7 @@ object Feed {
         val ex = n.notification.extras
         try {
             val raw = ex.get(Notification.EXTRA_PICTURE_ICON) ?: ex.get(Notification.EXTRA_PICTURE)
-            if (raw is Bitmap) return raw
+            if (raw is Bitmap) return if (looksLikeGlyph(raw)) null else raw
             if (raw is android.graphics.drawable.Icon) {
                 val d = raw.loadDrawable(c)
                 if (d != null) {
@@ -129,7 +129,7 @@ object Feed {
                         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
                         d.setBounds(0, 0, w, h)
                         d.draw(Canvas(bmp))
-                        return bmp
+                        return if (looksLikeGlyph(bmp)) null else bmp
                     }
                 }
             }
@@ -213,6 +213,73 @@ object Feed {
         }
     }
 
+    /**
+     * Some apps (Snapchat) hand over a flat icon (a chat bubble) instead of the real photo. A real photo has many
+     * colours and no see-through areas; an icon has few colours or lots of transparency.
+     */
+    private fun looksLikeGlyph(b: Bitmap): Boolean {
+        if (b.width <= 0 || b.height <= 0) return true
+        return try {
+            val n = 24
+            var clear = 0
+            val colours = HashSet<Int>()
+            for (iy in 0 until n) {
+                for (ix in 0 until n) {
+                    val px = b.getPixel(ix * (b.width - 1) / (n - 1), iy * (b.height - 1) / (n - 1))
+                    if ((px ushr 24) < 40) clear++ else colours.add((px and 0xF0F0F0) or 0xFF000000.toInt())
+                }
+            }
+            clear > n * n / 4 || colours.size <= 4
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    private val PHOTO_WORDS = Regex(
+        "(sent|shared)\\b.{0,14}\\b(photo|image|picture|video|snap|reel|story|gif|sticker)|^\\s*(📷|🖼|📹|🎥)|أرسل.*(صورة|فيديو)|صورة|فيديو",
+        RegexOption.IGNORE_CASE
+    )
+
+    /** True when the newest message only says that a photo / video / snap was sent (the app gives no picture for it). */
+    fun photoHint(c: Context, n: StatusBarNotification): Boolean {
+        val last = lines(c, n).lastOrNull() ?: return false
+        val body = last.replace(Regex("^\\[[^\\]]*\\]\\s*"), "")
+        return PHOTO_WORDS.containsMatchIn(body)
+    }
+
+    // ---- Replies sent from the panel: the app re-posts the chat with our own reply in it; that must not come back ----
+    private val replied = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
+    fun markReplied(key: String) {
+        replied[key] = System.currentTimeMillis()
+    }
+
+    /** True when the newest message of the chat is written by the phone's owner (not by the other person). */
+    @Suppress("DEPRECATION")
+    fun lastFromSelf(n: StatusBarNotification): Boolean {
+        val ex = n.notification.extras
+        return try {
+            val arr = ex.getParcelableArray(Notification.EXTRA_MESSAGES) ?: return false
+            val msgs = Notification.MessagingStyle.Message.getMessagesFromBundleArray(arr)
+            val last = msgs.maxByOrNull { it.timestamp } ?: return false
+            val self = ex.getCharSequence(Notification.EXTRA_SELF_DISPLAY_NAME)?.toString().orEmpty()
+            val who = last.senderPerson?.name?.toString().orEmpty()
+            who.isEmpty() || who == "You" || (self.isNotEmpty() && who == self)
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /** A chat we just replied to, re-posted by the app with our own reply as its newest message. */
+    fun isEcho(n: StatusBarNotification): Boolean {
+        val t = replied[n.key] ?: return false
+        if (System.currentTimeMillis() - t > 120000L) {
+            replied.remove(n.key)
+            return false
+        }
+        return lastFromSelf(n)
+    }
+
     /** All messages, one per line. */
     fun fullText(c: Context, n: StatusBarNotification): String = lines(c, n).joinToString("\n")
 
@@ -265,6 +332,7 @@ object Feed {
             .filter { it.packageName in enabled && it.packageName != c.packageName && it.packageName !in muted }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
             .filter { it.postTime > (handled[it.key] ?: 0L) }
+            .filter { !isEcho(it) }
             .filter { title(it).isNotEmpty() || text(it).isNotEmpty() }
             .filter {
                 val summary = (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0

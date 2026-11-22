@@ -11,8 +11,8 @@ android {
         applicationId = "com.example.notiftiles"
         minSdk = 31
         targetSdk = 34
-        versionCode = 33
-        versionName = "0.9.32"
+        versionCode = 34
+        versionName = "0.9.33"
     }
 
     // One fixed signing key, so every build installs over the last one (no more uninstalling first).

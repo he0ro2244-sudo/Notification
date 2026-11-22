@@ -796,8 +796,25 @@ class PanelActivity : Activity() {
         val picLp = LinearLayout.LayoutParams(MATCH, WRAP)
         picLp.topMargin = dp(8)
         card.addView(mediaBox, picLp)
+        val hasPhotoWord = Feed.photoHint(this, sbn)
         Thread {
             val md = Feed.media(this, sbn, 1024)
+            if (md == null && hasPhotoWord) {
+                // Instagram / Snapchat do not hand the photo to other apps: say so clearly and open the app on tap.
+                runOnUiThread {
+                    val ph = TextView(this)
+                    ph.text = "📷  Photo · tap to view in the app"
+                    ph.textSize = 15f
+                    ph.gravity = Gravity.CENTER
+                    ph.setTextColor(fg)
+                    ph.setPadding(dp(12), dp(28), dp(12), dp(28))
+                    ph.setOnClickListener { open(sbn) }
+                    mediaBox.removeAllViews()
+                    mediaBox.addView(ph, FrameLayout.LayoutParams(MATCH, WRAP))
+                    mediaBox.background = rounded(0x22808080, 12)
+                    mediaBox.visibility = View.VISIBLE
+                }
+            }
             if (md != null) {
                 runOnUiThread {
                     if (md.bmp != null) pic.setImageBitmap(md.bmp) else pic.minimumHeight = dp(180)
@@ -921,12 +938,17 @@ class PanelActivity : Activity() {
         try {
             a.actionIntent.send(this, 0, intent)
             et.setText("")
-            toast("Sent")
+            // No pop-up toast (it stayed on screen for seconds): a short "Sent ✓" in the reply box instead.
+            val oldHint = et.hint
+            et.hint = "Sent ✓"
+            et.postDelayed({ et.hint = oldHint }, 1200)
             val v = viewing
             if (v != null && Prefs.countReply(this)) {
                 // Ignore the app's own "you replied" update, and tidy the notification away.
-                Prefs.markHandled(this, v.key, System.currentTimeMillis() + 4000)
+                Prefs.markHandled(this, v.key, System.currentTimeMillis() + 10000)
+                Feed.markReplied(v.key)
                 dismissFromShade(v, 1500L)
+                sweepEcho(v.key)
                 viewing = null
                 expanded = null
                 refresh()
@@ -934,6 +956,27 @@ class PanelActivity : Activity() {
             }
         } catch (e: PendingIntent.CanceledException) {
             toast("Couldn't send. Open the app to reply.")
+        }
+    }
+
+    // Apps re-post the chat a few seconds after a reply (with our own reply inside). Remove that copy again, but only
+    // when its newest message is ours, so a real new message from the other person is never swept away.
+    private fun sweepEcho(key: String) {
+        val app = applicationContext
+        val h = android.os.Handler(android.os.Looper.getMainLooper())
+        for (d in longArrayOf(1500L, 5000L, 12000L, 30000L)) {
+            h.postDelayed({
+                val svc = NotifListener.instance ?: return@postDelayed
+                val n = try {
+                    svc.activeNotifications?.firstOrNull { it.key == key }
+                } catch (e: Exception) {
+                    null
+                }
+                if (n != null && n.isClearable && Prefs.dismissHandled(app) && Feed.isEcho(n)) {
+                    svc.cancelNotification(key)
+                }
+                TilesWidget.refresh(app)
+            }, d)
         }
     }
 
@@ -1019,5 +1062,10 @@ class PanelActivity : Activity() {
         if (keys.isNotEmpty()) svc.cancelNotifications(keys)
     }
 
-    private fun toast(m: String) = Toast.makeText(this, m, Toast.LENGTH_SHORT).show()
+    private var lastToast: Toast? = null
+
+    private fun toast(m: String) {
+        lastToast?.cancel()
+        lastToast = Toast.makeText(this, m, Toast.LENGTH_SHORT).also { it.show() }
+    }
 }
