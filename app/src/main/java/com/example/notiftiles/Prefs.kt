@@ -342,6 +342,9 @@ object Prefs {
     // ---- Counts: what counts as "handled" (read or replied) ----
     fun countRead(c: Context): Boolean = sp(c).getBoolean("cnt_read", true)
     fun setCountRead(c: Context, v: Boolean) = sp(c).edit().putBoolean("cnt_read", v).apply()
+    /** Just opening a message card and closing it again counts as read (off = it stays until you act on it). */
+    fun countLeave(c: Context): Boolean = sp(c).getBoolean("cnt_leave", false)
+    fun setCountLeave(c: Context, v: Boolean) = sp(c).edit().putBoolean("cnt_leave", v).apply()
     fun countReply(c: Context): Boolean = sp(c).getBoolean("cnt_reply", true)
     fun setCountReply(c: Context, v: Boolean) = sp(c).edit().putBoolean("cnt_reply", v).apply()
 

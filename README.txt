@@ -1,3 +1,8 @@
+NEW IN v0.9.39: A message stays until you act on it. Opening the card and closing it again no longer counts as read.
+It goes when you reply, tap Mark as read, tap Open, tap the photo / play the video, or clear it. (Look & colors > Counts: the
+new switch "Count drops just from opening and closing the message card" brings the old behaviour back.) The card shows at most
+the latest 5 new messages ("... N earlier" for the rest). Tapping a photo in the card opens the chat.
+
 NEW IN v0.9.38: An opened message card now shows only the NEW messages from the other person (not the old history and not what
 you sent). If there is nothing new it shows the whole chat as before. Long-press the "Photo - tap to view in the app" box
 to see what Instagram / Snapchat actually offer in their notification (names and kinds of fields only, no message texts).

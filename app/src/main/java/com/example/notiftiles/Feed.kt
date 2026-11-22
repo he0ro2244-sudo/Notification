@@ -347,7 +347,9 @@ object Feed {
 
     /** All messages, one per line. */
     fun fullText(c: Context, n: StatusBarNotification): String =
-        lines(c, n, true).ifEmpty { lines(c, n) }.joinToString("\n")
+        lines(c, n, true).ifEmpty { lines(c, n) }.let {
+            if (it.size > 5) listOf("… " + (it.size - 5) + " earlier") + it.takeLast(5) else it
+        }.joinToString("\n")
 
     /**
      * What this app gives us for a notification: the names and kinds of its fields and the type of each message's

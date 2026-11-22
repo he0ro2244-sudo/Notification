@@ -283,7 +283,7 @@ class PanelActivity : Activity() {
     private fun finishViewing() {
         val v = viewing ?: return
         viewing = null
-        if (Prefs.countRead(this)) {
+        if (Prefs.countRead(this) && Prefs.countLeave(this)) {
             Feed.markDone(this, v, Feed.handledStamp(v))
             dismissFromShade(v)
             TilesWidget.refresh(applicationContext)
@@ -820,6 +820,7 @@ class PanelActivity : Activity() {
                 runOnUiThread {
                     if (md.bmp != null) pic.setImageBitmap(md.bmp) else pic.minimumHeight = dp(180)
                     mediaBox.visibility = View.VISIBLE
+                    if (!md.isVideo) pic.setOnClickListener { open(sbn) }
                     if (md.isVideo) {
                         play.visibility = View.VISIBLE
                         val tap = View.OnClickListener {

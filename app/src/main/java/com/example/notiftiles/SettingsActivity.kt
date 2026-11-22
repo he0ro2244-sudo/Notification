@@ -552,7 +552,8 @@ class SettingsActivity : Activity() {
         section("Counts & clearing") {
         // ---- Counts
         col.addView(title("Counts", 16f, 20))
-        col.addView(toggleRaw("Count drops after I read a message here", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
+        col.addView(toggleRaw("Count drops after I open the app, mark read or tap the photo", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
+        col.addView(toggleRaw("Count drops just from opening and closing the message card", Prefs.countLeave(this)) { Prefs.setCountLeave(this, it) })
         col.addView(toggleRaw("Count drops after I reply here", Prefs.countReply(this)) { Prefs.setCountReply(this, it) })
         col.addView(toggleRaw("Also remove it from the phone's notification panel", Prefs.dismissHandled(this)) { Prefs.setDismissHandled(this, it) })
         col.addView(hint("The Clear all button (widget and panel) does"))
