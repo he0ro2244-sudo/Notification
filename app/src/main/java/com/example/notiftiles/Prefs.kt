@@ -264,6 +264,10 @@ object Prefs {
     fun imgAlpha(c: Context, kind: String): Int = sp(c).getInt("look_imgalpha_$kind", 100)
     fun setImgAlpha(c: Context, kind: String, v: Int) = sp(c).edit().putInt("look_imgalpha_$kind", v).apply()
 
+    // ---- Time stamp in front of each message line: 0 = smart (time today, Yesterday, date), 1 = date + time, 2 = time only, 3 = none
+    fun stampStyle(c: Context): Int = sp(c).getInt("msg_stamp", 0).coerceIn(0, 3)
+    fun setStampStyle(c: Context, v: Int) = sp(c).edit().putInt("msg_stamp", v).apply()
+
     // ---- Layout extras ----
     fun dialNames(c: Context): Boolean = sp(c).getBoolean("lay_dialnames", true)
     fun setDialNames(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_dialnames", v).apply()

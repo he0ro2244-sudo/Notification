@@ -186,6 +186,12 @@ class SettingsActivity : Activity() {
         }
 
         section("Text, fonts & text colours") {
+        // ---- Message time stamp
+        col.addView(title("Message time stamp", 16f, 20))
+        col.addView(hint("The [time] in front of each message line. Smart: today shows only the time, yesterday shows Yesterday, older shows the date. It uses the same font, size and colour as the message text below."))
+        col.addView(choiceRow(listOf("0" to "Smart", "1" to "Date + time", "2" to "Time only", "3" to "None"), Prefs.stampStyle(this).toString(), false) {
+            Prefs.setStampStyle(this, it.toInt()); applyLook(); rebuild()
+        })
         // ---- Fonts
         col.addView(title("Font", 16f, 20))
         col.addView(hint("Applies to the widget, the panel and the Where to? box."))

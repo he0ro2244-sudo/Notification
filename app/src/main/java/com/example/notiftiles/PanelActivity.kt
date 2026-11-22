@@ -379,7 +379,7 @@ class PanelActivity : Activity() {
         card.addView(t)
 
         val m = TextView(this)
-        m.text = Feed.recentText(sbn, 3)
+        m.text = Feed.recentText(this, sbn, 3)
         m.textSize = 13f
         m.setTag(R.id.nt_grp, "text")
         m.setTextColor(Feed.alpha(fg, 0xDD))
@@ -590,7 +590,7 @@ class PanelActivity : Activity() {
             t.setPadding(0, dp(8), 0, 0)
             card.addView(t)
         }
-        val tx = Feed.fullText(sbn)
+        val tx = Feed.fullText(this, sbn)
         if (tx.isNotEmpty()) {
             val m = TextView(this)
             m.text = tx

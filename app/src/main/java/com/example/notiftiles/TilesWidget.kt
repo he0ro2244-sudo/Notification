@@ -424,7 +424,7 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
         rv.setColorStateList(R.id.cnt, "setBackgroundTintList", ColorStateList.valueOf(fg))
         Look.setText(rv, ctx, R.id.title, Feed.title(sbn), 13f, true)
         rv.setTextColor(R.id.title, fg)
-        Look.setText(rv, ctx, R.id.text, Feed.recentText(sbn, 4), 12f, false)
+        Look.setText(rv, ctx, R.id.text, Feed.recentText(ctx, sbn, 4), 12f, false)
         rv.setTextColor(R.id.text, Feed.alpha(fg, 0xDD))
         rv.setOnClickFillInIntent(R.id.tile_root, Intent().putExtra("key", sbn.key))
         return rv

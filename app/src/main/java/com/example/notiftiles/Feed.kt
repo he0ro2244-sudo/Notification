@@ -60,10 +60,11 @@ object Feed {
 
     /**
      * Every message of the chat, oldest first, one line each like the app shows them:
-     * "[11/21, 10:54 PM] Name: text". Falls back to inbox lines, then to the single text.
+     * "[10:54 PM] Name: text" (today), "[Yesterday, 10:54 PM] ..." or "[11/21, 10:54 PM] ..." (older); the style is
+     * chosen in Look & colors. Falls back to inbox lines, then to the single text.
      */
     @Suppress("DEPRECATION")
-    fun lines(n: StatusBarNotification): List<String> {
+    fun lines(c: Context, n: StatusBarNotification): List<String> {
         val ex = n.notification.extras
         val out = ArrayList<String>()
         try {
@@ -74,13 +75,13 @@ object Feed {
             ex.getParcelableArray(Notification.EXTRA_MESSAGES)?.let {
                 msgs.addAll(Notification.MessagingStyle.Message.getMessagesFromBundleArray(it))
             }
-            val fmt = SimpleDateFormat("M/d, h:mm a", Locale.getDefault())
             val seen = HashSet<String>()
             for (m in msgs.sortedBy { it.timestamp }) {
                 val t = m.text?.toString().orEmpty()
                 if (t.isEmpty()) continue
                 val who = m.senderPerson?.name?.toString().orEmpty()
-                val line = "[" + fmt.format(Date(m.timestamp)) + "] " + (if (who.isNotEmpty()) "$who: " else "") + t
+                val st = stamp(c, m.timestamp)
+                val line = (if (st.isNotEmpty()) "[$st] " else "") + (if (who.isNotEmpty()) "$who: " else "") + t
                 if (seen.add(line)) out.add(line)
             }
         } catch (e: Exception) {
@@ -93,11 +94,24 @@ object Feed {
         return if (t.isEmpty()) emptyList() else listOf(t)
     }
 
+    /** The text in the brackets in front of a message, by the chosen style ("" = none). */
+    private fun stamp(c: Context, ts: Long): String {
+        val style = Prefs.stampStyle(c)
+        if (style == 3) return ""
+        val time = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(ts))
+        val full = SimpleDateFormat("M/d, h:mm a", Locale.getDefault()).format(Date(ts))
+        if (style == 1) return full
+        if (style == 2) return time
+        if (android.text.format.DateUtils.isToday(ts)) return time
+        if (android.text.format.DateUtils.isToday(ts + android.text.format.DateUtils.DAY_IN_MILLIS)) return "Yesterday, $time"
+        return full
+    }
+
     /** All messages, one per line. */
-    fun fullText(n: StatusBarNotification): String = lines(n).joinToString("\n")
+    fun fullText(c: Context, n: StatusBarNotification): String = lines(c, n).joinToString("\n")
 
     /** The latest [k] messages, one per line (newest at the bottom). */
-    fun recentText(n: StatusBarNotification, k: Int): String = lines(n).takeLast(k).joinToString("\n")
+    fun recentText(c: Context, n: StatusBarNotification, k: Int): String = lines(c, n).takeLast(k).joinToString("\n")
 
     fun label(c: Context, pkg: String): String = try {
         c.packageManager.getApplicationLabel(c.packageManager.getApplicationInfo(pkg, 0)).toString()
