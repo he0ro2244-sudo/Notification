@@ -52,8 +52,8 @@ class PanelActivity : Activity() {
 
     private fun tileBg(bg: Int, fg: Int, r: Int): GradientDrawable {
         val d = rounded(bg, r)
-        if (Prefs.borderTiles(this) && Prefs.borderWidth(this) > 0) {
-            d.setStroke(dp(Prefs.borderWidth(this)).coerceAtLeast(1), Look.borderColor(this, Feed.alpha(fg, 0x99)))
+        if (Prefs.borderTiles(this) && Prefs.borderWidthOf(this, "tiles") > 0) {
+            d.setStroke(dp(Prefs.borderWidthOf(this, "tiles")).coerceAtLeast(1), Look.borderColorOf(this, "tiles", Feed.alpha(fg, 0x99)))
         }
         return d
     }

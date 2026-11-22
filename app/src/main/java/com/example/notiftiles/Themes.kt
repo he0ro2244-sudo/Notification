@@ -47,6 +47,7 @@ object Themes {
         Prefs.setDialCircle(c, t.circle)
         Prefs.setBorderWidth(c, t.bw)
         Prefs.setBorderColor(c, t.bc)
+        Prefs.clearBorderParts(c)
         // own colours of the icon parts would hide the theme icon colour, so they go back to automatic
         for (k in listOf("mic", "clear", "gear", "refresh")) Prefs.setPartColor(c, k, 0)
         for (g in listOf("clear", "gear")) Prefs.setGrpColor(c, g, 0)

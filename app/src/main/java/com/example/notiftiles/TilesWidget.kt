@@ -272,7 +272,7 @@ class TilesWidget : AppWidgetProvider() {
             rv.setColorStateList(R.id.root, "setBackgroundTintList", ColorStateList.valueOf(Prefs.widgetBgArgb(ctx)))
 
             // ---- Border around the whole widget (overlay on top of everything; off by default)
-            val bw = Prefs.borderWidth(ctx)
+            val bw = Prefs.borderWidthOf(ctx, "widget")
             if (Prefs.borderWidget(ctx) && bw > 0) {
                 val auto = (Look.contrast(Prefs.widgetBgArgb(ctx)) and 0xFFFFFF) or 0x99000000.toInt()
                 val res = when (bw.coerceIn(1, 6)) {
@@ -284,7 +284,7 @@ class TilesWidget : AppWidgetProvider() {
                     else -> R.drawable.nt_wborder_6
                 }
                 rv.setInt(R.id.wborder, "setBackgroundResource", res)
-                rv.setColorStateList(R.id.wborder, "setBackgroundTintList", ColorStateList.valueOf(Look.borderColor(ctx, auto)))
+                rv.setColorStateList(R.id.wborder, "setBackgroundTintList", ColorStateList.valueOf(Look.borderColorOf(ctx, "widget", auto)))
                 rv.setViewVisibility(R.id.wborder, View.VISIBLE)
             } else {
                 rv.setViewVisibility(R.id.wborder, View.GONE)

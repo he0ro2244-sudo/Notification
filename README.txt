@@ -1,3 +1,7 @@
+NEW IN v0.9.49: Borders are now separate. Look & colors > Borders has three groups (Panel, Message tiles, Widget), each with its own
+switch, thickness and colour. Until you change one it keeps the value you had before, so nothing looks different. Picking a theme
+still sets the borders for all three. Nothing else changed.
+
 NEW IN v0.9.48: Fix for v0.9.47 (the widget could show as a blank white box). Nothing else changed.
 
 NEW IN v0.9.47: New switch in Look & colors > Borders: "Border around the widget (home screen)". It draws a line around the whole

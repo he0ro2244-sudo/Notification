@@ -205,6 +205,18 @@ object Prefs {
     fun setBorderPanel(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_bpanel", v).apply()
     fun borderTiles(c: Context): Boolean = sp(c).getBoolean("look_btiles", true)
     fun setBorderTiles(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_btiles", v).apply()
+    // Own thickness + colour for each border ("panel", "tiles", "widget"); until one is set it follows the shared values above.
+    fun borderWidthOf(c: Context, kind: String): Int =
+        sp(c).getInt("look_bw_$kind", -1).let { if (it >= 0) it else borderWidth(c) }
+    fun setBorderWidthOf(c: Context, kind: String, v: Int) = sp(c).edit().putInt("look_bw_$kind", v).apply()
+    fun borderColorOf(c: Context, kind: String): Int =
+        if (sp(c).contains("look_bc_$kind")) sp(c).getInt("look_bc_$kind", 0) else borderColor(c)
+    fun setBorderColorOf(c: Context, kind: String, v: Int) = sp(c).edit().putInt("look_bc_$kind", v).apply()
+    fun clearBorderParts(c: Context) {
+        val e = sp(c).edit()
+        for (k in listOf("panel", "tiles", "widget")) e.remove("look_bw_$k").remove("look_bc_$k")
+        e.apply()
+    }
     fun borderWidget(c: Context): Boolean = sp(c).getBoolean("look_bwidget", false)
     fun setBorderWidget(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_bwidget", v).apply()
 

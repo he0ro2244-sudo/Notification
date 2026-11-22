@@ -274,13 +274,13 @@ object Look {
             img.setAlpha(Prefs.imgAlpha(ctx, "panel") * 255 / 100)
             layers.add(img)
         }
-        if (Prefs.borderPanel(ctx) && Prefs.borderWidth(ctx) > 0) {
+        if (Prefs.borderPanel(ctx) && Prefs.borderWidthOf(ctx, "panel") > 0) {
             layers.add(GradientDrawable().apply {
                 setColor(0)
                 cornerRadius = radiusPx.toFloat()
                 setStroke(
-                    (Prefs.borderWidth(ctx) * ctx.resources.displayMetrics.density).toInt().coerceAtLeast(1),
-                    borderColor(ctx, contrast(color) and 0xFFFFFF or 0x99000000.toInt())
+                    (Prefs.borderWidthOf(ctx, "panel") * ctx.resources.displayMetrics.density).toInt().coerceAtLeast(1),
+                    borderColorOf(ctx, "panel", contrast(color) and 0xFFFFFF or 0x99000000.toInt())
                 )
             })
         }
@@ -289,6 +289,10 @@ object Look {
 
     /** Border colour: the chosen one, or [auto] when set to automatic. */
     fun borderColor(ctx: Context, auto: Int): Int = Prefs.borderColor(ctx).let { if (it != 0) it else auto }
+
+    /** Border colour of one border ("panel", "tiles", "widget"): its own pick, or [auto] when automatic. */
+    fun borderColorOf(ctx: Context, kind: String, auto: Int): Int =
+        Prefs.borderColorOf(ctx, kind).let { if (it != 0) it else auto }
 
     fun contrast(color: Int): Int =
         if (Color.luminance(color) < 0.5f) 0xFFF2F2F5.toInt() else 0xFF1B1B1F.toInt()

@@ -341,13 +341,22 @@ class SettingsActivity : Activity() {
 
         // ---- Borders
         col.addView(title("Borders", 16f, 20))
-        col.addView(hint("A line around the panel, the message tiles and the widget. Thickness 0 = no border."))
-        col.addView(seekRange("Thickness", Prefs.borderWidth(this), 0, 6, " dp") { Prefs.setBorderWidth(this, it) })
-        col.addView(hint("Colour (first one = automatic)"))
-        col.addView(swatchRow(borderColors, Prefs.borderColor(this)) { Prefs.setBorderColor(this, it); TilesWidget.refresh(applicationContext); rebuild() })
-        col.addView(toggleRaw("Border around the panel", Prefs.borderPanel(this)) { Prefs.setBorderPanel(this, it) })
-        col.addView(toggleRaw("Border around message tiles", Prefs.borderTiles(this)) { Prefs.setBorderTiles(this, it) })
-        col.addView(toggleRaw("Border around the widget (home screen)", Prefs.borderWidget(this)) { Prefs.setBorderWidget(this, it); applyLook() })
+        col.addView(hint("Each border has its own switch, thickness and colour. Thickness 0 = no border."))
+        for ((kind, label) in listOf("panel" to "Panel", "tiles" to "Message tiles", "widget" to "Widget (home screen)")) {
+            col.addView(title(label, 14f, 12))
+            col.addView(toggleRaw(
+                "Border around " + (if (kind == "panel") "the panel" else if (kind == "tiles") "message tiles" else "the widget (home screen)"),
+                when (kind) { "panel" -> Prefs.borderPanel(this); "tiles" -> Prefs.borderTiles(this); else -> Prefs.borderWidget(this) }
+            ) {
+                when (kind) { "panel" -> Prefs.setBorderPanel(this, it); "tiles" -> Prefs.setBorderTiles(this, it); else -> Prefs.setBorderWidget(this, it) }
+                if (kind == "widget") applyLook()
+            })
+            col.addView(seekRange("Thickness", Prefs.borderWidthOf(this, kind), 0, 6, " dp") { Prefs.setBorderWidthOf(this, kind, it) })
+            col.addView(hint("Colour (first one = automatic)"))
+            col.addView(swatchRow(borderColors, Prefs.borderColorOf(this, kind)) {
+                Prefs.setBorderColorOf(this, kind, it); TilesWidget.refresh(applicationContext); rebuild()
+            })
+        }
 
         }
 
