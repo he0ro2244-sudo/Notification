@@ -1,3 +1,12 @@
+NEW IN v0.9.29: Look & colors is regrouped under five headings (LOOK, WIDGET AND PANEL, MESSAGES, TOOLS, SYSTEM) with clearer group names:
+Themes & accent colour, Backgrounds & pictures, Text, fonts & colours, Buttons, Shapes & borders, Widget: clock, weather & layout,
+Show / hide parts, Fast dial, Pages, scrolling & grouping, Apps, Counts & clearing, Quiet hours & snooze, Notes, Voice recorder,
+Where to? (maps & location), Backup & restore. Nothing was removed.
+- New group "Buttons: + Note, Clear all, Settings": one colour per button, set for the widget and the panel together.
+- New "Check everything" button at the top of Look & colors: notification access, chosen apps, widget on the home screen,
+  accessibility helper, Location permission, permissions, battery, phone recorder, weather and pages in one list, with a
+  "Fix" button that opens the screen for the first problem. (The Where to? Self-check is still there for Maps / Exit.)
+
 NEW IN v0.9.28: My pages. Look & colors > Scroll, pages & grouping > My pages. Add pages any time (even with no messages),
 rename, delete and move them left / right. Per page: choose the apps whose messages show there (an app is on one page; apps on
 no page show on page 1) and add app shortcuts (a tile that opens the app). Panel: long-press a message tile to move its app to

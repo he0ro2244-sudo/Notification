@@ -102,7 +102,31 @@ class SettingsActivity : Activity() {
         setPadding(0, dp(topPad), 0, dp(4))
     }
 
-    private val openSections = mutableSetOf("Themes & accent")
+    private val openSections = mutableSetOf("Themes & accent colour")
+
+    private fun showCheckEverything() {
+        val lines = SelfCheck.run(this)
+        val b = AlertDialog.Builder(this).setTitle("Check everything")
+            .setMessage(SelfCheck.text(lines)).setPositiveButton("OK", null)
+        val fix = lines.firstOrNull { it.level >= 1 && it.fix != null }
+        if (fix != null) {
+            b.setNeutralButton("Fix: " + fix.short) { _, _ ->
+                try { startActivity(fix.fix!!) } catch (e: Exception) { Toast.makeText(this, "Could not open that screen", Toast.LENGTH_SHORT).show() }
+            }
+        }
+        b.show()
+    }
+
+    private fun category(t: String) {
+        val h = TextView(this)
+        h.text = t
+        h.textSize = 12f
+        h.setTypeface(null, Typeface.BOLD)
+        h.letterSpacing = 0.12f
+        h.alpha = 0.6f
+        h.setPadding(dp(4), dp(22), dp(4), dp(0))
+        col.addView(h)
+    }
 
     private fun section(name: String, body: () -> Unit) {
         val open = name in openSections
@@ -130,9 +154,15 @@ class SettingsActivity : Activity() {
         } catch (e: Exception) {
         }
 
-        col.addView(hint("Tap a group to open or close it. Everything is still here, just grouped."))
+        col.addView(hint("Tap a group to open or close it. Groups: Look, Widget and panel, Messages, Tools, System."))
+        val chkAll = Button(this)
+        chkAll.isAllCaps = false
+        chkAll.text = "Check everything"
+        chkAll.setOnClickListener { showCheckEverything() }
+        col.addView(chkAll)
 
-        section("Themes & accent") {
+        category("LOOK")
+        section("Themes & accent colour") {
         // ---- Themes
         col.addView(title("Themes", 16f, 12))
         col.addView(themeRow())
@@ -201,7 +231,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Text, fonts & text colours") {
+        section("Text, fonts & colours") {
         // ---- Message time stamp
         col.addView(title("Message time stamp", 16f, 20))
         col.addView(hint("The [time] in front of each message line. Smart: today shows only the time, yesterday shows Yesterday, older shows the date. It uses the same font, size and colour as the message text below."))
@@ -258,7 +288,20 @@ class SettingsActivity : Activity() {
         }
         }
 
-        section("Shapes, circles & borders") {
+        section("Buttons: + Note, Clear all, Settings") {
+            col.addView(hint("One colour per button, used on the home-screen widget and in the panel together. Auto = follows the theme and the icon colour. Tap a row to pick."))
+            for ((k, label) in listOf("note" to "+ Note", "clear" to "Clear all / Read all", "gear" to "Settings icon")) {
+                val cur = Prefs.partColor(this, k).let { if (it != 0) it else Prefs.grpColor(this, if (k == "note") "hdr" else k) }
+                col.addView(colorRow(label, cur) {
+                    Prefs.setPartColor(this, k, it)
+                    Prefs.setGrpColor(this, if (k == "note") "hdr" else k, it)
+                    applyLook(); rebuild()
+                })
+            }
+            col.addView(hint("Text size of these buttons in the panel: Text, fonts & colours > Text size per part of the panel."))
+        }
+
+        section("Shapes & borders") {
         // ---- Sizes and shape
         col.addView(title("Sizes & shape", 16f, 20))
         col.addView(choiceRow(Look.SHAPES, Prefs.shape(this).toString(), false) {
@@ -289,7 +332,8 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Widget layout, clock & weather") {
+        category("WIDGET AND PANEL")
+        section("Widget: clock, weather & layout") {
         // ---- Arrange the widget
         col.addView(title("Arrange the widget", 16f, 20))
         col.addView(hint("Use ▲ ▼ to move the circles. Switch an item off to hide it."))
@@ -381,7 +425,26 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Fast-dial contacts") {
+        section("Show / hide parts") {
+        col.addView(hint("Switch off anything you do not want to see. Nothing is deleted: switch it on again any time. You can always open Look & colors from the Notif Tiles app itself."))
+        col.addView(title("Widget top row and boxes", 16f, 12))
+        col.addView(toggle("Clock circle", "clock"))
+        col.addView(toggle("Weather circle", "weather"))
+        col.addView(toggle("Date circle", "date"))
+        col.addView(toggle("Maps \"Where to?\" box", "maps"))
+        col.addView(toggle("Fast-dial strip", "dial"))
+        col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
+        col.addView(toggleRaw("Refresh icon (centre of the widget)", Prefs.refreshShow(this)) { Prefs.setRefreshShow(this, it); applyLook() })
+        col.addView(toggleRaw("\"Updated\" time under the refresh icon", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); applyLook() })
+        col.addView(toggleRaw("\"Nothing new\" message", Prefs.showEmptyText(this)) { Prefs.setShowEmptyText(this, it); applyLook() })
+        col.addView(title("Widget header, tiles and panel", 16f, 16))
+        for ((k, label) in Prefs.SHOW_ITEMS) {
+            col.addView(toggleRaw(label, Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); applyLook() })
+        }
+
+        }
+
+        section("Fast dial") {
         // ---- Fast dial contacts
         col.addView(title("Fast-dial contacts", 16f, 20))
         col.addView(toggleRaw("Ask before calling (Call / Change / Remove)", Prefs.dialAsk(this)) { Prefs.setDialAsk(this, it) })
@@ -423,68 +486,106 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("\"Where to?\" search") {
-        // ---- "Where to?" search
-        col.addView(title("\"Where to?\" search", 16f, 20))
-        col.addView(hint("Travel mode used when you search"))
-        col.addView(modeRow())
-        col.addView(toggleRaw("Drive: start navigation straight away", Prefs.navNow(this)) { Prefs.setNavNow(this, it) })
-        col.addView(toggleRaw("Turn on Location when I open it", Prefs.autoLocation(this)) { Prefs.setAutoLocation(this, it) })
-        col.addView(toggleRaw("Where to? goes straight to the Google Maps search screen", Prefs.mapsSearchDirect(this)) { Prefs.setMapsSearchDirect(this, it) })
-        col.addView(hint("Opens Google Maps and, with the Accessibility helper ON, taps its search bar for you, so you get Maps' own suggestions, Home, Work and Recent. Helper OFF: Maps opens and you tap its search bar yourself. Off: the Notif Tiles box below is used."))
-        col.addView(toggleRaw("Closing the Maps pop-up also exits navigation", Prefs.exitOnPopupClose(this)) { Prefs.setExitOnPopupClose(this, it) })
-        col.addView(hint("Needs the Accessibility helper ON. When you close the small Google Maps window, Notif Tiles presses Exit navigation for you (Location then switches off too, if that option is set up). Opening the pop-up to full screen does not end it."))
-        col.addView(toggleRaw("Switch Location off again when navigation ends", Prefs.autoLocationOff(this)) { Prefs.setAutoLocationOff(this, it) })
-        col.addView(hint(if (LocationAuto.canWrite(this)) "Permission granted: Location is switched on and off by Notif Tiles with no pop-up. Location is switched off again once the Google Maps navigation notification is gone (if it was already on before, only with the next switch on)." else "Needs a one-time permission. Without it Android always shows its Turn on pop-up and Location stays on until you switch it off yourself. Run the command below once (Developer options only needed for that moment, you can switch them off afterwards). It stays through every update installed over the old version; only an uninstall removes it."))
-        col.addView(toggleRaw("...even if Location was already on before", Prefs.locOffAlways(this)) { Prefs.setLocOffAlways(this, it) })
-        val locTest = Button(this)
-        locTest.isAllCaps = false
-        locTest.text = "Test: switch Location off now"
-        locTest.setOnClickListener {
-            LocationAuto.testOff(this) { msg -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show() }
+        category("MESSAGES")
+        section("Pages, scrolling & grouping") {
+        col.addView(title("Scrolling", 16f, 12))
+        col.addView(hint("Scroll = the list moves up and down (as before). My pages = pages you add yourself, each with its own apps and shortcuts, even when there are no messages. Pages = a few tiles at a time: ‹ › buttons under the widget; in the panel you can also swipe left or right. (A home-screen widget cannot be swiped sideways, that is an Android limit.)"))
+        col.addView(choiceRow(listOf("0" to "Scroll up / down", "1" to "Pages", "2" to "My pages"), Prefs.scrollMode(this).toString(), false) {
+            Prefs.setScrollMode(this, it.toInt()); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0)
+            if (it == "2" && Prefs.customPages(this).isEmpty()) Prefs.setCustomPages(this, listOf(CPage("Page 1", emptyList(), emptyList())))
+            applyLook(); rebuild()
+        })
+        if (Prefs.scrollMode(this) == 2) pagesEditor()
+        if (Prefs.scrollMode(this) == 1) {
+            col.addView(seekRange("Tiles per page", Prefs.pageSize(this), 2, 20, "") {
+                Prefs.setPageSize(this, it); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0)
+            })
         }
-        col.addView(locTest)
-        if (!LocationAuto.canWrite(this)) {
-            val cp = Button(this)
-            cp.isAllCaps = false
-            cp.text = "Copy the adb command"
-            cp.setOnClickListener {
-                val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                cm.setPrimaryClip(android.content.ClipData.newPlainText("adb", "adb shell pm grant com.example.notiftiles android.permission.WRITE_SECURE_SETTINGS"))
-                Toast.makeText(this, "Copied. Paste it in Termux (adb connected).", Toast.LENGTH_LONG).show()
+        col.addView(toggleRaw("Endless: pages wrap around, and the widget list repeats", Prefs.loop(this)) { Prefs.setLoop(this, it); applyLook() })
+
+        col.addView(title("Group messages", 16f, 20))
+        col.addView(hint("One tile per chat (as before), or one tile per app that shows all its chats together. Tapping a grouped tile opens its newest chat."))
+        col.addView(choiceRow(listOf("0" to "One tile per chat", "1" to "One tile per app"), Prefs.groupMode(this).toString(), false) {
+            Prefs.setGroupMode(this, it.toInt()); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0); applyLook(); rebuild()
+        })
+
+        col.addView(title("Order of the tiles", 16f, 20))
+        col.addView(hint("Pinned apps (Apps: pin, mute, colour) always stay first."))
+        col.addView(choiceRow(listOf("0" to "Newest first", "1" to "Oldest first", "2" to "My own order", "3" to "App name A-Z"), Prefs.sortMode(this).toString(), false) {
+            Prefs.setSortMode(this, it.toInt()); applyLook(); rebuild()
+        })
+        if (Prefs.sortMode(this) == 2) {
+            col.addView(hint("Use ▲ ▼ to move an app up or down."))
+            val enabledApps = Prefs.enabled(this).toList()
+            val saved = Prefs.appOrder(this).filter { it in enabledApps }
+            val mine = saved + enabledApps.filter { it !in saved }.sortedBy { Feed.label(this, it).lowercase() }
+            for ((i, pkg) in mine.withIndex()) {
+                val row = LinearLayout(this)
+                row.orientation = LinearLayout.HORIZONTAL
+                row.gravity = Gravity.CENTER_VERTICAL
+                val name = TextView(this)
+                name.text = "${i + 1}.  ${Feed.label(this, pkg)}"
+                name.textSize = 15f
+                row.addView(name, LinearLayout.LayoutParams(0, WRAP, 1f))
+                row.addView(moveButton("▲", i > 0) { moveApp(mine, i, i - 1) })
+                row.addView(moveButton("▼", i < mine.size - 1) { moveApp(mine, i, i + 1) })
+                col.addView(row)
             }
-            col.addView(cp)
         }
-        val selfCheck = Button(this)
-        selfCheck.isAllCaps = false
-        selfCheck.text = "Self-check: what works and what does not"
-        selfCheck.setOnClickListener {
-            AlertDialog.Builder(this).setTitle("Where to? / Exit / Location").setMessage(LocationAuto.report(this)).setPositiveButton("OK", null).show()
-        }
-        col.addView(selfCheck)
-        val exitTest = Button(this)
-        exitTest.isAllCaps = false
-        exitTest.text = "Test: exit navigation now"
-        exitTest.setOnClickListener {
-            LocationAuto.exitSolid(this) { msg -> Toast.makeText(applicationContext, msg, Toast.LENGTH_LONG).show() }
-        }
-        col.addView(exitTest)
-        col.addView(toggleRaw("Voice (mic) button", Prefs.voiceButton(this)) { Prefs.setVoiceButton(this, it) })
-        col.addView(toggleRaw("Place suggestions while typing", Prefs.suggestions(this)) { Prefs.setSuggestions(this, it) })
-        col.addView(toggleRaw("Remember recent places", Prefs.rememberPlaces(this)) { Prefs.setRememberPlaces(this, it) })
-        col.addView(placeField("Home address", "home"))
-        col.addView(placeField("Work address", "work"))
-        val clr = Button(this)
-        clr.text = "Clear recent places"
-        clr.isAllCaps = false
-        clr.setOnClickListener {
-            Prefs.clearRecents(this)
-            Toast.makeText(this, "Cleared", Toast.LENGTH_SHORT).show()
-        }
-        col.addView(clr)
 
         }
 
+        section("Apps: pin, mute, colour") {
+        col.addView(hint("Pinned apps are listed first. Muted apps are hidden from the widget, the panel and the counts. A colour changes that app's tiles."))
+        val pkgs = Prefs.enabled(this).sortedBy { Feed.label(this, it).lowercase() }
+        if (pkgs.isEmpty()) col.addView(hint("No apps chosen yet. Choose them on the main screen first."))
+        for (p in pkgs) {
+            col.addView(title(Feed.label(this, p), 14f, 12))
+            col.addView(toggleRaw("Pin to top", p in Prefs.pinned(this)) { Prefs.setPinned(this, p, it); applyLook() })
+            col.addView(toggleRaw("Mute", p in Prefs.muted(this)) { Prefs.setMuted(this, p, it); applyLook() })
+            col.addView(swatchRow(bgColors, Prefs.appColor(this, p)) { Prefs.setAppColor(this, p, it); applyLook(); rebuild() })
+        }
+
+        }
+
+        section("Counts & clearing") {
+        // ---- Counts
+        col.addView(title("Counts", 16f, 20))
+        col.addView(toggleRaw("Count drops after I read a message here", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
+        col.addView(toggleRaw("Count drops after I reply here", Prefs.countReply(this)) { Prefs.setCountReply(this, it) })
+        col.addView(toggleRaw("Also remove it from the phone's notification panel", Prefs.dismissHandled(this)) { Prefs.setDismissHandled(this, it) })
+        col.addView(hint("The Clear all button (widget and panel) does"))
+        col.addView(choiceRow(listOf("0" to "Clear all", "1" to "Mark all read"), Prefs.clearMode(this).toString(), false) {
+            Prefs.setClearMode(this, it.toInt()); applyLook(); rebuild()
+        })
+        col.addView(hint("Mark all read counts every message as read and, with the option above, clears it from the phone's shade, the same as opening it here. The button then says Read all.\n\nWhen you read, reply to or mark a message as read here, its notification is cleared from the phone's shade too. A new message from the same chat counts again."))
+
+        }
+
+        section("Quiet hours & snooze") {
+        col.addView(title("Snooze", 16f, 20))
+        col.addView(hint(Extras.quietText(this)?.let { "$it. The widget stays empty until then; the panel still lists your messages." }
+            ?: "While snoozed the widget and its count stay empty. Your messages stay in the panel and in the phone's notification shade."))
+        col.addView(choiceRow(listOf("30" to "30 min", "60" to "1 hour", "180" to "3 hours", "tom" to "Until 7:00", "0" to "Cancel"), "", false) {
+            val until = when (it) {
+                "0" -> 0L
+                "tom" -> Extras.nextAt(7 * 60)
+                else -> System.currentTimeMillis() + it.toLong() * 60000L
+            }
+            Prefs.setSnoozeUntil(this, until); Extras.tick(this); applyLook(); rebuild()
+        })
+        col.addView(title("Quiet hours", 16f, 20))
+        col.addView(toggleRaw("Keep the widget quiet during these hours", Prefs.quietOn(this)) {
+            Prefs.setQuietOn(this, it); Extras.tick(this); applyLook(); rebuild()
+        })
+        if (Prefs.quietOn(this)) {
+            col.addView(timeRow("From", Prefs.quietStart(this)) { Prefs.setQuietStart(this, it); Extras.tick(this); applyLook(); rebuild() })
+            col.addView(timeRow("Until", Prefs.quietEnd(this)) { Prefs.setQuietEnd(this, it); Extras.tick(this); applyLook(); rebuild() })
+        }
+
+        }
+
+        category("TOOLS")
         section("Notes") {
         // ---- Notes app
         col.addView(title("Notes", 16f, 20))
@@ -576,123 +677,69 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Quiet & snooze") {
-        col.addView(title("Snooze", 16f, 20))
-        col.addView(hint(Extras.quietText(this)?.let { "$it. The widget stays empty until then; the panel still lists your messages." }
-            ?: "While snoozed the widget and its count stay empty. Your messages stay in the panel and in the phone's notification shade."))
-        col.addView(choiceRow(listOf("30" to "30 min", "60" to "1 hour", "180" to "3 hours", "tom" to "Until 7:00", "0" to "Cancel"), "", false) {
-            val until = when (it) {
-                "0" -> 0L
-                "tom" -> Extras.nextAt(7 * 60)
-                else -> System.currentTimeMillis() + it.toLong() * 60000L
+        section("Where to? (maps & location)") {
+        // ---- "Where to?" search
+        col.addView(title("\"Where to?\" search", 16f, 20))
+        col.addView(hint("Travel mode used when you search"))
+        col.addView(modeRow())
+        col.addView(toggleRaw("Drive: start navigation straight away", Prefs.navNow(this)) { Prefs.setNavNow(this, it) })
+        col.addView(toggleRaw("Turn on Location when I open it", Prefs.autoLocation(this)) { Prefs.setAutoLocation(this, it) })
+        col.addView(toggleRaw("Where to? goes straight to the Google Maps search screen", Prefs.mapsSearchDirect(this)) { Prefs.setMapsSearchDirect(this, it) })
+        col.addView(hint("Opens Google Maps and, with the Accessibility helper ON, taps its search bar for you, so you get Maps' own suggestions, Home, Work and Recent. Helper OFF: Maps opens and you tap its search bar yourself. Off: the Notif Tiles box below is used."))
+        col.addView(toggleRaw("Closing the Maps pop-up also exits navigation", Prefs.exitOnPopupClose(this)) { Prefs.setExitOnPopupClose(this, it) })
+        col.addView(hint("Needs the Accessibility helper ON. When you close the small Google Maps window, Notif Tiles presses Exit navigation for you (Location then switches off too, if that option is set up). Opening the pop-up to full screen does not end it."))
+        col.addView(toggleRaw("Switch Location off again when navigation ends", Prefs.autoLocationOff(this)) { Prefs.setAutoLocationOff(this, it) })
+        col.addView(hint(if (LocationAuto.canWrite(this)) "Permission granted: Location is switched on and off by Notif Tiles with no pop-up. Location is switched off again once the Google Maps navigation notification is gone (if it was already on before, only with the next switch on)." else "Needs a one-time permission. Without it Android always shows its Turn on pop-up and Location stays on until you switch it off yourself. Run the command below once (Developer options only needed for that moment, you can switch them off afterwards). It stays through every update installed over the old version; only an uninstall removes it."))
+        col.addView(toggleRaw("...even if Location was already on before", Prefs.locOffAlways(this)) { Prefs.setLocOffAlways(this, it) })
+        val locTest = Button(this)
+        locTest.isAllCaps = false
+        locTest.text = "Test: switch Location off now"
+        locTest.setOnClickListener {
+            LocationAuto.testOff(this) { msg -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show() }
+        }
+        col.addView(locTest)
+        if (!LocationAuto.canWrite(this)) {
+            val cp = Button(this)
+            cp.isAllCaps = false
+            cp.text = "Copy the adb command"
+            cp.setOnClickListener {
+                val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("adb", "adb shell pm grant com.example.notiftiles android.permission.WRITE_SECURE_SETTINGS"))
+                Toast.makeText(this, "Copied. Paste it in Termux (adb connected).", Toast.LENGTH_LONG).show()
             }
-            Prefs.setSnoozeUntil(this, until); Extras.tick(this); applyLook(); rebuild()
-        })
-        col.addView(title("Quiet hours", 16f, 20))
-        col.addView(toggleRaw("Keep the widget quiet during these hours", Prefs.quietOn(this)) {
-            Prefs.setQuietOn(this, it); Extras.tick(this); applyLook(); rebuild()
-        })
-        if (Prefs.quietOn(this)) {
-            col.addView(timeRow("From", Prefs.quietStart(this)) { Prefs.setQuietStart(this, it); Extras.tick(this); applyLook(); rebuild() })
-            col.addView(timeRow("Until", Prefs.quietEnd(this)) { Prefs.setQuietEnd(this, it); Extras.tick(this); applyLook(); rebuild() })
+            col.addView(cp)
         }
-
+        val selfCheck = Button(this)
+        selfCheck.isAllCaps = false
+        selfCheck.text = "Self-check: what works and what does not"
+        selfCheck.setOnClickListener {
+            AlertDialog.Builder(this).setTitle("Where to? / Exit / Location").setMessage(LocationAuto.report(this)).setPositiveButton("OK", null).show()
         }
-
-        section("Show / hide items") {
-        col.addView(hint("Switch off anything you do not want to see. Nothing is deleted: switch it on again any time. You can always open Look & colors from the Notif Tiles app itself."))
-        col.addView(title("Widget top row and boxes", 16f, 12))
-        col.addView(toggle("Clock circle", "clock"))
-        col.addView(toggle("Weather circle", "weather"))
-        col.addView(toggle("Date circle", "date"))
-        col.addView(toggle("Maps \"Where to?\" box", "maps"))
-        col.addView(toggle("Fast-dial strip", "dial"))
-        col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
-        col.addView(toggleRaw("Refresh icon (centre of the widget)", Prefs.refreshShow(this)) { Prefs.setRefreshShow(this, it); applyLook() })
-        col.addView(toggleRaw("\"Updated\" time under the refresh icon", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); applyLook() })
-        col.addView(toggleRaw("\"Nothing new\" message", Prefs.showEmptyText(this)) { Prefs.setShowEmptyText(this, it); applyLook() })
-        col.addView(title("Widget header, tiles and panel", 16f, 16))
-        for ((k, label) in Prefs.SHOW_ITEMS) {
-            col.addView(toggleRaw(label, Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); applyLook() })
+        col.addView(selfCheck)
+        val exitTest = Button(this)
+        exitTest.isAllCaps = false
+        exitTest.text = "Test: exit navigation now"
+        exitTest.setOnClickListener {
+            LocationAuto.exitSolid(this) { msg -> Toast.makeText(applicationContext, msg, Toast.LENGTH_LONG).show() }
         }
-
+        col.addView(exitTest)
+        col.addView(toggleRaw("Voice (mic) button", Prefs.voiceButton(this)) { Prefs.setVoiceButton(this, it) })
+        col.addView(toggleRaw("Place suggestions while typing", Prefs.suggestions(this)) { Prefs.setSuggestions(this, it) })
+        col.addView(toggleRaw("Remember recent places", Prefs.rememberPlaces(this)) { Prefs.setRememberPlaces(this, it) })
+        col.addView(placeField("Home address", "home"))
+        col.addView(placeField("Work address", "work"))
+        val clr = Button(this)
+        clr.text = "Clear recent places"
+        clr.isAllCaps = false
+        clr.setOnClickListener {
+            Prefs.clearRecents(this)
+            Toast.makeText(this, "Cleared", Toast.LENGTH_SHORT).show()
         }
-
-        section("Scroll, pages & grouping") {
-        col.addView(title("Scrolling", 16f, 12))
-        col.addView(hint("Scroll = the list moves up and down (as before). My pages = pages you add yourself, each with its own apps and shortcuts, even when there are no messages. Pages = a few tiles at a time: ‹ › buttons under the widget; in the panel you can also swipe left or right. (A home-screen widget cannot be swiped sideways, that is an Android limit.)"))
-        col.addView(choiceRow(listOf("0" to "Scroll up / down", "1" to "Pages", "2" to "My pages"), Prefs.scrollMode(this).toString(), false) {
-            Prefs.setScrollMode(this, it.toInt()); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0)
-            if (it == "2" && Prefs.customPages(this).isEmpty()) Prefs.setCustomPages(this, listOf(CPage("Page 1", emptyList(), emptyList())))
-            applyLook(); rebuild()
-        })
-        if (Prefs.scrollMode(this) == 2) pagesEditor()
-        if (Prefs.scrollMode(this) == 1) {
-            col.addView(seekRange("Tiles per page", Prefs.pageSize(this), 2, 20, "") {
-                Prefs.setPageSize(this, it); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0)
-            })
-        }
-        col.addView(toggleRaw("Endless: pages wrap around, and the widget list repeats", Prefs.loop(this)) { Prefs.setLoop(this, it); applyLook() })
-
-        col.addView(title("Group messages", 16f, 20))
-        col.addView(hint("One tile per chat (as before), or one tile per app that shows all its chats together. Tapping a grouped tile opens its newest chat."))
-        col.addView(choiceRow(listOf("0" to "One tile per chat", "1" to "One tile per app"), Prefs.groupMode(this).toString(), false) {
-            Prefs.setGroupMode(this, it.toInt()); Prefs.setPage(this, "w", 0); Prefs.setPage(this, "p", 0); applyLook(); rebuild()
-        })
-
-        col.addView(title("Order of the tiles", 16f, 20))
-        col.addView(hint("Pinned apps (Apps: pin, mute, colour) always stay first."))
-        col.addView(choiceRow(listOf("0" to "Newest first", "1" to "Oldest first", "2" to "My own order", "3" to "App name A-Z"), Prefs.sortMode(this).toString(), false) {
-            Prefs.setSortMode(this, it.toInt()); applyLook(); rebuild()
-        })
-        if (Prefs.sortMode(this) == 2) {
-            col.addView(hint("Use ▲ ▼ to move an app up or down."))
-            val enabledApps = Prefs.enabled(this).toList()
-            val saved = Prefs.appOrder(this).filter { it in enabledApps }
-            val mine = saved + enabledApps.filter { it !in saved }.sortedBy { Feed.label(this, it).lowercase() }
-            for ((i, pkg) in mine.withIndex()) {
-                val row = LinearLayout(this)
-                row.orientation = LinearLayout.HORIZONTAL
-                row.gravity = Gravity.CENTER_VERTICAL
-                val name = TextView(this)
-                name.text = "${i + 1}.  ${Feed.label(this, pkg)}"
-                name.textSize = 15f
-                row.addView(name, LinearLayout.LayoutParams(0, WRAP, 1f))
-                row.addView(moveButton("▲", i > 0) { moveApp(mine, i, i - 1) })
-                row.addView(moveButton("▼", i < mine.size - 1) { moveApp(mine, i, i + 1) })
-                col.addView(row)
-            }
-        }
+        col.addView(clr)
 
         }
 
-        section("Apps: pin, mute, colour") {
-        col.addView(hint("Pinned apps are listed first. Muted apps are hidden from the widget, the panel and the counts. A colour changes that app's tiles."))
-        val pkgs = Prefs.enabled(this).sortedBy { Feed.label(this, it).lowercase() }
-        if (pkgs.isEmpty()) col.addView(hint("No apps chosen yet. Choose them on the main screen first."))
-        for (p in pkgs) {
-            col.addView(title(Feed.label(this, p), 14f, 12))
-            col.addView(toggleRaw("Pin to top", p in Prefs.pinned(this)) { Prefs.setPinned(this, p, it); applyLook() })
-            col.addView(toggleRaw("Mute", p in Prefs.muted(this)) { Prefs.setMuted(this, p, it); applyLook() })
-            col.addView(swatchRow(bgColors, Prefs.appColor(this, p)) { Prefs.setAppColor(this, p, it); applyLook(); rebuild() })
-        }
-
-        }
-
-        section("Counts") {
-        // ---- Counts
-        col.addView(title("Counts", 16f, 20))
-        col.addView(toggleRaw("Count drops after I read a message here", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
-        col.addView(toggleRaw("Count drops after I reply here", Prefs.countReply(this)) { Prefs.setCountReply(this, it) })
-        col.addView(toggleRaw("Also remove it from the phone's notification panel", Prefs.dismissHandled(this)) { Prefs.setDismissHandled(this, it) })
-        col.addView(hint("The Clear all button (widget and panel) does"))
-        col.addView(choiceRow(listOf("0" to "Clear all", "1" to "Mark all read"), Prefs.clearMode(this).toString(), false) {
-            Prefs.setClearMode(this, it.toInt()); applyLook(); rebuild()
-        })
-        col.addView(hint("Mark all read counts every message as read and, with the option above, clears it from the phone's shade, the same as opening it here. The button then says Read all.\n\nWhen you read, reply to or mark a message as read here, its notification is cleared from the phone's shade too. A new message from the same chat counts again."))
-
-        }
-
+        category("SYSTEM")
         section("Backup & restore") {
             col.addView(hint("Saves all your Look & colors choices, fast-dial contacts, notes and background pictures into one file, so a reinstall does not lose them."))
             val ex = Button(this)
@@ -900,6 +947,7 @@ class SettingsActivity : Activity() {
         } catch (e: Exception) {
             Toast.makeText(this, "No gallery app found", Toast.LENGTH_SHORT).show()
         }
+
     }
 
     @Deprecated("Deprecated in Java")

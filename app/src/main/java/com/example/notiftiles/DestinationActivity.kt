@@ -81,7 +81,7 @@ class DestinationActivity : Activity() {
             return
         }
         if (!LocationAuto.canWrite(this)) {
-            Toast.makeText(this, "Using Google's pop-up: the one-time adb permission is not granted (see Look & colors > Where to? > Self-check)", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Using Google's pop-up: the one-time adb permission is not granted (see Look & colors > Check everything)", Toast.LENGTH_LONG).show()
         } else {
             Toast.makeText(this, "Using Google's pop-up: Android refused the silent Location switch", Toast.LENGTH_LONG).show()
         }
