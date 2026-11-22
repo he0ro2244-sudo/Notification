@@ -1,6 +1,9 @@
-Notif Tiles v0.9.18
+Notif Tiles v0.9.19
 
-LATEST (v0.9.18) - older versions are listed below, newest at the bottom.
+LATEST (v0.9.19) - older versions are listed below, newest at the bottom.
+
+NEW IN v0.9.19: Videos sent in a chat are shown in the opened message card with a play button and play right there (when the chat
+app lets Notif Tiles read the video). If the app only gives a still picture, tapping play opens the chat.
 
 NEW IN v0.9.18: Location is now also switched off after a navigation started from Where to? when it was already on (switch
 "...even if Location was already on before"), and a test button "Test: switch Location off now" in Look & colors > Where to?

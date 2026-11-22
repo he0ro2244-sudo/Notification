@@ -183,6 +183,30 @@ class PanelActivity : Activity() {
         refresh()
     }
 
+    private fun openChat(sbn: StatusBarNotification, msg: String) {
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        try {
+            sbn.notification.contentIntent?.send()
+        } catch (e: Exception) {
+        }
+    }
+
+    // Plays the video inside the card, with the usual play/pause bar.
+    private fun playVideo(box: FrameLayout, uri: android.net.Uri, sbn: StatusBarNotification) {
+        box.removeAllViews()
+        val vv = android.widget.VideoView(this)
+        box.addView(vv, FrameLayout.LayoutParams(MATCH, dp(260)))
+        val mc = android.widget.MediaController(this)
+        mc.setAnchorView(vv)
+        vv.setMediaController(mc)
+        vv.setOnPreparedListener { vv.start() }
+        vv.setOnErrorListener { _, _, _ ->
+            openChat(sbn, "Can't play this video here, opening the app")
+            true
+        }
+        vv.setVideoURI(uri)
+    }
+
     /** "+ Note" with the straight-to-notes-app option on: opens the notes app and closes the panel. */
     private fun openNotesDirect(): Boolean {
         if (!Notes.direct(this) || Notes.keepInApp(this)) return false
@@ -603,23 +627,43 @@ class PanelActivity : Activity() {
             card.addView(m)
         }
 
-        // Photo sent with the message, shown here so you do not have to open the app (when the app provides it).
+        // Photo or video sent with the message, shown (and played) here so you do not have to open the app,
+        // when the app lets us read it.
+        val mediaBox = FrameLayout(this)
+        mediaBox.visibility = View.GONE
         val pic = ImageView(this)
         pic.adjustViewBounds = true
         pic.scaleType = ImageView.ScaleType.FIT_CENTER
         pic.maxHeight = dp(280)
         pic.background = rounded(0x22808080, 12)
         pic.clipToOutline = true
-        pic.visibility = View.GONE
+        mediaBox.addView(pic, FrameLayout.LayoutParams(MATCH, WRAP))
+        val play = TextView(this)
+        play.text = "▶"
+        play.textSize = 30f
+        play.gravity = Gravity.CENTER
+        play.setTextColor(0xFFFFFFFF.toInt())
+        play.background = rounded(0x99000000.toInt(), 32)
+        play.visibility = View.GONE
+        mediaBox.addView(play, FrameLayout.LayoutParams(dp(64), dp(64), Gravity.CENTER))
         val picLp = LinearLayout.LayoutParams(MATCH, WRAP)
         picLp.topMargin = dp(8)
-        card.addView(pic, picLp)
+        card.addView(mediaBox, picLp)
         Thread {
-            val bmp = Feed.picture(this, sbn, 1024)
-            if (bmp != null) {
+            val md = Feed.media(this, sbn, 1024)
+            if (md != null) {
                 runOnUiThread {
-                    pic.setImageBitmap(bmp)
-                    pic.visibility = View.VISIBLE
+                    if (md.bmp != null) pic.setImageBitmap(md.bmp) else pic.minimumHeight = dp(180)
+                    mediaBox.visibility = View.VISIBLE
+                    if (md.isVideo) {
+                        play.visibility = View.VISIBLE
+                        val tap = View.OnClickListener {
+                            val vu = md.videoUri
+                            if (vu != null) playVideo(mediaBox, vu, sbn) else openChat(sbn, "Opening the app to play the video")
+                        }
+                        play.setOnClickListener(tap)
+                        pic.setOnClickListener(tap)
+                    }
                 }
             }
         }.start()

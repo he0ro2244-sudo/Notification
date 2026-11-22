@@ -150,6 +150,53 @@ object Feed {
         return null
     }
 
+    /** A photo or video that came with the message: [bmp] is the picture / first frame, [videoUri] plays the video. */
+    class Media(val bmp: Bitmap?, val videoUri: Uri?, val isVideo: Boolean)
+
+    /**
+     * The newest photo or video of the chat notification, if the app lets us read it. Blocking: call from a
+     * background thread. For a video with a readable file it gives its first frame and the file to play; when the app
+     * only gives a still picture for a video, isVideo is true but videoUri is null.
+     */
+    @Suppress("DEPRECATION")
+    fun media(c: Context, n: StatusBarNotification, maxPx: Int): Media? {
+        try {
+            val arr = n.notification.extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+            if (arr != null) {
+                val msgs = Notification.MessagingStyle.Message.getMessagesFromBundleArray(arr)
+                val videoWord = Regex("🎥|video|فيديو", RegexOption.IGNORE_CASE)
+                for (m in msgs.sortedByDescending { it.timestamp }) {
+                    val uri = m.dataUri ?: continue
+                    val mime = m.dataMimeType ?: continue
+                    if (mime.startsWith("video/")) return Media(frame(c, uri, maxPx), uri, true)
+                    if (mime.startsWith("image/")) {
+                        val b = decode(c, uri, maxPx) ?: continue
+                        return Media(b, null, videoWord.containsMatchIn(m.text?.toString().orEmpty()))
+                    }
+                }
+            }
+        } catch (e: Exception) {
+        }
+        val p = picture(c, n, maxPx) ?: return null
+        return Media(p, null, false)
+    }
+
+    private fun frame(c: Context, uri: Uri, maxPx: Int): Bitmap? {
+        val r = android.media.MediaMetadataRetriever()
+        return try {
+            r.setDataSource(c, uri)
+            val f = r.getFrameAtTime(0, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+            if (f != null && f.width > maxPx) Bitmap.createScaledBitmap(f, maxPx, f.height * maxPx / f.width, true) else f
+        } catch (e: Exception) {
+            null
+        } finally {
+            try {
+                r.release()
+            } catch (e: Exception) {
+            }
+        }
+    }
+
     private fun decode(c: Context, uri: Uri, maxPx: Int): Bitmap? {
         return try {
             val bounds = BitmapFactory.Options()
