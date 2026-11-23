@@ -222,6 +222,10 @@ class QuickActivity : Activity() {
         nameIt(def) { n -> save(Quick("sc", n, pkg, uri)) }
     }
 
+    private fun saveChain(pkg: String, uris: List<String>, def: String) {
+        nameIt(def) { n -> save(Quick("sc", n, pkg, uris.joinToString("\n"))) }
+    }
+
     private fun askText(title: String, hint: String, done: (String) -> Unit) {
         val et = EditText(this)
         et.hint = hint
@@ -247,8 +251,7 @@ class QuickActivity : Activity() {
         val gm = "com.google.android.gm"
         val tm = "com.microsoft.teams"
         val presets = listOf(
-            Preset("Instagram: Camera", ig, "instagram://camera", "", "Camera"),
-            Preset("Instagram: Story camera", ig, "instagram://story-camera", "", "Story"),
+            Preset("Instagram: Camera (tries several ways)", ig, "", "igcam", "Camera"),
             Preset("Instagram: Messages", ig, "instagram://direct-inbox", "", "Messages"),
             Preset("Instagram: Feed", ig, "instagram://mainfeed", "", "Feed"),
             Preset("Instagram: Explore", ig, "instagram://explore", "", "Explore"),
@@ -268,6 +271,11 @@ class QuickActivity : Activity() {
             val p = presets[w]
             when (p.ask) {
                 "" -> saveLink(p.pkg, p.link, p.name)
+                "igcam" -> saveChain(p.pkg, listOf(
+                    Intent(Intent.ACTION_VIEW, android.net.Uri.parse("instagram://story-camera")).setPackage(p.pkg).toUri(Intent.URI_INTENT_SCHEME),
+                    Intent(Intent.ACTION_VIEW, android.net.Uri.parse("instagram://camera")).setPackage(p.pkg).toUri(Intent.URI_INTENT_SCHEME),
+                    Intent("com.instagram.share.ADD_TO_STORY").setPackage(p.pkg).setType("image/*").toUri(Intent.URI_INTENT_SCHEME)
+                ), p.name)
                 "phone" -> askText("Phone number with country code", "e.g. 966501234567") { num ->
                     val digits = num.filter { it.isDigit() }
                     if (digits.isEmpty()) finish() else saveLink(p.pkg, p.link + digits, p.name)
@@ -377,13 +385,24 @@ class QuickActivity : Activity() {
     companion object {
         private const val REQ_SC = 1
 
+        /** A shortcut can hold several ways to reach one screen (one per line): the first one the app understands is used; if none, the app itself opens. */
+        private fun chainIntent(ctx: android.content.Context, q: Quick): Intent {
+            val parts = q.target.split("\n").filter { it.isNotBlank() }
+            if (parts.size <= 1) return Intent.parseUri(q.target, 0)
+            for (t in parts) {
+                val ii = try { Intent.parseUri(t, 0) } catch (e: Exception) { continue }
+                if (ctx.packageManager.resolveActivity(ii, 0) != null) return ii
+            }
+            return ctx.packageManager.getLaunchIntentForPackage(q.pkg) ?: throw IllegalStateException("app gone")
+        }
+
         /** Opens what a shortcut points at (an app, one screen of an app, or an app's own shortcut). */
         fun go(ctx: android.content.Context, q: Quick) {
             try {
                 val i: Intent = when (q.type) {
                     "app" -> ctx.packageManager.getLaunchIntentForPackage(q.pkg) ?: throw IllegalStateException("app gone")
                     "act" -> Intent().setComponent(ComponentName(q.pkg, q.target))
-                    else -> Intent.parseUri(q.target, 0)
+                    else -> chainIntent(ctx, q)
                 }
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 ctx.startActivity(i)

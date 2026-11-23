@@ -1,3 +1,5 @@
+NEW IN v1.0.3: "Instagram: Camera (tries several ways)" in the Link choice: it tries Instagram's story-camera link, then its camera link, then its story share screen, and opens Instagram itself if none is understood. Shortcuts made earlier keep working as before.
+
 NEW IN v1.0.2: The Link choice has ready-made entries for Instagram (camera, story camera, messages, feed, explore), Facebook (feed, notifications, profile), Snapchat (camera, add a friend), WhatsApp (chat with a number), Gmail (new email, write to an address) and Teams (open, chat with an email), plus "Type my own link". Some links may not work on every phone or app version.
 
 NEW IN v1.0.1: Adding a shortcut has a 4th choice, "Link": open one screen of an app through a link (ready-made: Instagram Camera, Instagram Feed, WhatsApp chat with a number; or type your own link). Everything else is unchanged.
