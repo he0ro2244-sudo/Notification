@@ -51,7 +51,7 @@ class MoveActivity : Activity() {
         col.addView(heading)
 
         val hint = TextView(this)
-        hint.text = "Press and drag any item of the widget to any place, then let go. Every item (clock, date, weather, Where to?, each fast-dial circle, each shortcut circle, title, count, mic, + Note, Clear all, pencil, gear) stays exactly where you drop it. Drag the bar \"Messages start here\" to choose where the message tiles begin. While you drag, an item clicks into line with its neighbours (same height, same left or right edge) when it is close. "Tidy up" lines up whole rows for you. A hidden item is shown again in Arrange & resize first."
+        hint.text = "Press and drag any item of the widget to any place, then let go. Every item (clock, date, weather, Where to?, each fast-dial circle, each shortcut circle, title, count, mic, + Note, Clear all, pencil, gear) stays exactly where you drop it. Drag the bar \"Messages start here\" to choose where the message tiles begin. While you drag, an item clicks into line with its neighbours (same height, same left or right edge) when it is close. \"Tidy up\" lines up whole rows for you. A hidden item is shown again in Arrange & resize first."
         hint.textSize = 13f
         hint.alpha = 0.7f
         hint.setPadding(0, dp(2), 0, dp(6))
