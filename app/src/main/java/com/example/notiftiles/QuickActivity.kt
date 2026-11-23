@@ -251,7 +251,8 @@ class QuickActivity : Activity() {
         val gm = "com.google.android.gm"
         val tm = "com.microsoft.teams"
         val presets = listOf(
-            Preset("Instagram: Camera (tries several ways)", ig, "", "igcam", "Camera"),
+            Preset("Instagram: Story screen (test)", ig, "", "igstory", "Story"),
+            Preset("Instagram: Share / new post (test)", ig, "instagram://share", "", "New post"),
             Preset("Instagram: Messages", ig, "instagram://direct-inbox", "", "Messages"),
             Preset("Instagram: Feed", ig, "instagram://mainfeed", "", "Feed"),
             Preset("Instagram: Explore", ig, "instagram://explore", "", "Explore"),
@@ -271,9 +272,7 @@ class QuickActivity : Activity() {
             val p = presets[w]
             when (p.ask) {
                 "" -> saveLink(p.pkg, p.link, p.name)
-                "igcam" -> saveChain(p.pkg, listOf(
-                    Intent(Intent.ACTION_VIEW, android.net.Uri.parse("instagram://story-camera")).setPackage(p.pkg).toUri(Intent.URI_INTENT_SCHEME),
-                    Intent(Intent.ACTION_VIEW, android.net.Uri.parse("instagram://camera")).setPackage(p.pkg).toUri(Intent.URI_INTENT_SCHEME),
+                "igstory" -> saveChain(p.pkg, listOf(
                     Intent("com.instagram.share.ADD_TO_STORY").setPackage(p.pkg).setType("image/*").toUri(Intent.URI_INTENT_SCHEME)
                 ), p.name)
                 "phone" -> askText("Phone number with country code", "e.g. 966501234567") { num ->
