@@ -17,7 +17,7 @@ import kotlin.math.abs
 
 /**
  * Move: shows the real widget and lets you press and drag any item (clock, date, weather, Where to?, title, count,
- * mic, + Note, Clear all, pencil, gear) into the top row or the Inbox row. The item goes where you let go, the
+ * mic, + Note, Clear all, pencil, gear) into either row and reorder it between existing items. The item goes where you let go, the
  * change is saved at once and the widget on the home screen follows.
  */
 class MoveActivity : Activity() {
@@ -43,7 +43,7 @@ class MoveActivity : Activity() {
         col.addView(heading)
 
         val hint = TextView(this)
-        hint.text = "Press and drag an item of the widget onto the top row or the Inbox row, then let go. It moves to that place at once. A hidden item is shown again in Arrange & resize first."
+        hint.text = "Drag any item into either row. Drop between items to choose its exact left-to-right position; items can be moved and reordered freely between the Top row and Inbox row. Changes save immediately. Hidden items must be shown in Arrange & resize first."
         hint.textSize = 13f
         hint.alpha = 0.7f
         hint.setPadding(0, dp(2), 0, dp(6))
@@ -86,7 +86,7 @@ class MoveActivity : Activity() {
         }
         val view: View
         try {
-            view = TilesWidget.build(applicationContext, ids[0]).apply(this, holder)
+            view = TilesWidget.build(this, ids[0]).apply(this, holder)
         } catch (e: Throwable) {
             android.util.Log.e("NotifTilesMove", "Could not draw the widget preview", e)
             showNote("The widget could not be drawn here: $e")
@@ -223,7 +223,9 @@ class MoveActivity : Activity() {
             c.getLocationOnScreen(loc)
             kids.add(k to (loc[0] + c.width / 2f))
         }
-        val index = kids.count { it.second < cx }
+        // Pick the insertion point by the nearest visible item's center. This makes drops
+        // between items deterministic, including when the widget is scaled in this preview.
+        val index = kids.indexOfFirst { it.second >= cx }.let { if (it < 0) kids.size else it }
 
         val rows = Prefs.rows(this)
         val oldTop = rows["top"] ?: emptyList()
