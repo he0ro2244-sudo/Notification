@@ -745,9 +745,18 @@ class PanelActivity : Activity() {
         x.setOnClickListener {
             // Like swiping it away: hidden for now (apps that re-post, like WhatsApp, cannot bring it back), but not read.
             // A newer message shows again together with the older unread ones. The panel closes.
+            if (count > 1) {
+                // Several chats of this app on one tile: the x hides all of them together, like swiping the whole app away.
+                val all = Feed.items(this, true).filter { it.packageName == sbn.packageName }
+                for (o in all) Feed.markDismissed(this, o, Feed.handledStamp(o))
+                val keys = (all.map { it.key } + sbn.key).distinct().toTypedArray()
+                ActionLog.add(this, "x on " + Feed.label(this, sbn.packageName) + ": all " + keys.size + " chats of this app hidden like a swipe, nothing marked read, panel closed")
+                NotifListener.instance?.cancelNotifications(keys)
+            } else {
             Feed.markDismissed(this, sbn, Feed.handledStamp(sbn))
             ActionLog.add(this, "x on " + Feed.label(this, sbn.packageName) + ": hidden like a swipe, nothing marked read, panel closed")
             NotifListener.instance?.cancelNotification(sbn.key)
+            }
             viewing = null
             expanded = null
             TilesWidget.refresh(applicationContext)
@@ -936,6 +945,19 @@ class PanelActivity : Activity() {
             for (a in others) {
                 bar.addView(pill(a.title.toString(), fg, bg, false) { runAction(sbn, a) }, blp())
             }
+        }
+        // Apps like Teams give no "Mark as read" button of their own: offer one here (hides this chat, like the app's own button would).
+        val hasRead = actions.any { a -> a.title.toString().lowercase().let { it.contains("read") && !it.contains("unread") } }
+        if (!snap && !hasRead) {
+            bar.addView(pill("Mark as read", fg, bg, false) {
+                ActionLog.add(this, "Mark as read (own button) on " + Feed.label(this, sbn.packageName) + ": chat marked done and hidden")
+                Feed.markDone(this, sbn, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
+                dismissFromShade(sbn, 800L)
+                if (viewing?.key == sbn.key) viewing = null
+                expanded = null
+                TilesWidget.refresh(applicationContext)
+                finish()
+            }, blp())
         }
         bar.addView(pill(if (snap) "Open Snapchat" else "Open", fg, bg, false) { open(sbn) }, blp())
         if (count > 1) {

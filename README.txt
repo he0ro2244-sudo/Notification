@@ -1,3 +1,7 @@
+NEW IN v0.9.50: (1) Apps with no "Mark as read" button of their own (Teams, ...) now get one in the panel. (2) When one tile holds several
+chats of an app (e.g. 4 from Gmail), the x on the opened card now hides all of them together (before it hid only the one shown, so the
+panel kept coming back until each was dismissed). Nothing else changed.
+
 NEW IN v0.9.49: Borders are now separate. Look & colors > Borders has three groups (Panel, Message tiles, Widget), each with its own
 switch, thickness and colour. Until you change one it keeps the value you had before, so nothing looks different. Picking a theme
 still sets the borders for all three. Nothing else changed.
