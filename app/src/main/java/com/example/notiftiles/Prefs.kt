@@ -84,6 +84,24 @@ object Prefs {
         saveNotes(c, notes(c).filter { it.id != id })
     }
 
+    // ---- Shortcuts row under the fast dial (5 slots): an app, an activity of an app, or a Nova-style shortcut ----
+    const val QUICK_SLOTS = 5
+    fun quickOn(c: Context): Boolean = sp(c).getBoolean("quick_on", false)
+    fun setQuickOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("quick_on", v).apply()
+    fun quick(c: Context, i: Int): Quick? {
+        val t = sp(c).getString("quick_$i", null) ?: return null
+        return try {
+            val o = org.json.JSONObject(t)
+            Quick(o.optString("t"), o.optString("n"), o.optString("p"), o.optString("g"))
+        } catch (e: Exception) {
+            null
+        }
+    }
+    fun setQuick(c: Context, i: Int, q: Quick) = sp(c).edit().putString(
+        "quick_$i", org.json.JSONObject().put("t", q.type).put("n", q.name).put("p", q.pkg).put("g", q.target).toString()
+    ).apply()
+    fun clearQuick(c: Context, i: Int) = sp(c).edit().remove("quick_$i").apply()
+
     // ---- Fast dial (5 slots) ----
     const val DIAL_SLOTS = 5
 

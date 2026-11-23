@@ -68,6 +68,7 @@ class SettingsActivity : Activity() {
         scroll.addView(col)
         setContentView(scroll)
         build()
+        applyFilter()
     }
 
     override fun onRestart() {
@@ -79,6 +80,7 @@ class SettingsActivity : Activity() {
         val y = scroll.scrollY
         col.removeAllViews()
         build()
+        applyFilter()
         scroll.post { scroll.scrollTo(0, y) }
     }
 
@@ -126,10 +128,95 @@ class SettingsActivity : Activity() {
         h.alpha = 0.6f
         h.setPadding(dp(4), dp(22), dp(4), dp(0))
         col.addView(h)
+        catViews.add(h)
+    }
+
+    // ---- Search: while something is typed, every group is built and only the matching rows stay visible.
+    private var query = ""
+    private class Grp(val header: View, val rows: List<View>)
+    private val grps = ArrayList<Grp>()
+    private val topViews = ArrayList<View>()
+    private val catViews = ArrayList<View>()
+    private var noResults: TextView? = null
+
+    private val searchBox: android.widget.EditText by lazy {
+        android.widget.EditText(this).apply {
+            hint = "Search settings…"
+            isSingleLine = true
+            inputType = android.text.InputType.TYPE_CLASS_TEXT
+            imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
+            background = rounded(0x1F808080, 12)
+            setPadding(dp(14), dp(12), dp(14), dp(12))
+            setOnEditorActionListener { v, _, _ ->
+                v.clearFocus()
+                (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                    .hideSoftInputFromWindow(v.windowToken, 0)
+                true
+            }
+            addTextChangedListener(object : android.text.TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
+                override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {}
+                override fun afterTextChanged(s: android.text.Editable?) {
+                    val was = query.isNotBlank()
+                    query = s?.toString()?.trim() ?: ""
+                    val now = query.isNotBlank()
+                    if (was != now) {
+                        // Switching between the normal list and the search list: build it again, keep typing.
+                        scroll.post {
+                            rebuild()
+                            scroll.post { scroll.scrollTo(0, 0) }
+                            searchBox.requestFocus()
+                            searchBox.setSelection(searchBox.text.length)
+                        }
+                    } else if (now) {
+                        applyFilter()
+                    }
+                }
+            })
+        }
+    }
+
+    private fun textOf(v: View): String {
+        val sb = StringBuilder()
+        fun walk(x: View) {
+            if (x is TextView) {
+                sb.append(x.text).append(' ')
+                if (x.text.isNullOrEmpty()) sb.append(x.hint ?: "").append(' ')
+            }
+            if (x is ViewGroup) for (i in 0 until x.childCount) walk(x.getChildAt(i))
+        }
+        walk(v)
+        return sb.toString().lowercase()
+    }
+
+    private fun applyFilter() {
+        if (query.isBlank()) return
+        val q = query.lowercase()
+        for (v in topViews) v.visibility = View.GONE
+        for (v in catViews) v.visibility = View.GONE
+        var any = false
+        for (g in grps) {
+            val headHit = textOf(g.header).contains(q)
+            var showRest = false
+            var visible = 0
+            for (r in g.rows) {
+                val t = textOf(r)
+                val hit = headHit || t.contains(q)
+                // A row with no text of its own (colour circles, ...) belongs to the matching row above it.
+                val show = hit || (t.isBlank() && showRest)
+                showRest = if (t.isNotBlank()) hit else showRest
+                r.visibility = if (show) View.VISIBLE else View.GONE
+                if (show) visible++
+            }
+            val showHead = headHit || visible > 0
+            g.header.visibility = if (showHead) View.VISIBLE else View.GONE
+            if (showHead) any = true
+        }
+        noResults?.visibility = if (any) View.GONE else View.VISIBLE
     }
 
     private fun section(name: String, body: () -> Unit) {
-        val open = name in openSections
+        val open = query.isNotBlank() || name in openSections
         val h = TextView(this)
         h.text = (if (open) "▾  " else "▸  ") + name
         h.textSize = 17f
@@ -137,13 +224,18 @@ class SettingsActivity : Activity() {
         h.setPadding(dp(14), dp(14), dp(14), dp(14))
         h.background = rounded(0x1F808080, 12)
         h.setOnClickListener {
+            if (query.isNotBlank()) return@setOnClickListener
             if (open) openSections.remove(name) else openSections.add(name)
             rebuild()
         }
         val lp = LinearLayout.LayoutParams(MATCH, WRAP)
         lp.topMargin = dp(12)
         col.addView(h, lp)
-        if (open) body()
+        if (open) {
+            val start = col.childCount
+            body()
+            if (query.isNotBlank()) grps.add(Grp(h, (start until col.childCount).map { col.getChildAt(it) }))
+        }
     }
 
     private fun build() {
@@ -154,6 +246,15 @@ class SettingsActivity : Activity() {
         } catch (e: Exception) {
         }
 
+        grps.clear(); topViews.clear(); catViews.clear()
+        col.addView(searchBox, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
+        noResults = TextView(this).apply {
+            text = "No settings match that."
+            visibility = View.GONE
+            setPadding(dp(4), dp(16), dp(4), dp(0))
+        }
+        col.addView(noResults)
+        val topStart = col.childCount
         col.addView(hint("Tap a group to open or close it. Groups: Look, Widget and panel, Messages, Tools, System."))
         val chkAll = Button(this)
         chkAll.isAllCaps = false
@@ -177,6 +278,8 @@ class SettingsActivity : Activity() {
             }
         }
         col.addView(btnSnap)
+
+        for (i in topStart until col.childCount) topViews.add(col.getChildAt(i))
 
         category("LOOK")
         section("Themes & accent colour") {
@@ -514,8 +617,42 @@ class SettingsActivity : Activity() {
 
         }
 
+        section("Shortcuts row (under fast dial)") {
+        col.addView(hint("A second row of circles under the fast dial. Each circle can open an app, one screen (activity) inside an app, or a shortcut an app offers (like a direct WhatsApp chat). Tap the Add circle on the widget, or use Pick here. Circle size, colour, shape and names follow the fast-dial settings."))
+        col.addView(toggleRaw("Show the shortcuts row", Prefs.quickOn(this)) { Prefs.setQuickOn(this, it); applyLook() })
+        for (i in 0 until Prefs.QUICK_SLOTS) {
+            val q = Prefs.quick(this, i)
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+            val label = TextView(this)
+            label.text = "${i + 1}.  " + (if (q == null) "Empty" else q.name + "  (" + (when (q.type) { "app" -> "app"; "act" -> "screen"; else -> "shortcut" }) + ")")
+            label.textSize = 15f
+            row.addView(label, LinearLayout.LayoutParams(0, WRAP, 1f))
+            val ch = Button(this)
+            ch.isAllCaps = false
+            ch.text = if (q == null) "Pick" else "Change"
+            ch.setOnClickListener {
+                startActivity(Intent(this, QuickActivity::class.java).putExtra("slot", i).putExtra("pick", true))
+            }
+            row.addView(ch)
+            if (q != null) {
+                val cl = Button(this)
+                cl.isAllCaps = false
+                cl.text = "Clear"
+                cl.setOnClickListener {
+                    Prefs.clearQuick(this, i)
+                    applyLook()
+                    rebuild()
+                }
+                row.addView(cl)
+            }
+            col.addView(row)
+        }
+        }
+
         category("MESSAGES")
-        section("Pages, scrolling & grouping") {
+        section("Pages, shortcuts & grouping") {
         col.addView(title("Scrolling", 16f, 12))
         col.addView(hint("Scroll = the list moves up and down (as before). My pages = pages you add yourself, each with its own apps and shortcuts, even when there are no messages. Pages = a few tiles at a time: ‹ › buttons under the widget; in the panel you can also swipe left or right. (A home-screen widget cannot be swiped sideways, that is an Android limit.)"))
         col.addView(choiceRow(listOf("0" to "Scroll up / down", "1" to "Pages", "2" to "My pages"), Prefs.scrollMode(this).toString(), false) {

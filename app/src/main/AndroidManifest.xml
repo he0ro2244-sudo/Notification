@@ -18,6 +18,9 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <intent>
+            <action android:name="android.intent.action.CREATE_SHORTCUT" />
+        </intent>
         <package android:name="com.google.android.apps.maps" />
         <intent>
             <action android:name="android.intent.action.SEND" />
@@ -83,6 +86,13 @@
 
         <activity
             android:name=".DialActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".QuickActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:taskAffinity=""

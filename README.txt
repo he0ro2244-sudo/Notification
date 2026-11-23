@@ -1,3 +1,11 @@
+NEW IN v0.9.52: Shortcuts row under the fast dial (Settings > Widget and panel > "Shortcuts row (under fast dial)"). Up to 5 circles; each
+can open an app, one screen (activity) inside an app, or a shortcut an app offers (Nova style, e.g. a direct WhatsApp chat). Tap the
+Add circle on the widget (or Pick in settings) and choose App / Activity / Shortcut. Off until you add the first one. Nothing else changed.
+
+NEW IN v0.9.51: Search box at the top of Look & colors: type a word and only the matching settings show (all groups are searched,
+the others hide). Clear the box to go back. The group "Pages, scrolling & grouping" is now called "Pages, shortcuts & grouping"
+because that is where app shortcuts for the panel and widget are added (My pages > Shortcuts). Nothing else changed.
+
 NEW IN v0.9.50: (1) Apps with no "Mark as read" button of their own (Teams, ...) now get one in the panel. (2) When one tile holds several
 chats of an app (e.g. 4 from Gmail), the x on the opened card now hides all of them together (before it hid only the one shown, so the
 panel kept coming back until each was dismissed). Nothing else changed.

@@ -133,6 +133,20 @@ class TilesWidget : AppWidgetProvider() {
         private val DIAL_CIRCLE = intArrayOf(R.id.dc0, R.id.dc1, R.id.dc2, R.id.dc3, R.id.dc4)
         private val DIAL_NAME = intArrayOf(R.id.dn0, R.id.dn1, R.id.dn2, R.id.dn3, R.id.dn4)
         private val DIAL_BOX = intArrayOf(R.id.dial0, R.id.dial1, R.id.dial2, R.id.dial3, R.id.dial4)
+        private val Q_CIRCLE = intArrayOf(R.id.qc0, R.id.qc1, R.id.qc2, R.id.qc3, R.id.qc4)
+        private val Q_ICON = intArrayOf(R.id.qi0, R.id.qi1, R.id.qi2, R.id.qi3, R.id.qi4)
+        private val Q_NAME = intArrayOf(R.id.qn0, R.id.qn1, R.id.qn2, R.id.qn3, R.id.qn4)
+        private val Q_BOX = intArrayOf(R.id.quick0, R.id.quick1, R.id.quick2, R.id.quick3, R.id.quick4)
+
+        private fun appIconBitmap(ctx: Context, pkg: String): android.graphics.Bitmap? = try {
+            val d = ctx.packageManager.getApplicationIcon(pkg)
+            val b = android.graphics.Bitmap.createBitmap(96, 96, android.graphics.Bitmap.Config.ARGB_8888)
+            d.setBounds(0, 0, 96, 96)
+            d.draw(android.graphics.Canvas(b))
+            b
+        } catch (e: Exception) {
+            null
+        }
 
         fun build(ctx: Context, id: Int): RemoteViews {
             val rv = RemoteViews(ctx.packageName, R.layout.widget_tiles)
@@ -185,6 +199,14 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setOnClickPendingIntent(
                     DIAL_BOX[i],
                     PendingIntent.getActivity(ctx, 10 + i, dial, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                )
+            }
+            for (i in 0 until Prefs.QUICK_SLOTS) {
+                val qi = Intent(ctx, QuickActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra("slot", i)
+                rv.setOnClickPendingIntent(
+                    Q_BOX[i],
+                    PendingIntent.getActivity(ctx, 60 + i, qi, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
                 )
             }
             val wx = Intent(ctx, OpenWeatherActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -401,6 +423,46 @@ class TilesWidget : AppWidgetProvider() {
                 val dn = Prefs.partColor(ctx, "dialnames")
                 rv.setTextColor(DIAL_NAME[i], if (ownText != 0) ownText else if (dn != 0) dn else sub)
                 rv.setViewVisibility(DIAL_NAME[i], if (showNames) View.VISIBLE else View.GONE)
+            }
+            // ---- Shortcuts row under the fast dial (off until switched on; filled slots + one "Add")
+            val qOn = Prefs.quickOn(ctx)
+            rv.setViewVisibility(R.id.quickwrap, if (qOn) View.VISIBLE else View.GONE)
+            if (qOn) {
+                val qdbg = Prefs.dialBg(ctx)
+                val qTint = if (qdbg != 0) ((Prefs.dialBgAlpha(ctx) * 255 / 100) shl 24) or (qdbg and 0xFFFFFF) else 0
+                rv.setColorStateList(R.id.quickwrap, "setBackgroundTintList", ColorStateList.valueOf(qTint))
+                var addShown = false
+                for (i in 0 until Prefs.QUICK_SLOTS) {
+                    val q = Prefs.quick(ctx, i)
+                    val has = q != null
+                    val show = has || !addShown
+                    if (!has) addShown = true
+                    rv.setViewVisibility(Q_BOX[i], if (show) View.VISIBLE else View.INVISIBLE)
+                    val st = if (has) filled else empty
+                    val bgc = if (dc != 0) dc else st.bg(dark)
+                    val letterC = Prefs.partColor(ctx, "dialletter")
+                    val fgc = if (letterC != 0) letterC else if (dc != 0) Look.contrast(dc) else st.fg(dark)
+                    val icon = if (q != null) appIconBitmap(ctx, q.pkg) else null
+                    val initial = if (q == null) "+" else if (icon != null) "" else q.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "•"
+                    txt(rv, ctx, Q_CIRCLE[i], initial, 18f, true)
+                    rv.setTextColor(Q_CIRCLE[i], fgc)
+                    rv.setColorStateList(Q_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(bgc))
+                    rv.setInt(Q_CIRCLE[i], "setBackgroundResource", shapeRes)
+                    rv.setViewLayoutWidth(Q_CIRCLE[i], dsize, TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutHeight(Q_CIRCLE[i], dsize, TypedValue.COMPLEX_UNIT_DIP)
+                    if (icon != null) {
+                        rv.setImageViewBitmap(Q_ICON[i], icon)
+                        rv.setViewLayoutWidth(Q_ICON[i], dsize * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
+                        rv.setViewLayoutHeight(Q_ICON[i], dsize * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
+                        rv.setViewVisibility(Q_ICON[i], View.VISIBLE)
+                    } else {
+                        rv.setViewVisibility(Q_ICON[i], View.GONE)
+                    }
+                    txt(rv, ctx, Q_NAME[i], q?.name ?: "Add", 10f, false)
+                    val dn = Prefs.partColor(ctx, "dialnames")
+                    rv.setTextColor(Q_NAME[i], if (dn != 0) dn else sub)
+                    rv.setViewVisibility(Q_NAME[i], if (showNames) View.VISIBLE else View.GONE)
+                }
             }
             applyItems(rv, ctx, sub)
         }
