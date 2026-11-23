@@ -43,21 +43,37 @@ object ActionLog {
         sp(c).edit().remove("log").apply()
     }
 
+    private fun failedOnly(t: String): String = t.split("\n").filter { it.contains("fail", ignoreCase = true) }.joinToString("\n")
+
     fun show(a: Activity) {
-        val t = text(a)
+        val all = text(a)
+        var only = true
+        fun shown(): String {
+            val t = if (only) failedOnly(all) else all
+            return if (t.isEmpty()) (if (all.isEmpty()) "Nothing yet. Press buttons in the panel (x, Open, Reply, View, Like...) and come back here." else "No failures. Untick \"Failed only\" to see everything.") else t
+        }
         val tv = TextView(a)
-        tv.text = if (t.isEmpty()) "Nothing yet. Press buttons in the panel (x, Open, Reply, View, Like...) and come back here." else t
+        tv.text = shown()
         tv.typeface = Typeface.MONOSPACE
         tv.textSize = 12f
         tv.setTextIsSelectable(true)
         tv.setPadding(40, 24, 40, 24)
+        val cb = android.widget.CheckBox(a)
+        cb.text = "Failed only"
+        cb.isChecked = true
+        cb.setPadding(40, 16, 40, 0)
+        cb.setOnCheckedChangeListener { _, on -> only = on; tv.text = shown() }
         val sv = ScrollView(a)
         sv.addView(tv)
-        AlertDialog.Builder(a).setTitle("Button log").setView(sv)
+        val box = android.widget.LinearLayout(a)
+        box.orientation = android.widget.LinearLayout.VERTICAL
+        box.addView(cb)
+        box.addView(sv)
+        AlertDialog.Builder(a).setTitle("Button log").setView(box)
             .setPositiveButton("Close", null)
             .setNeutralButton("Copy") { _, _ ->
                 val cm = a.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                cm.setPrimaryClip(ClipData.newPlainText("Button log", text(a)))
+                cm.setPrimaryClip(ClipData.newPlainText("Button log", if (only) failedOnly(all) else all))
                 Toast.makeText(a, "Copied", Toast.LENGTH_SHORT).show()
             }
             .setNegativeButton("Clear") { _, _ -> clear(a) }

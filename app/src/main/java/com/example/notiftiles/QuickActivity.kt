@@ -50,7 +50,7 @@ class QuickActivity : Activity() {
     private fun chooseKind() {
         AlertDialog.Builder(this)
             .setTitle(if (forPkg.isNotEmpty()) "Add a shortcut for " + Feed.label(this, forPkg) else "Add to shortcuts row")
-            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut (app shortcuts and chat/contact shortcuts, all in one list)")) { _, w ->
+            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut")) { _, w ->
                 when (w) {
                     0 -> pickApp { pkg -> nameIt(Feed.label(this, pkg)) { n -> save(Quick("app", n, pkg, "")) } }
                     1 -> pickApp { pkg -> pickActivity(pkg) }
@@ -59,6 +59,38 @@ class QuickActivity : Activity() {
             }
             .setOnCancelListener { finish() }
             .show()
+    }
+
+    /** A list with a search box on top. Typing filters the lines; tapping one calls onPick with its index in `lines`. */
+    private fun pickFrom(title: String, lines: List<String>, onPick: (Int) -> Unit) {
+        val box = android.widget.LinearLayout(this)
+        box.orientation = android.widget.LinearLayout.VERTICAL
+        box.setPadding(40, 8, 40, 0)
+        val et = EditText(this)
+        et.hint = "Search"
+        et.isSingleLine = true
+        val lv = android.widget.ListView(this)
+        val shown = ArrayList(lines.indices.toList())
+        val ad = android.widget.ArrayAdapter(this, android.R.layout.simple_list_item_1, ArrayList(lines))
+        lv.adapter = ad
+        box.addView(et)
+        val h = (resources.displayMetrics.heightPixels * 0.55).toInt()
+        box.addView(lv, android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, h))
+        et.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val q = s.toString().trim().lowercase()
+                shown.clear()
+                ad.clear()
+                for (i in lines.indices) if (q.isEmpty() || lines[i].lowercase().contains(q)) { shown.add(i); ad.add(lines[i]) }
+                ad.notifyDataSetChanged()
+            }
+        })
+        val dlg = AlertDialog.Builder(this).setTitle(title).setView(box)
+            .setOnCancelListener { finish() }
+            .show()
+        lv.setOnItemClickListener { _, _, pos, _ -> dlg.dismiss(); onPick(shown[pos]) }
     }
 
     private fun launcherApps(): List<String> {
@@ -70,10 +102,7 @@ class QuickActivity : Activity() {
     private fun pickApp(done: (String) -> Unit) {
         val all = launcherApps()
         if (all.isEmpty()) { toast("No apps found"); finish(); return }
-        AlertDialog.Builder(this).setTitle("Choose an app")
-            .setItems(all.map { Feed.label(this, it) }.toTypedArray()) { _, w -> done(all[w]) }
-            .setOnCancelListener { finish() }
-            .show()
+        pickFrom("Choose an app", all.map { Feed.label(this, it) }) { w -> done(all[w]) }
     }
 
     @Suppress("DEPRECATION")
@@ -88,14 +117,11 @@ class QuickActivity : Activity() {
             .sortedBy { it.second.lowercase() }
         if (acts.isEmpty()) { toast("This app has no screens that can be opened from here"); finish(); return }
         val lines = acts.map { (ai, lbl) -> lbl + "  ·  " + ai.name.substringAfterLast('.') }
-        AlertDialog.Builder(this).setTitle(Feed.label(this, pkg) + ": choose a screen")
-            .setItems(lines.toTypedArray()) { _, w ->
-                val (ai, lbl) = acts[w]
-                val def = if (lbl.isBlank() || lbl == Feed.label(this, pkg)) ai.name.substringAfterLast('.') else lbl
-                nameIt(def) { n -> save(Quick("act", n, pkg, ai.name)) }
-            }
-            .setOnCancelListener { finish() }
-            .show()
+        pickFrom(Feed.label(this, pkg) + ": choose a screen", lines) { w ->
+            val (ai, lbl) = acts[w]
+            val def = if (lbl.isBlank() || lbl == Feed.label(this, pkg)) ai.name.substringAfterLast('.') else lbl
+            nameIt(def) { n -> save(Quick("act", n, pkg, ai.name)) }
+        }
     }
 
     private class StaticSc(val label: String, val uri: String)
@@ -173,10 +199,7 @@ class QuickActivity : Activity() {
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
                 if (items.isEmpty()) { toast("No app offers shortcuts here"); finish(); return@runOnUiThread }
-                AlertDialog.Builder(this).setTitle("Choose a shortcut")
-                    .setItems(items.map { it.first }.toTypedArray()) { _, w -> items[w].second() }
-                    .setOnCancelListener { finish() }
-                    .show()
+                pickFrom("Choose a shortcut", items.map { it.first }) { w -> items[w].second() }
             }
         }.start()
     }
