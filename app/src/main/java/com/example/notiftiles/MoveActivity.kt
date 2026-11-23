@@ -84,20 +84,31 @@ class MoveActivity : Activity() {
             showNote("Add the NotifTiles widget to your home screen first, then come back here.")
             return
         }
+        val view: View
         try {
-            val rv = TilesWidget.build(applicationContext, ids[0])
-            val view = rv.apply(this, holder)
-            val h = mgr.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0).coerceAtLeast(260)
-            holder.addView(view, FrameLayout.LayoutParams(MATCH, dp(h)))
+            view = TilesWidget.build(applicationContext, ids[0]).apply(this, holder)
+        } catch (e: Throwable) {
+            android.util.Log.e("NotifTilesMove", "Could not draw the widget preview", e)
+            showNote("The widget could not be drawn here: $e")
+            return
+        }
+        val h = mgr.getAppWidgetOptions(ids[0]).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0).coerceAtLeast(260)
+        holder.addView(view, FrameLayout.LayoutParams(MATCH, dp(h)))
+        note.visibility = View.GONE
+        // Each step is separate, so a problem in one never hides the widget itself
+        try {
             clearClicks(view)
             view.findViewById<View>(R.id.grid)?.visibility = View.INVISIBLE
-            for ((key, id) in TilesWidget.ITEM_VIEW) {
+        } catch (e: Throwable) {
+            android.util.Log.e("NotifTilesMove", "Preview setup failed", e)
+        }
+        for ((key, id) in TilesWidget.ITEM_VIEW) {
+            try {
                 val item = view.findViewById<View>(id) ?: continue
                 if (item.visibility == View.VISIBLE) attachDrag(item, key)
+            } catch (e: Throwable) {
+                android.util.Log.e("NotifTilesMove", "Could not make $key draggable", e)
             }
-            note.visibility = View.GONE
-        } catch (e: Exception) {
-            showNote("The widget could not be drawn here (${e.javaClass.simpleName}). Close this screen and open it again.")
         }
     }
 
