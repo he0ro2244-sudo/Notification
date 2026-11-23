@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <FrameLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/dialwrap"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/nt_dial_bg"
+        android:clipToOutline="true">
+
+    <ImageView
+        android:id="@+id/dialimg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/dialrow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp">
+
+        <LinearLayout
+            android:id="@+id/dial0"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/dc0"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="@drawable/nt_circle_bg"
+                android:gravity="center"
+                android:text="+"
+                android:textSize="18sp"
+                />
+
+            <TextView
+                android:id="@+id/dn0"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingTop="2dp"
+                android:text="Add"
+                android:textColor="@color/nt_sub"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/dial1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/dc1"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="@drawable/nt_circle_bg"
+                android:gravity="center"
+                android:text="+"
+                android:textSize="18sp"
+                />
+
+            <TextView
+                android:id="@+id/dn1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingTop="2dp"
+                android:text="Add"
+                android:textColor="@color/nt_sub"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/dial2"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/dc2"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="@drawable/nt_circle_bg"
+                android:gravity="center"
+                android:text="+"
+                android:textSize="18sp"
+                />
+
+            <TextView
+                android:id="@+id/dn2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingTop="2dp"
+                android:text="Add"
+                android:textColor="@color/nt_sub"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/dial3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/dc3"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="@drawable/nt_circle_bg"
+                android:gravity="center"
+                android:text="+"
+                android:textSize="18sp"
+                />
+
+            <TextView
+                android:id="@+id/dn3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingTop="2dp"
+                android:text="Add"
+                android:textColor="@color/nt_sub"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/dial4"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/dc4"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="@drawable/nt_circle_bg"
+                android:gravity="center"
+                android:text="+"
+                android:textSize="18sp"
+                />
+
+            <TextView
+                android:id="@+id/dn4"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:maxLines="1"
+                android:paddingTop="2dp"
+                android:text="Add"
+                android:textColor="@color/nt_sub"
+                android:textSize="10sp" />
+        </LinearLayout>
+    </LinearLayout>
+    </FrameLayout>

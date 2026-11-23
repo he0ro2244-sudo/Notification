@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="6dp"
+        android:paddingEnd="6dp"
+        android:paddingBottom="6dp">
+
+        <TextView
+            android:id="@+id/hdr_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Inbox"
+            android:textColor="@color/nt_text"
+            android:textSize="16sp"
+            />
+
+        <TextView
+            android:id="@+id/count"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/nt_badge_bg"
+            android:paddingStart="8dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="2dp"
+            android:text="0"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            />
+
+        <ImageView
+            android:id="@+id/wmic"
+            android:layout_width="32dp"
+            android:layout_height="26dp"
+            android:contentDescription="Record"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="2dp"
+            android:src="@drawable/ic_mic" />
+
+        <TextView
+            android:id="@+id/wnote"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="12dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="4dp"
+            android:text="+ Note"
+            android:textColor="@color/nt_badge"
+            android:textSize="13sp"
+            />
+
+        <TextView
+            android:id="@+id/wclear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="6dp"
+            android:paddingTop="4dp"
+            android:paddingEnd="2dp"
+            android:paddingBottom="4dp"
+            android:text="Clear all"
+            android:textColor="@color/nt_sub"
+            android:textSize="13sp" />
+
+        <ImageView
+            android:id="@+id/wset"
+            android:layout_width="30dp"
+            android:layout_height="24dp"
+            android:contentDescription="Settings"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="2dp"
+            android:paddingBottom="2dp"
+            android:src="@drawable/ic_gear" />
+    </LinearLayout>

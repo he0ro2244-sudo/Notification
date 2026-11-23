@@ -99,6 +99,12 @@
             android:theme="@style/NtPanelTheme" />
 
         <activity
+            android:name=".ArrangeActivity"
+            android:exported="false"
+            android:label="Arrange &amp; resize"
+            android:theme="@style/NtTheme" />
+
+        <activity
             android:name=".SettingsActivity"
             android:exported="false"
             android:label="Look &amp; colors"

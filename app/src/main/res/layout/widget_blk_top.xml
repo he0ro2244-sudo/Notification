@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="utf-8"?>
+    <LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:paddingBottom="6dp">
+
+        <LinearLayout
+            android:id="@+id/wlocA"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/nt_pill_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="6dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/wpinA"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_pin" />
+
+            <TextView
+                android:id="@+id/wwA"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Where to?"
+                android:textColor="@color/nt_sub"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+        <TextClock
+            android:id="@+id/wclock0"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:textColor="@color/nt_text"
+           
+            android:visibility="visible"
+            android:format12Hour="h:mm"
+            android:format24Hour="HH:mm"
+            android:textSize="14sp"
+            />
+
+        <TextView
+            android:id="@+id/wweather0"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:textColor="@color/nt_text"
+           
+            android:visibility="gone"
+            android:text="--°"
+            android:textSize="13sp"
+            />
+
+        <TextClock
+            android:id="@+id/wdate0"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:textColor="@color/nt_text"
+           
+            android:visibility="gone"
+            android:format12Hour="EEE&#10;d MMM"
+            android:format24Hour="EEE&#10;d MMM"
+            android:textSize="12sp"
+            />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/wlocC"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/nt_pill_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="6dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/wpinC"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_pin" />
+
+            <TextView
+                android:id="@+id/wwC"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Where to?"
+                android:textColor="@color/nt_sub"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+        <TextClock
+            android:id="@+id/wclock1"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:textColor="@color/nt_text"
+           
+            android:visibility="gone"
+            android:format12Hour="h:mm"
+            android:format24Hour="HH:mm"
+            android:textSize="14sp"
+            />
+
+        <TextView
+            android:id="@+id/wweather1"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:textColor="@color/nt_text"
+           
+            android:visibility="visible"
+            android:text="--°"
+            android:textSize="13sp"
+            />
+
+        <TextClock
+            android:id="@+id/wdate1"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:textColor="@color/nt_text"
+           
+            android:visibility="gone"
+            android:format12Hour="EEE&#10;d MMM"
+            android:format24Hour="EEE&#10;d MMM"
+            android:textSize="12sp"
+            />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/wlocD"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/nt_pill_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="6dp"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/wpinD"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_pin" />
+
+            <TextView
+                android:id="@+id/wwD"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Where to?"
+                android:textColor="@color/nt_sub"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+        <TextClock
+            android:id="@+id/wclock2"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:textColor="@color/nt_text"
+           
+            android:visibility="gone"
+            android:format12Hour="h:mm"
+            android:format24Hour="HH:mm"
+            android:textSize="14sp"
+            />
+
+        <TextView
+            android:id="@+id/wweather2"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:textColor="@color/nt_text"
+           
+            android:visibility="gone"
+            android:text="--°"
+            android:textSize="13sp"
+            />
+
+        <TextClock
+            android:id="@+id/wdate2"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:textColor="@color/nt_text"
+           
+            android:visibility="visible"
+            android:format12Hour="EEE&#10;d MMM"
+            android:format24Hour="EEE&#10;d MMM"
+            android:textSize="12sp"
+            />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/wlocB"
+            android:layout_width="0dp"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/nt_pill_bg"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="8dp"
+            android:paddingEnd="6dp"
+            android:visibility="visible">
+
+            <ImageView
+                android:id="@+id/wpinB"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_pin" />
+
+            <TextView
+                android:id="@+id/wwB"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="5dp"
+                android:layout_weight="1"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Where to?"
+                android:textColor="@color/nt_sub"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </LinearLayout>

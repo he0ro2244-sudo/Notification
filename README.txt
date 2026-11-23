@@ -1,3 +1,10 @@
+NEW IN v0.9.53: Arrange & resize by dragging. Look & colors > Widget: clock, weather & layout > "Arrange & resize by dragging...".
+Hold the handle of a row and drag it: (1) the sections of the widget (top row, fast dial, shortcuts row, Inbox row) can go in any order;
+(2) the items of the top row - clock, weather, date and the "Where to?" box - can go in any order (the box can now sit between the circles);
+(3) your apps can be dragged into your own tile order. Every section has a size slider (50-200%) and the fast dial / shortcuts row
+have a switch. The home-screen widget updates as you drag. "Reset widget arrangement" puts everything back. Nothing changes until you use it.
+The message tiles always fill the space under the sections.
+
 NEW IN v0.9.52: Shortcuts row under the fast dial (Settings > Widget and panel > "Shortcuts row (under fast dial)"). Up to 5 circles; each
 can open an app, one screen (activity) inside an app, or a shortcut an app offers (Nova style, e.g. a direct WhatsApp chat). Tap the
 Add circle on the widget (or Pick in settings) and choose App / Activity / Shortcut. Off until you add the first one. Nothing else changed.

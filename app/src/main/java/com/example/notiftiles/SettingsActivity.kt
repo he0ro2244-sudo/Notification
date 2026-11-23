@@ -467,6 +467,10 @@ class SettingsActivity : Activity() {
         section("Widget: clock, weather & layout") {
         // ---- Arrange the widget
         col.addView(title("Arrange the widget", 16f, 20))
+        val dragBtn = Button(this)
+        dragBtn.text = "Arrange & resize by dragging…"
+        dragBtn.setOnClickListener { startActivity(Intent(this, ArrangeActivity::class.java)) }
+        col.addView(dragBtn)
         col.addView(hint("Use ▲ ▼ to move the circles. Switch an item off to hide it."))
         val labels = mapOf("clock" to "Clock", "weather" to "Weather", "date" to "Date")
         val order = Prefs.order(this)
@@ -484,7 +488,7 @@ class SettingsActivity : Activity() {
             col.addView(row)
         }
         col.addView(toggle("Maps search box", "maps"))
-        col.addView(toggleRaw("Maps search box at the start (left)", Prefs.pillFirst(this)) { Prefs.setPillFirst(this, it); applyLook() })
+        col.addView(toggleRaw("Maps search box at the start (left)", Prefs.pillPos(this) == 0) { Prefs.setPillPos(this, if (it) 0 else 3); applyLook(); rebuild() })
         col.addView(toggle("Fast-dial circles", "dial"))
 
         // ---- Clock, date, weather

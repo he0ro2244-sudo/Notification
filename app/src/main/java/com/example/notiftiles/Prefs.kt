@@ -157,6 +157,32 @@ object Prefs {
     fun pillFirst(c: Context): Boolean = sp(c).getBoolean("lay_pill_first", false)
     fun setPillFirst(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_pill_first", v).apply()
 
+    /** Where the "Where to?" box sits in the top row: 0 = before the 1st circle ... 3 = after the 3rd (the old "at the end"). */
+    fun pillPos(c: Context): Int {
+        val s = sp(c)
+        return if (s.contains("lay_pill_pos")) s.getInt("lay_pill_pos", 3).coerceIn(0, 3) else if (pillFirst(c)) 0 else 3
+    }
+    fun setPillPos(c: Context, v: Int) =
+        sp(c).edit().putInt("lay_pill_pos", v.coerceIn(0, 3)).putBoolean("lay_pill_first", v == 0).apply()
+
+    /** The sections of the widget above the tiles, top to bottom: top = clock/weather/date/Where to?, dial, quick = shortcuts row, head = Inbox row. */
+    val BLOCKS = listOf("top", "dial", "quick", "head")
+    fun blockOrder(c: Context): List<String> {
+        val l = (sp(c).getString("lay_blocks", "top,dial,quick,head") ?: "").split(",").filter { it in BLOCKS }.distinct()
+        return if (l.size == BLOCKS.size) l else BLOCKS
+    }
+    fun setBlockOrder(c: Context, l: List<String>) = sp(c).edit().putString("lay_blocks", l.joinToString(",")).apply()
+
+    /** Size of one widget section in percent (100 = as before). */
+    fun blockScale(c: Context, key: String): Int = sp(c).getInt("lay_scale_$key", 100).coerceIn(50, 200)
+    fun setBlockScale(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_scale_$key", v.coerceIn(50, 200)).apply()
+    fun resetArrange(c: Context) {
+        val e = sp(c).edit()
+        for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first")) e.remove(k)
+        for (k in BLOCKS) e.remove("lay_scale_$k")
+        e.apply()
+    }
+
     // ---- "Where to?" ----
     fun travelMode(c: Context): String = sp(c).getString("dest_mode", "driving") ?: "driving"
     fun setTravelMode(c: Context, v: String) = sp(c).edit().putString("dest_mode", v).apply()
