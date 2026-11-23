@@ -302,7 +302,7 @@ class TilesWidget : AppWidgetProvider() {
                 val id = FREE_VIEW.getValue(key)
                 val p = pos[key]
                 val x = p?.x ?: (8f + (n % 8) * 34f)
-                val y = p?.y ?: 8f
+                val y = p?.y ?: (Prefs.freeGridTop(ctx) - 40f).coerceAtLeast(0f)
                 rv.setViewLayoutMargin(id, RemoteViews.MARGIN_START, x, TypedValue.COMPLEX_UNIT_DIP)
                 rv.setViewLayoutMargin(id, RemoteViews.MARGIN_TOP, y, TypedValue.COMPLEX_UNIT_DIP)
                 if (key == "maps" && p != null && p.w > 0f) rv.setViewLayoutWidth(id, p.w, TypedValue.COMPLEX_UNIT_DIP)

@@ -79,6 +79,12 @@ class MoveActivity : Activity() {
         }
         col.addView(back, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(16) })
 
+        val arr = Button(this)
+        arr.text = "Arrange & resize (sizes, colours, show / hide)…"
+        arr.isAllCaps = false
+        arr.setOnClickListener { startActivity(android.content.Intent(this, ArrangeActivity::class.java)) }
+        col.addView(arr, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
+
         val done = Button(this)
         done.text = "Done"
         done.setOnClickListener { finish() }
@@ -87,6 +93,15 @@ class MoveActivity : Activity() {
         val scroll = ScrollView(this)
         scroll.addView(col)
         setContentView(scroll)
+        render()
+    }
+
+    // Sizes or switches may have changed in Arrange & resize: draw the preview again when coming back
+    private var firstResume = true
+
+    override fun onResume() {
+        super.onResume()
+        if (firstResume) { firstResume = false; return }
         render()
     }
 
@@ -250,6 +265,9 @@ class MoveActivity : Activity() {
         return measureAll()
     }
 
+    /** Rounds a place to a 4dp grid when snapping is on. */
+    private fun snap(v: Float): Float = if (Prefs.freeSnap(this)) Math.round(v / 4f) * 4f else v
+
     /** The dragged item keeps the place where it was let go. */
     private fun drop(dragged: View, key: String, dxDp: Float, dyDp: Float) {
         val rl = rootLoc()
@@ -258,8 +276,8 @@ class MoveActivity : Activity() {
         val old = places[key]
         val maxX = (widthDp - 24).toFloat().coerceAtLeast(0f)
         val maxY = (heightDp - 24).toFloat().coerceAtLeast(0f)
-        val x = (p0.first + dxDp).coerceIn(0f, maxX)
-        val y = (p0.second + dyDp).coerceIn(0f, maxY)
+        val x = snap(p0.first + dxDp).coerceIn(0f, maxX)
+        val y = snap(p0.second + dyDp).coerceIn(0f, maxY)
         val w = old?.w ?: (if (key == "maps") dragged.width / density else 0f)
         places[key] = Prefs.FreePos(x, y, w)
         Prefs.setFreePos(this, places)
@@ -307,7 +325,7 @@ class MoveActivity : Activity() {
                     v.translationY = 0f
                     if (didMove && ev.actionMasked == MotionEvent.ACTION_UP) {
                         val maxTop = (heightDp - 22).toFloat().coerceAtLeast(0f)
-                        val newTop = ((startTop + dy) / density).coerceIn(0f, maxTop)
+                        val newTop = snap((startTop + dy) / density).coerceIn(0f, maxTop)
                         val places = currentPlaces()
                         Prefs.setFreePos(this, places)
                         Prefs.setFreeGridTop(this, newTop)

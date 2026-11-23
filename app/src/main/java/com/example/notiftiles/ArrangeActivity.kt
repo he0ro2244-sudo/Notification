@@ -80,7 +80,11 @@ class ArrangeActivity : Activity() {
         moveBtn.setOnClickListener { startActivity(Intent(this, MoveActivity::class.java)) }
         col.addView(moveBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { bottomMargin = dp(8) })
 
-        // ---- 1. Sections of the widget
+        val free = Prefs.freeOn(this)
+        if (free) addFreeSection()
+
+        // ---- 1. Sections of the widget (rows layout only)
+        if (!free) {
         col.addView(title("Sections (top to bottom)", 16f, 16))
         col.addView(hint("The message tiles always fill the space under these sections. (Once you have moved an item with Move, items sit where you put them and these sections are not used; Move > 'Back to the old rows layout' brings them back.)"))
         val names = mapOf("top" to "Top row (clock, weather, date, Where to?)", "dial" to "Fast-dial circles",
@@ -103,6 +107,7 @@ class ArrangeActivity : Activity() {
             box.addView(sizeBar(Prefs.blockScale(this, key), 50, 200, "Whole section size") { Prefs.setBlockScale(this, key, it) })
             box
         }) { l -> Prefs.setBlockOrder(this, l); redraw(); rebuild() })
+        }
 
         // ---- Every item: show / hide, size and colour of each one on its own
         col.addView(title("Every item", 16f, 20))
@@ -163,11 +168,12 @@ class ArrangeActivity : Activity() {
         }
 
         // ---- 2. Items of the top row (any item can be moved to the other row with Move)
-        col.addView(title("Top row items (left to right)", 16f, 20))
-        col.addView(hint("Drag to change the order. To move an item into the Inbox row, or anywhere else, use Move (the button above, or the pencil ✎ on the widget)."))
         val itemNames = mapOf("clock" to "Clock", "weather" to "Weather", "date" to "Date", "maps" to "Where to? box",
             "title" to "Title (Inbox)", "count" to "Count badge", "mic" to "Mic", "note" to "+ Note",
             "clear" to "Clear all", "edit" to "Pencil ✎", "gear" to "Settings gear")
+        if (!free) {
+        col.addView(title("Top row items (left to right)", 16f, 20))
+        col.addView(hint("Drag to change the order. To move an item into the Inbox row, or anywhere else, use Move (the button above, or the pencil ✎ on the widget)."))
         col.addView(dragList(Prefs.rows(this)["top"] ?: emptyList(), { key ->
             val h = LinearLayout(this)
             h.orientation = LinearLayout.HORIZONTAL
@@ -182,6 +188,7 @@ class ArrangeActivity : Activity() {
             Prefs.setRows(this, l, Prefs.rows(this)["head"] ?: emptyList())
             redraw(); rebuild()
         })
+        }
 
         col.addView(title("Merge into one shape", 16f, 20))
         col.addView(hint("Tick two or more to show them together in one shape (for example clock + date). The shape sits where the first of them is."))
@@ -227,6 +234,51 @@ class ArrangeActivity : Activity() {
                 .setNegativeButton("Cancel", null).show()
         }
         col.addView(reset, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(20) })
+    }
+
+    /** Shown instead of the sections list while the free layout is on: what it is, snap, Where to? width, back to rows. */
+    private fun addFreeSection() {
+        col.addView(title("Free layout is ON", 16f, 16))
+        col.addView(hint("Every item sits where you put it with Move, so the sections list and the top-row order are not used. Sizes, colours, switches and Merge below still work."))
+        val sw = Switch(this)
+        sw.text = "Snap to a small grid while moving"
+        sw.isChecked = Prefs.freeSnap(this)
+        sw.setOnCheckedChangeListener { _, v -> Prefs.setFreeSnap(this, v) }
+        col.addView(sw, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
+
+        val wp = Prefs.freePos(this)["maps"]
+        if (wp != null) {
+            val cur = (if (wp.w > 0f) wp.w else 150f).toInt().coerceIn(80, 320)
+            val t = TextView(this)
+            t.text = "Where to? box width: $cur dp"
+            t.textSize = 12f
+            t.alpha = 0.7f
+            t.setPadding(0, dp(12), 0, 0)
+            col.addView(t)
+            val sb = SeekBar(this)
+            sb.max = 240
+            sb.progress = cur - 80
+            sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
+                    t.text = "Where to? box width: ${p + 80} dp"
+                    if (fromUser) Prefs.setFreeWidth(this@ArrangeActivity, "maps", (p + 80).toFloat())
+                }
+                override fun onStartTrackingTouch(s: SeekBar) {}
+                override fun onStopTrackingTouch(s: SeekBar) { redraw() }
+            })
+            col.addView(sb)
+        }
+        val back = Button(this)
+        back.text = "Back to the old rows layout"
+        back.isAllCaps = false
+        back.setOnClickListener {
+            AlertDialog.Builder(this)
+                .setMessage("Forget the places of all items and use the rows and sections again?")
+                .setPositiveButton("Yes") { _, _ -> Prefs.resetFree(this); redraw(); rebuild() }
+                .setNegativeButton("No", null)
+                .show()
+        }
+        col.addView(back, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
     }
 
     private fun smallSwitch(on: Boolean, change: (Boolean) -> Unit): View {

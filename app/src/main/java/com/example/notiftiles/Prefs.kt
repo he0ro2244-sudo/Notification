@@ -304,6 +304,18 @@ object Prefs {
     fun freeGridTop(c: Context): Float = sp(c).getFloat("free_grid_top", 120f).coerceAtLeast(0f)
     fun setFreeGridTop(c: Context, v: Float) = sp(c).edit().putFloat("free_grid_top", v.coerceAtLeast(0f)).apply()
 
+    /** While moving, items snap to a 4dp grid (on by default: lines things up). */
+    fun freeSnap(c: Context): Boolean = sp(c).getBoolean("free_snap", true)
+    fun setFreeSnap(c: Context, v: Boolean) = sp(c).edit().putBoolean("free_snap", v).apply()
+
+    /** Width of the Where to? box in the free layout, in dp (0 = as it was). */
+    fun setFreeWidth(c: Context, key: String, w: Float) {
+        val m = freePos(c).toMutableMap()
+        val p = m[key] ?: return
+        m[key] = FreePos(p.x, p.y, w)
+        setFreePos(c, m)
+    }
+
     /** Back to the rows layout (the places are forgotten). */
     fun resetFree(c: Context) {
         sp(c).edit().remove("free_on").remove("free_pos").remove("free_grid_top").apply()
