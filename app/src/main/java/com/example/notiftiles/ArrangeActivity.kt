@@ -95,35 +95,67 @@ class ArrangeActivity : Activity() {
                 "quick" -> head.addView(smallSwitch(Prefs.quickOn(this)) { Prefs.setQuickOn(this, it); redraw() })
             }
             box.addView(head)
-            box.addView(sizeBar(Prefs.blockScale(this, key)) { Prefs.setBlockScale(this, key, it) })
+            box.addView(sizeBar(Prefs.blockScale(this, key), 50, 200, "Whole section size") { Prefs.setBlockScale(this, key, it) })
             box
         }) { l -> Prefs.setBlockOrder(this, l); redraw(); rebuild() })
 
-        // ---- Inbox row items: show / hide and size of each
-        col.addView(title("Inbox row items", 16f, 20))
-        col.addView(hint("Show or hide each item and make it bigger or smaller (on top of the section size above)."))
-        val hdrItems = listOf("w_title" to "Title (Inbox)", "w_count" to "Count badge", "w_mic" to "Mic", "w_note" to "+ Note",
-            "w_clear" to "Clear all", "w_gear" to "Settings gear")
-        for ((k, label) in hdrItems) {
-            val box = LinearLayout(this)
-            box.orientation = LinearLayout.VERTICAL
-            val top = LinearLayout(this)
-            top.orientation = LinearLayout.HORIZONTAL
-            top.gravity = Gravity.CENTER_VERTICAL
-            val nm = TextView(this)
-            nm.text = label
-            nm.textSize = 15f
-            top.addView(nm, LinearLayout.LayoutParams(0, WRAP, 1f))
-            top.addView(smallSwitch(Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); redraw() })
-            box.addView(top)
-            if (k in Prefs.ITEM_KEYS) box.addView(sizeBar(Prefs.itemScale(this, k), 50, 250) { Prefs.setItemScale(this, k, it) })
-            col.addView(box)
+        // ---- Every item: show / hide, size and colour of each one on its own
+        col.addView(title("Every item", 16f, 20))
+        col.addView(hint("Each item has its own size (100% = as before). Switches hide an item. Tap Colour to change it (Auto = the normal colour)."))
+        // key, label, show getter/setter (null = no switch), colour key (null = none)
+        class Spec(val key: String, val label: String, val on: (() -> Boolean)?, val setOn: ((Boolean) -> Unit)?, val color: String?)
+        fun hdr(k: String, label: String, color: String?) =
+            Spec(k, label, { Prefs.showItem(this, k) }, { v -> Prefs.setShowItem(this, k, v) }, color)
+        fun top(k: String, shown: String, label: String, color: String?) =
+            Spec(k, label, { Prefs.show(this, shown) }, { v -> Prefs.setShow(this, shown, v) }, color)
+        val specs = ArrayList<Pair<String, List<Spec>>>()
+        specs.add("Top row" to listOf(
+            top("w_clock", "clock", "Clock", "clock"), top("w_weather", "weather", "Weather", "weather"),
+            top("w_date", "date", "Date", "date"), Spec("w_merge", "Merged shape", null, null, null),
+            top("w_where", "maps", "Where to? box", "where")))
+        specs.add("Fast-dial circles" to (0 until Prefs.DIAL_SLOTS).map { Spec("d$it", "Circle ${it + 1}", null, null, null) })
+        specs.add("Shortcuts row circles" to (0 until Prefs.QUICK_SLOTS).map { Spec("q$it", "Circle ${it + 1}", null, null, null) })
+        specs.add("Inbox row" to listOf(
+            hdr("w_title", "Title (Inbox)", "title"), hdr("w_count", "Count badge", null), hdr("w_mic", "Mic", "mic"),
+            hdr("w_note", "+ Note", "note"), hdr("w_clear", "Clear all", "clear"), hdr("w_gear", "Settings gear", "gear"),
+            Spec("w_edit", "Pencil ✎ (opens this screen)", { Prefs.editBtn(this) }, { v -> Prefs.setEditBtn(this, v) }, "edit"),
+            Spec("w_refresh", "Refresh icon", { Prefs.refreshShow(this) }, { v -> Prefs.setRefreshShow(this, v) }, "refresh")))
+        for ((groupName, list) in specs) {
+            col.addView(title(groupName, 14f, 12))
+            for (sp in list) {
+                val box = LinearLayout(this)
+                box.orientation = LinearLayout.VERTICAL
+                val rowTop = LinearLayout(this)
+                rowTop.orientation = LinearLayout.HORIZONTAL
+                rowTop.gravity = Gravity.CENTER_VERTICAL
+                val nm = TextView(this)
+                nm.text = sp.label
+                nm.textSize = 15f
+                rowTop.addView(nm, LinearLayout.LayoutParams(0, WRAP, 1f))
+                if (sp.color != null) {
+                    val cb = TextView(this)
+                    cb.text = "Colour"
+                    cb.textSize = 13f
+                    cb.setPadding(dp(12), dp(8), dp(12), dp(8))
+                    val cd = GradientDrawable()
+                    cd.cornerRadius = dp(8).toFloat()
+                    cd.setStroke(dp(1), 0x66888888)
+                    val cur = Prefs.partColor(this, sp.color)
+                    if (cur != 0) { cd.setColor(cur); cb.setTextColor(0xFF000000.toInt() or (cur.inv() and 0xFFFFFF)) }
+                    cb.background = cd
+                    cb.setOnClickListener {
+                        ColorPicker.show(this, sp.label, Prefs.partColor(this, sp.color), true) { v ->
+                            Prefs.setPartColor(this, sp.color, v); redraw(); rebuild()
+                        }
+                    }
+                    rowTop.addView(cb)
+                }
+                if (sp.on != null && sp.setOn != null) rowTop.addView(smallSwitch(sp.on.invoke()) { sp.setOn.invoke(it); redraw() })
+                box.addView(rowTop)
+                box.addView(sizeBar(Prefs.itemScale(this, sp.key), 50, 250) { Prefs.setItemScale(this, sp.key, it) })
+                col.addView(box)
+            }
         }
-        val pen = android.widget.Switch(this)
-        pen.text = "Show a ✎ button on the widget that opens this screen"
-        pen.isChecked = Prefs.editBtn(this)
-        pen.setOnCheckedChangeListener { _, v -> Prefs.setEditBtn(this, v); redraw() }
-        col.addView(pen)
 
         // ---- 2. Items of the top row
         col.addView(title("Top row items (left to right)", 16f, 20))
@@ -201,11 +233,11 @@ class ArrangeActivity : Activity() {
         return sw
     }
 
-    private fun sizeBar(value: Int, min: Int = 50, max: Int = 200, set: (Int) -> Unit): View {
+    private fun sizeBar(value: Int, min: Int = 50, max: Int = 200, label: String = "Size", set: (Int) -> Unit): View {
         val box = LinearLayout(this)
         box.orientation = LinearLayout.VERTICAL
         val t = TextView(this)
-        t.text = "Size: $value%"
+        t.text = "$label: $value%"
         t.textSize = 12f
         t.alpha = 0.7f
         box.addView(t)
@@ -214,7 +246,7 @@ class ArrangeActivity : Activity() {
         sb.progress = (value - min).coerceIn(0, max - min)
         sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
-                t.text = "Size: ${p + min}%"
+                t.text = "$label: ${p + min}%"
                 if (fromUser) set(p + min)
             }
             override fun onStartTrackingTouch(s: SeekBar) {}

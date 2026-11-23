@@ -1,3 +1,7 @@
+NEW IN v0.9.58: Arrange & resize > "Every item": each item (clock, weather, date, merged shape, Where to?, every dial and shortcut circle, title, count, mic, + Note, Clear all, gear, pencil, refresh) has its own size slider; most also have a show/hide switch and a colour. All start at 100% so nothing looks different until you change them.
+
+NEW IN v0.9.57: The pencil button now has its own size slider and colour (Arrange & resize, and Look & colors > Widget colours). Nothing else changed.
+
 NEW IN v0.9.56: Arrange & resize now also has "Inbox row items": show/hide and size for the title, count, mic, + Note, Clear all and gear, and an optional pencil button on the widget that opens it. Nothing changes until you use it.
 
 NEW IN v0.9.55: Merge. Arrange & resize > "Merge into one shape": tick two or more of clock, weather, date and they show together in one shape (e.g. clock + date). Off until you tick them.

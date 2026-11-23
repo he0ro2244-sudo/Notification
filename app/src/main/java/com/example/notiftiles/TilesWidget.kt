@@ -288,7 +288,7 @@ class TilesWidget : AppWidgetProvider() {
         }
 
         fun setWeather(rv: RemoteViews, ctx: Context) {
-            for (w in W_WEATHER) txt(rv, ctx, w, Weather.text(ctx), 13f, true)
+            for (w in W_WEATHER) txt(rv, ctx, w, Weather.text(ctx), 13f * isc(ctx, "w_weather"), true)
             mergedFormats(rv, ctx)
             val upd = Weather.updatedText(ctx)
             if (Weather.showUpdated(ctx) && upd.isNotEmpty()) {
@@ -382,7 +382,7 @@ class TilesWidget : AppWidgetProvider() {
             val rc = Prefs.partColor(ctx, "refresh").let { if (it != 0) it else if (ic != 0) ic else Feed.alpha(sub, 0x99) }
             rv.setInt(R.id.wrefresh, "setColorFilter", rc)
             rv.setTextColor(R.id.wupdated, Prefs.partColor(ctx, "updated").let { if (it != 0) it else Feed.alpha(sub, 0x99) })
-            val rs = Prefs.refreshSize(ctx).toFloat()
+            val rs = Prefs.refreshSize(ctx).toFloat() * isc(ctx, "w_refresh")
             rv.setViewLayoutWidth(R.id.wrefresh, rs + 12f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wrefresh, rs + 12f, TypedValue.COMPLEX_UNIT_DIP)
 
@@ -398,12 +398,12 @@ class TilesWidget : AppWidgetProvider() {
             val f24 = if (clockFmt == 1) "h:mm" else "HH:mm"
             val dateFmt = Prefs.DATE_FORMATS[Prefs.dateFmt(ctx)].first
             for (slot in 0 until 3) {
-                for (id in intArrayOf(W_CLOCK[slot], W_WEATHER[slot], W_DATE[slot])) {
+                for ((id, ik) in listOf(W_CLOCK[slot] to "w_clock", W_WEATHER[slot] to "w_weather", W_DATE[slot] to "w_date")) {
                     rv.setColorStateList(id, "setBackgroundTintList", circleTint)
                     rv.setInt(id, "setBackgroundResource", shapeRes)
                     rv.setTextColor(id, circleText)
-                    rv.setViewLayoutWidth(id, topSize, TypedValue.COMPLEX_UNIT_DIP)
-                    rv.setViewLayoutHeight(id, topSize, TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutWidth(id, topSize * isc(ctx, ik), TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutHeight(id, topSize * isc(ctx, ik), TypedValue.COMPLEX_UNIT_DIP)
                 }
                 for ((k, ids) in listOf("clock" to W_CLOCK, "weather" to W_WEATHER, "date" to W_DATE)) {
                     val pc = Prefs.partColor(ctx, k)
@@ -412,27 +412,27 @@ class TilesWidget : AppWidgetProvider() {
                 val clock = W_CLOCK[slot]
                 rv.setCharSequence(clock, "setFormat12Hour", Look.span(ctx, f12, true))
                 rv.setCharSequence(clock, "setFormat24Hour", Look.span(ctx, f24, true))
-                rv.setTextViewTextSize(clock, TypedValue.COMPLEX_UNIT_SP, 14f * Look.scale(ctx))
+                rv.setTextViewTextSize(clock, TypedValue.COMPLEX_UNIT_SP, 14f * Look.scale(ctx) * isc(ctx, "w_clock"))
                 val date = W_DATE[slot]
                 rv.setCharSequence(date, "setFormat12Hour", Look.span(ctx, dateFmt, true))
                 rv.setCharSequence(date, "setFormat24Hour", Look.span(ctx, dateFmt, true))
-                rv.setTextViewTextSize(date, TypedValue.COMPLEX_UNIT_SP, 12f * Look.scale(ctx))
+                rv.setTextViewTextSize(date, TypedValue.COMPLEX_UNIT_SP, 12f * Look.scale(ctx) * isc(ctx, "w_date"))
                 // The merged shape: the chosen parts in the top-row order, one under the other.
                 val mid = W_MERGE[slot]
                 rv.setColorStateList(mid, "setBackgroundTintList", circleTint)
                 rv.setInt(mid, "setBackgroundResource", shapeRes)
                 rv.setTextColor(mid, circleText)
-                rv.setViewLayoutHeight(mid, topSize, TypedValue.COMPLEX_UNIT_DIP)
-                rv.setTextViewTextSize(mid, TypedValue.COMPLEX_UNIT_SP, 13f * Look.scale(ctx))
+                rv.setViewLayoutHeight(mid, topSize * isc(ctx, "w_merge"), TypedValue.COMPLEX_UNIT_DIP)
+                rv.setTextViewTextSize(mid, TypedValue.COMPLEX_UNIT_SP, 13f * Look.scale(ctx) * isc(ctx, "w_merge"))
             }
             for (i in W_LOC.indices) {
                 rv.setColorStateList(W_LOC[i], "setBackgroundTintList", circleTint)
-                rv.setViewLayoutHeight(W_LOC[i], 40f * bs(ctx, "top"), TypedValue.COMPLEX_UNIT_DIP)
+                rv.setViewLayoutHeight(W_LOC[i], 40f * bs(ctx, "top") * isc(ctx, "w_where"), TypedValue.COMPLEX_UNIT_DIP)
             }
             // While Google Maps is navigating this box becomes a one-tap red "Exit navigation"
             val navigating = LocationAuto.navNotification() != null
             val whereText = if (navigating) "Exit navigation" else "Where to?"
-            for (w in W_WW) txt(rv, ctx, w, whereText, 12f * bs(ctx, "top"), false)
+            for (w in W_WW) txt(rv, ctx, w, whereText, 12f * bs(ctx, "top") * isc(ctx, "w_where"), false)
             val wc = Prefs.partColor(ctx, "where")
             val whereColor = if (navigating) 0xFFE53935.toInt() else if (wc != 0) wc else circleSub
             for (w in W_WW) rv.setTextColor(w, whereColor)
@@ -457,12 +457,12 @@ class TilesWidget : AppWidgetProvider() {
                 val ownText = Prefs.dialTextOf(ctx, i)
                 val letterC = Prefs.partColor(ctx, "dialletter")
                 val fgc = if (ownText != 0) ownText else if (letterC != 0) letterC else autoFg
-                txt(rv, ctx, DIAL_CIRCLE[i], initial, 18f, true)
+                txt(rv, ctx, DIAL_CIRCLE[i], initial, 18f * isc(ctx, "d$i"), true)
                 rv.setTextColor(DIAL_CIRCLE[i], fgc)
                 rv.setColorStateList(DIAL_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(bgc))
                 rv.setInt(DIAL_CIRCLE[i], "setBackgroundResource", shapeRes)
-                rv.setViewLayoutWidth(DIAL_CIRCLE[i], dsize, TypedValue.COMPLEX_UNIT_DIP)
-                rv.setViewLayoutHeight(DIAL_CIRCLE[i], dsize, TypedValue.COMPLEX_UNIT_DIP)
+                rv.setViewLayoutWidth(DIAL_CIRCLE[i], dsize * isc(ctx, "d$i"), TypedValue.COMPLEX_UNIT_DIP)
+                rv.setViewLayoutHeight(DIAL_CIRCLE[i], dsize * isc(ctx, "d$i"), TypedValue.COMPLEX_UNIT_DIP)
                 txt(rv, ctx, DIAL_NAME[i], if (has) label else "Add", 10f, false)
                 val dn = Prefs.partColor(ctx, "dialnames")
                 rv.setTextColor(DIAL_NAME[i], if (ownText != 0) ownText else if (dn != 0) dn else sub)
@@ -478,6 +478,7 @@ class TilesWidget : AppWidgetProvider() {
                 var addShown = false
                 for (i in 0 until Prefs.QUICK_SLOTS) {
                     val q = Prefs.quick(ctx, i)
+                    val qs = qsize * isc(ctx, "q$i")
                     val has = q != null
                     val show = has || !addShown
                     if (!has) addShown = true
@@ -488,16 +489,16 @@ class TilesWidget : AppWidgetProvider() {
                     val fgc = if (letterC != 0) letterC else if (dc != 0) Look.contrast(dc) else st.fg(dark)
                     val icon = if (q != null) appIconBitmap(ctx, q.pkg) else null
                     val initial = if (q == null) "+" else if (icon != null) "" else q.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "•"
-                    txt(rv, ctx, Q_CIRCLE[i], initial, 18f, true)
+                    txt(rv, ctx, Q_CIRCLE[i], initial, 18f * isc(ctx, "q$i"), true)
                     rv.setTextColor(Q_CIRCLE[i], fgc)
                     rv.setColorStateList(Q_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(bgc))
                     rv.setInt(Q_CIRCLE[i], "setBackgroundResource", shapeRes)
-                    rv.setViewLayoutWidth(Q_CIRCLE[i], qsize, TypedValue.COMPLEX_UNIT_DIP)
-                    rv.setViewLayoutHeight(Q_CIRCLE[i], qsize, TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutWidth(Q_CIRCLE[i], qs, TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutHeight(Q_CIRCLE[i], qs, TypedValue.COMPLEX_UNIT_DIP)
                     if (icon != null) {
                         rv.setImageViewBitmap(Q_ICON[i], icon)
-                        rv.setViewLayoutWidth(Q_ICON[i], qsize * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
-                        rv.setViewLayoutHeight(Q_ICON[i], qsize * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
+                        rv.setViewLayoutWidth(Q_ICON[i], qs * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
+                        rv.setViewLayoutHeight(Q_ICON[i], qs * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
                         rv.setViewVisibility(Q_ICON[i], View.VISIBLE)
                     } else {
                         rv.setViewVisibility(Q_ICON[i], View.GONE)
@@ -531,6 +532,8 @@ class TilesWidget : AppWidgetProvider() {
             rv.setViewVisibility(R.id.wclear, vis(Prefs.showItem(ctx, "w_clear"), View.GONE))
             rv.setViewVisibility(R.id.wset, vis(Prefs.showItem(ctx, "w_gear"), View.GONE))
             rv.setViewVisibility(R.id.wedit, if (Prefs.editBtn(ctx)) View.VISIBLE else View.GONE)
+            rv.setTextViewTextSize(R.id.wedit, TypedValue.COMPLEX_UNIT_SP, 16f * bs(ctx, "head") * isc(ctx, "w_edit"))
+            rv.setTextColor(R.id.wedit, Prefs.partColor(ctx, "edit").let { if (it != 0) it else if (Prefs.iconColor(ctx) != 0) Prefs.iconColor(ctx) else sub })
             rv.setOnClickPendingIntent(
                 R.id.wedit,
                 PendingIntent.getActivity(ctx, 70, Intent(ctx, ArrangeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
@@ -560,7 +563,7 @@ class TilesWidget : AppWidgetProvider() {
                 val rec = RecordService.running()
                 val micC = if (rec) 0xFFE53935.toInt() else Prefs.partColor(ctx, "mic").let { if (it != 0) it else if (ic != 0) ic else Prefs.accent(ctx) }
                 set3d(rv, ctx, R.id.wset, R.drawable.ic_gear, gearC, Prefs.gearSize(ctx).toFloat() * bs(ctx, "head") * isc(ctx, "w_gear"))
-                set3d(rv, ctx, R.id.wrefresh, R.drawable.ic_refresh, refC, Prefs.refreshSize(ctx).toFloat())
+                set3d(rv, ctx, R.id.wrefresh, R.drawable.ic_refresh, refC, Prefs.refreshSize(ctx).toFloat() * isc(ctx, "w_refresh"))
                 set3d(rv, ctx, R.id.wmic, if (rec) R.drawable.ic_stop else R.drawable.ic_mic, micC, Prefs.micSize(ctx).toFloat() * bs(ctx, "head") * isc(ctx, "w_mic"))
             } else {
                 rv.setImageViewResource(R.id.wset, R.drawable.ic_gear)
@@ -606,7 +609,7 @@ class TilesWidget : AppWidgetProvider() {
 
         private fun setCount(rv: RemoteViews, ctx: Context) {
             val n = Feed.items(ctx).size
-            txt(rv, ctx, R.id.count, n.toString(), 12f, true)
+            txt(rv, ctx, R.id.count, n.toString(), 12f * isc(ctx, "w_count"), true)
             rv.setViewVisibility(R.id.count, if (n > 0 && Prefs.showItem(ctx, "w_count")) View.VISIBLE else View.GONE)
         }
 

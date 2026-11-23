@@ -172,7 +172,7 @@ object Prefs {
 
     /** The sections of the widget above the tiles, top to bottom: top = clock/weather/date/Where to?, dial, quick = shortcuts row, head = Inbox row. */
     val BLOCKS = listOf("top", "dial", "quick", "head")
-    val ITEM_KEYS = listOf("w_title", "w_note", "w_clear", "w_mic", "w_gear")
+    val ITEM_KEYS = listOf("w_title", "w_note", "w_clear", "w_mic", "w_gear", "w_edit")
     fun blockOrder(c: Context): List<String> {
         val l = (sp(c).getString("lay_blocks", "top,dial,quick,head") ?: "").split(",").filter { it in BLOCKS }.distinct()
         return if (l.size == BLOCKS.size) l else BLOCKS
@@ -193,7 +193,7 @@ object Prefs {
     fun resetArrange(c: Context) {
         val e = sp(c).edit()
         for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_editbtn")) e.remove(k)
-        for (k in ITEM_KEYS) e.remove("lay_iscale_$k")
+        for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_")) e.remove(k)
         for (k in BLOCKS) e.remove("lay_scale_$k")
         e.apply()
     }
@@ -298,6 +298,7 @@ object Prefs {
         "clear" to "Widget: Clear all",
         "gear" to "Widget: settings icon",
         "refresh" to "Widget: refresh icon",
+        "edit" to "Widget: pencil (arrange) button",
         "clock" to "Widget: clock",
         "weather" to "Widget: weather",
         "date" to "Widget: date",
