@@ -1,3 +1,5 @@
+NEW IN v1.0.5: 5th choice when adding a shortcut, "Link finder": pick an app and it lists every link and action that app's own manifest declares on this phone, with a Copy button. Nothing is guessed.
+
 NEW IN v1.0.4: Link choice: the Instagram camera entry is replaced by two test entries, "Story screen (test)" and "Share / new post (test)", because Instagram ignored its camera links.
 
 NEW IN v1.0.3: "Instagram: Camera (tries several ways)" in the Link choice: it tries Instagram's story-camera link, then its camera link, then its story share screen, and opens Instagram itself if none is understood. Shortcuts made earlier keep working as before.

@@ -50,11 +50,12 @@ class QuickActivity : Activity() {
     private fun chooseKind() {
         AlertDialog.Builder(this)
             .setTitle(if (forPkg.isNotEmpty()) "Add a shortcut for " + Feed.label(this, forPkg) else "Add to shortcuts row")
-            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut", "Link (open a screen of an app, e.g. Instagram camera)")) { _, w ->
+            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut", "Link (open a screen of an app, e.g. Instagram camera)", "Link finder (shows what an app really accepts)")) { _, w ->
                 when (w) {
                     0 -> pickApp { pkg -> nameIt(Feed.label(this, pkg)) { n -> save(Quick("app", n, pkg, "")) } }
                     1 -> pickApp { pkg -> pickActivity(pkg) }
                     3 -> pickLink()
+                    4 -> pickApp { pkg -> showLinks(pkg) }
                     else -> pickAllShortcuts()
                 }
             }
@@ -288,6 +289,79 @@ class QuickActivity : Activity() {
                 }
             }
         }
+    }
+
+    /** Reads the app's own manifest on this phone and lists every link and action its screens declare (nothing is guessed). */
+    private fun dumpManifest(pkg: String): String {
+        val custom = java.util.TreeSet<String>()
+        val web = java.util.TreeSet<String>()
+        try {
+            val xml = packageManager.getResourcesForApplication(pkg).assets.openXmlResourceParser("AndroidManifest.xml")
+            val ns = "http://schemas.android.com/apk/res/android"
+            var cur = ""
+            var exported = ""
+            var inFilter = false
+            val actions = ArrayList<String>()
+            val datas = ArrayList<String>()
+            var ev = xml.eventType
+            while (ev != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                if (ev == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                    when (xml.name) {
+                        "activity", "activity-alias" -> { cur = xml.getAttributeValue(ns, "name") ?: ""; exported = xml.getAttributeValue(ns, "exported") ?: "" }
+                        "intent-filter" -> { inFilter = true; actions.clear(); datas.clear() }
+                        "action" -> if (inFilter) actions.add(xml.getAttributeValue(ns, "name") ?: "")
+                        "data" -> if (inFilter) {
+                            val sch = xml.getAttributeValue(ns, "scheme")
+                            val host = xml.getAttributeValue(ns, "host")
+                            val path = xml.getAttributeValue(ns, "path") ?: xml.getAttributeValue(ns, "pathPrefix")?.let { it + "*" } ?: xml.getAttributeValue(ns, "pathPattern")
+                            val mime = xml.getAttributeValue(ns, "mimeType")
+                            if (sch != null || host != null || path != null) datas.add((sch ?: "") + "://" + (host ?: "") + (path ?: ""))
+                            if (mime != null) datas.add("type=" + mime)
+                        }
+                    }
+                } else if (ev == org.xmlpull.v1.XmlPullParser.END_TAG && xml.name == "intent-filter") {
+                    inFilter = false
+                    val acts = actions.filter { it != "android.intent.action.MAIN" }
+                    if (acts.isNotEmpty()) {
+                        val line = cur.substringAfterLast('.') + " [" + exported + "] " + acts.joinToString(",") + "  " + datas.joinToString(" ")
+                        if (datas.any { it.startsWith("http") }) web.add(line) else custom.add(line)
+                    }
+                }
+                ev = xml.next()
+            }
+        } catch (e: Exception) {
+            return "Could not read this app: " + e.javaClass.simpleName + " " + (e.message ?: "")
+        }
+        return "== custom links and actions (" + custom.size + ") ==\n" + custom.joinToString("\n") +
+            "\n\n== web links (" + web.size + ") ==\n" + web.joinToString("\n")
+    }
+
+    private fun showLinks(pkg: String) {
+        toast("Reading...")
+        Thread {
+            val t = pkg + "\n" + dumpManifest(pkg)
+            runOnUiThread {
+                if (isFinishing) return@runOnUiThread
+                val tv = android.widget.TextView(this)
+                tv.text = t
+                tv.typeface = android.graphics.Typeface.MONOSPACE
+                tv.textSize = 11f
+                tv.setTextIsSelectable(true)
+                tv.setPadding(32, 24, 32, 24)
+                val sv = android.widget.ScrollView(this)
+                sv.addView(tv)
+                AlertDialog.Builder(this).setTitle(Feed.label(this, pkg) + ": what it accepts").setView(sv)
+                    .setPositiveButton("Close") { _, _ -> finish() }
+                    .setNeutralButton("Copy") { _, _ ->
+                        val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        cm.setPrimaryClip(android.content.ClipData.newPlainText("links", t))
+                        toast("Copied")
+                        finish()
+                    }
+                    .setOnCancelListener { finish() }
+                    .show()
+            }
+        }.start()
     }
 
     private fun pickStaticApp() {
