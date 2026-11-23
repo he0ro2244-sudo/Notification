@@ -1,3 +1,5 @@
+NEW IN v1.0.6: Fix for the Link finder: it now reads every piece of an app's manifest (apps installed in pieces showed an empty list) and says how many screens and filters it found.
+
 NEW IN v1.0.5: 5th choice when adding a shortcut, "Link finder": pick an app and it lists every link and action that app's own manifest declares on this phone, with a Copy button. Nothing is guessed.
 
 NEW IN v1.0.4: Link choice: the Instagram camera entry is replaced by two test entries, "Story screen (test)" and "Share / new post (test)", because Instagram ignored its camera links.

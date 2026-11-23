@@ -291,48 +291,59 @@ class QuickActivity : Activity() {
         }
     }
 
-    /** Reads the app's own manifest on this phone and lists every link and action its screens declare (nothing is guessed). */
+    /** Reads the app's own manifest on this phone (every piece of it, apps are often installed in several pieces) and lists every link and action its screens declare. */
     private fun dumpManifest(pkg: String): String {
         val custom = java.util.TreeSet<String>()
         val web = java.util.TreeSet<String>()
+        var parsed = 0
+        var acts = 0
+        var filters = 0
+        val ns = "http://schemas.android.com/apk/res/android"
         try {
-            val xml = packageManager.getResourcesForApplication(pkg).assets.openXmlResourceParser("AndroidManifest.xml")
-            val ns = "http://schemas.android.com/apk/res/android"
-            var cur = ""
-            var exported = ""
-            var inFilter = false
-            val actions = ArrayList<String>()
-            val datas = ArrayList<String>()
-            var ev = xml.eventType
-            while (ev != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
-                if (ev == org.xmlpull.v1.XmlPullParser.START_TAG) {
-                    when (xml.name) {
-                        "activity", "activity-alias" -> { cur = xml.getAttributeValue(ns, "name") ?: ""; exported = xml.getAttributeValue(ns, "exported") ?: "" }
-                        "intent-filter" -> { inFilter = true; actions.clear(); datas.clear() }
-                        "action" -> if (inFilter) actions.add(xml.getAttributeValue(ns, "name") ?: "")
-                        "data" -> if (inFilter) {
-                            val sch = xml.getAttributeValue(ns, "scheme")
-                            val host = xml.getAttributeValue(ns, "host")
-                            val path = xml.getAttributeValue(ns, "path") ?: xml.getAttributeValue(ns, "pathPrefix")?.let { it + "*" } ?: xml.getAttributeValue(ns, "pathPattern")
-                            val mime = xml.getAttributeValue(ns, "mimeType")
-                            if (sch != null || host != null || path != null) datas.add((sch ?: "") + "://" + (host ?: "") + (path ?: ""))
-                            if (mime != null) datas.add("type=" + mime)
+            val assets = packageManager.getResourcesForApplication(pkg).assets
+            for (cookie in 0..40) {
+                val xml = try { assets.openXmlResourceParser(cookie, "AndroidManifest.xml") } catch (e: Throwable) { continue }
+                try {
+                    parsed++
+                    var cur = ""
+                    var exported = ""
+                    var inFilter = false
+                    val actions = ArrayList<String>()
+                    val datas = ArrayList<String>()
+                    var ev = xml.eventType
+                    while (ev != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                        if (ev == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                            when (xml.name) {
+                                "activity", "activity-alias" -> { acts++; cur = xml.getAttributeValue(ns, "name") ?: ""; exported = xml.getAttributeValue(ns, "exported") ?: "" }
+                                "intent-filter" -> { inFilter = true; filters++; actions.clear(); datas.clear() }
+                                "action" -> if (inFilter) actions.add(xml.getAttributeValue(ns, "name") ?: "")
+                                "data" -> if (inFilter) {
+                                    val sch = xml.getAttributeValue(ns, "scheme")
+                                    val host = xml.getAttributeValue(ns, "host")
+                                    val path = xml.getAttributeValue(ns, "path") ?: xml.getAttributeValue(ns, "pathPrefix")?.let { it + "*" } ?: xml.getAttributeValue(ns, "pathPattern")
+                                    val mime = xml.getAttributeValue(ns, "mimeType")
+                                    if (sch != null || host != null || path != null) datas.add((sch ?: "") + "://" + (host ?: "") + (path ?: ""))
+                                    if (mime != null) datas.add("type=" + mime)
+                                }
+                            }
+                        } else if (ev == org.xmlpull.v1.XmlPullParser.END_TAG && xml.name == "intent-filter") {
+                            inFilter = false
+                            val a = actions.filter { it != "android.intent.action.MAIN" }
+                            if (a.isNotEmpty()) {
+                                val line = cur.substringAfterLast('.') + " [" + exported + "] " + a.joinToString(",") + "  " + datas.joinToString(" ")
+                                if (datas.any { it.startsWith("http") }) web.add(line) else custom.add(line)
+                            }
                         }
+                        ev = xml.next()
                     }
-                } else if (ev == org.xmlpull.v1.XmlPullParser.END_TAG && xml.name == "intent-filter") {
-                    inFilter = false
-                    val acts = actions.filter { it != "android.intent.action.MAIN" }
-                    if (acts.isNotEmpty()) {
-                        val line = cur.substringAfterLast('.') + " [" + exported + "] " + acts.joinToString(",") + "  " + datas.joinToString(" ")
-                        if (datas.any { it.startsWith("http") }) web.add(line) else custom.add(line)
-                    }
+                } catch (e: Throwable) {
                 }
-                ev = xml.next()
             }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             return "Could not read this app: " + e.javaClass.simpleName + " " + (e.message ?: "")
         }
-        return "== custom links and actions (" + custom.size + ") ==\n" + custom.joinToString("\n") +
+        return "read " + parsed + " manifest(s): " + acts + " screens, " + filters + " filters\n\n" +
+            "== custom links and actions (" + custom.size + ") ==\n" + custom.joinToString("\n") +
             "\n\n== web links (" + web.size + ") ==\n" + web.joinToString("\n")
     }
 
