@@ -50,12 +50,11 @@ class QuickActivity : Activity() {
     private fun chooseKind() {
         AlertDialog.Builder(this)
             .setTitle(if (forPkg.isNotEmpty()) "Add a shortcut for " + Feed.label(this, forPkg) else "Add to shortcuts row")
-            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut", "Link (open a screen of an app, e.g. Instagram camera)", "Link finder (shows what an app really accepts)")) { _, w ->
+            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut (like Camera, New post...)", "Links (find, test, add your own)")) { _, w ->
                 when (w) {
                     0 -> pickApp { pkg -> nameIt(Feed.label(this, pkg)) { n -> save(Quick("app", n, pkg, "")) } }
                     1 -> pickApp { pkg -> pickActivity(pkg) }
-                    3 -> pickLink()
-                    4 -> pickApp { pkg -> showLinks(pkg) }
+                    3 -> pickLinkHub()
                     else -> pickAllShortcuts()
                 }
             }
@@ -184,7 +183,7 @@ class QuickActivity : Activity() {
 
     /** One list with every kind of app shortcut: the long-press ones (read from manifests) and the ones an app creates on request. */
     private fun pickAllShortcuts() {
-        toast("Looking for shortcuts...")
+        toast("Looking for shortcuts (a few seconds)...")
         Thread {
             val items = ArrayList<Pair<String, () -> Unit>>()
             for (pkg in launcherApps()) {
@@ -196,6 +195,13 @@ class QuickActivity : Activity() {
             for (ri in creators) {
                 val ai = ri.activityInfo
                 items.add(Pair(Feed.label(this, ai.packageName) + ": " + ri.loadLabel(packageManager) + " (choose...)") { startCreator(ai) })
+            }
+            for (pkg in launcherApps()) {
+                for (f in foundLinks(pkg)) {
+                    val host = f.uri.substringAfter("://")
+                    if (host.isBlank() || QUICK_WORDS.none { host.lowercase().contains(it) }) continue
+                    items.add(Pair(Feed.label(this, pkg) + ": " + host + " (link)") { linkActions(pkg, f) })
+                }
             }
             items.sortBy { it.first.lowercase() }
             runOnUiThread {
@@ -241,7 +247,7 @@ class QuickActivity : Activity() {
             .show()
     }
 
-    private class Preset(val label: String, val pkg: String, val link: String, val ask: String, val name: String)
+    private class Preset(val label: String, val pkg: String, val link: String, val ask: String, val name: String, val extra: String = "")
 
     /** Opens one screen of an app through a link (not every app supports every link; apps can change them). */
     private fun pickLink() {
@@ -252,6 +258,9 @@ class QuickActivity : Activity() {
         val gm = "com.google.android.gm"
         val tm = "com.microsoft.teams"
         val presets = listOf(
+            Preset("Instagram: Story camera (exact screen)", ig, "instagram://story-camera", "exact", "Story", "MainTabActivity"),
+            Preset("Instagram: Reels camera (exact screen)", ig, "instagram://reels-camera", "exact", "Reels cam", "MainTabActivity"),
+            Preset("Instagram: Camera screen (CameraLauncherActivity)", ig, "", "findact", "Camera", "CameraLauncherActivity"),
             Preset("Instagram: New post", ig, "instagram://create_post", "", "New post"),
             Preset("Instagram: Story camera", ig, "instagram://story_camera", "", "Story"),
             Preset("Instagram: Camera", ig, "instagram://camera_modal", "", "Camera"),
@@ -280,6 +289,14 @@ class QuickActivity : Activity() {
             val p = presets[w]
             when (p.ask) {
                 "" -> saveLink(p.pkg, p.link, p.name)
+                "exact" -> {
+                    val cls = findActivity(p.pkg, p.extra)
+                    if (cls == null) { toast("That screen was not found in this app"); finish() } else saveLinkExact(p.pkg, p.link, cls, p.name)
+                }
+                "findact" -> {
+                    val cls = findActivity(p.pkg, p.extra)
+                    if (cls == null) { toast("That screen was not found in this app"); finish() } else nameIt(p.name) { n -> save(Quick("act", n, p.pkg, cls)) }
+                }
                 "phone" -> askText("Phone number with country code", "e.g. 966501234567") { num ->
                     val digits = num.filter { it.isDigit() }
                     if (digits.isEmpty()) finish() else saveLink(p.pkg, p.link + digits, p.name)
@@ -293,6 +310,156 @@ class QuickActivity : Activity() {
                 }
             }
         }
+    }
+
+    private class FoundLink(val uri: String, val acts: List<String>)
+
+    @Suppress("DEPRECATION")
+    private fun findActivity(pkg: String, suffix: String): String? {
+        return try {
+            packageManager.getPackageInfo(pkg, PackageManager.GET_ACTIVITIES).activities?.toList().orEmpty()
+                .filter { it.name.endsWith("." + suffix) }
+                .sortedByDescending { it.exported }.firstOrNull()?.name
+        } catch (e: Exception) { null }
+    }
+
+    /** Every link (custom scheme) an app's manifest says one of its screens opens, with the screens that declare it (real screens before aliases). */
+    private fun foundLinks(pkg: String): List<FoundLink> {
+        linkCache[pkg]?.let { return it }
+        val real = java.util.TreeMap<String, ArrayList<String>>()
+        val alias = java.util.TreeMap<String, ArrayList<String>>()
+        val ns = "http://schemas.android.com/apk/res/android"
+        try {
+            val assets = packageManager.getResourcesForApplication(pkg).assets
+            for (cookie in 0..40) {
+                val xml = try { assets.openXmlResourceParser(cookie, "AndroidManifest.xml") } catch (e: Throwable) { continue }
+                try {
+                    var cur = ""
+                    var isAlias = false
+                    var inFilter = false
+                    var isView = false
+                    val schemes = ArrayList<String>()
+                    val hosts = ArrayList<String>()
+                    var ev = xml.eventType
+                    while (ev != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+                        if (ev == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                            when (xml.name) {
+                                "activity", "activity-alias" -> {
+                                    isAlias = xml.name == "activity-alias"
+                                    cur = xml.getAttributeValue(ns, "name") ?: ""
+                                    if (cur.startsWith(".")) cur = pkg + cur
+                                }
+                                "intent-filter" -> { inFilter = true; isView = false; schemes.clear(); hosts.clear() }
+                                "action" -> if (inFilter && xml.getAttributeValue(ns, "name") == "android.intent.action.VIEW") isView = true
+                                "data" -> if (inFilter) {
+                                    xml.getAttributeValue(ns, "scheme")?.let { schemes.add(it) }
+                                    val h = xml.getAttributeValue(ns, "host")
+                                    val path = xml.getAttributeValue(ns, "path") ?: xml.getAttributeValue(ns, "pathPrefix")
+                                    if (h != null) hosts.add(h + (path ?: ""))
+                                }
+                            }
+                        } else if (ev == org.xmlpull.v1.XmlPullParser.END_TAG && xml.name == "intent-filter") {
+                            inFilter = false
+                            if (isView && cur.isNotBlank()) {
+                                for (sc in schemes) {
+                                    if (sc == "http" || sc == "https") continue
+                                    val uris = if (hosts.isEmpty()) listOf(sc + "://") else hosts.map { sc + "://" + it }
+                                    for (u in uris) (if (isAlias) alias else real).getOrPut(u) { ArrayList() }.add(cur)
+                                }
+                            }
+                        }
+                        ev = xml.next()
+                    }
+                } catch (e: Throwable) {
+                }
+            }
+        } catch (e: Throwable) {
+        }
+        val keys = java.util.TreeSet<String>()
+        keys.addAll(real.keys); keys.addAll(alias.keys)
+        val out = keys.map { k -> FoundLink(k, ((real[k] ?: ArrayList<String>()) + (alias[k] ?: ArrayList<String>())).distinct()) }
+        linkCache[pkg] = out
+        return out
+    }
+
+    private fun linkIntent(pkg: String, uri: String, act: String?): Intent {
+        val i = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(uri))
+        if (act != null) i.setComponent(ComponentName(pkg, act)) else i.setPackage(pkg)
+        return i
+    }
+
+    private fun saveLinkExact(pkg: String, link: String, act: String, def: String) {
+        val uri = linkIntent(pkg, link, act).toUri(Intent.URI_INTENT_SCHEME)
+        nameIt(def) { n -> save(Quick("sc", n, pkg, uri)) }
+    }
+
+    private fun testLink(pkg: String, uri: String, act: String?) {
+        try {
+            startActivity(linkIntent(pkg, uri, act).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        } catch (e: Exception) {
+            toast("The app did not accept that link")
+        }
+    }
+
+    private fun niceName(f: FoundLink): String =
+        f.uri.substringAfter("://").replace('_', ' ').replace('-', ' ').trim().replaceFirstChar { it.uppercase() }.take(14).ifBlank { "Link" }
+
+    private fun pickExact(pkg: String, f: FoundLink, done: (String) -> Unit) {
+        if (f.acts.size == 1) { done(f.acts[0]); return }
+        pickFrom("Which screen of the app?", f.acts.map { it.substringAfterLast('.') }) { w -> done(f.acts[w]) }
+    }
+
+    /** Test a link right now, or save it (the app is opened by the link alone, or by the link plus the exact screen that declares it). */
+    private fun linkActions(pkg: String, f: FoundLink) {
+        AlertDialog.Builder(this).setTitle(Feed.label(this, pkg) + ": " + f.uri)
+            .setItems(arrayOf("Test now (any screen of the app)", "Test now (exact screen)", "Save this link", "Save this link (exact screen)", "Back to the list")) { _, w ->
+                when (w) {
+                    0 -> { testLink(pkg, f.uri, null); linkActions(pkg, f) }
+                    1 -> pickExact(pkg, f) { a -> testLink(pkg, f.uri, a); linkActions(pkg, f) }
+                    2 -> saveLink(pkg, f.uri, niceName(f))
+                    3 -> pickExact(pkg, f) { a -> saveLinkExact(pkg, f.uri, a, niceName(f)) }
+                    else -> pickFoundLink(pkg)
+                }
+            }
+            .setOnCancelListener { finish() }
+            .show()
+    }
+
+    /** Link finder: every link the app declares, tap one to test it or save it. */
+    private fun pickFoundLink(pkg: String) {
+        toast("Reading...")
+        Thread {
+            val list = foundLinks(pkg)
+            runOnUiThread {
+                if (isFinishing) return@runOnUiThread
+                if (list.isEmpty()) { toast("No links found for this app"); finish(); return@runOnUiThread }
+                val lines = ArrayList<String>()
+                lines.add("» Raw list of everything this app accepts (copy)")
+                for (f in list) lines.add(f.uri + "  ·  " + f.acts[0].substringAfterLast('.') + (if (f.acts.size > 1) " +" + (f.acts.size - 1) else ""))
+                pickFrom(Feed.label(this, pkg) + ": " + list.size + " links", lines) { w ->
+                    if (w == 0) showLinks(pkg) else linkActions(pkg, list[w - 1])
+                }
+            }
+        }.start()
+    }
+
+    private fun typeOwnLink() {
+        askText("Link", "e.g. instagram://camera") { link ->
+            pickApp { pkg -> saveLink(pkg, link, Feed.label(this, pkg)) }
+        }
+    }
+
+    private fun pickLinkHub() {
+        AlertDialog.Builder(this).setTitle("Links")
+            .setItems(arrayOf("Ready-made links (Instagram, WhatsApp, Gmail...)", "Link finder: pick an app, test and save its links", "Type my own link")) { _, w ->
+                when (w) {
+                    0 -> pickLink()
+                    1 -> pickApp { pkg -> pickFoundLink(pkg) }
+                    else -> typeOwnLink()
+                }
+            }
+            .setOnCancelListener { finish() }
+            .show()
     }
 
     /** Reads the app's own manifest on this phone (every piece of it, apps are often installed in several pieces) and lists every link and action its screens declare. */
@@ -472,6 +639,8 @@ class QuickActivity : Activity() {
 
     companion object {
         private const val REQ_SC = 1
+        private val linkCache = HashMap<String, List<FoundLink>>()
+        private val QUICK_WORDS = listOf("camera", "create", "compose", "new", "post", "story", "reel", "scan", "qr", "record", "capture", "upload", "search", "inbox", "direct", "message", "chat", "write", "note", "call", "voice", "send")
 
         /** A shortcut can hold several ways to reach one screen (one per line): the first one the app understands is used; if none, the app itself opens. */
         private fun chainIntent(ctx: android.content.Context, q: Quick): Intent {
