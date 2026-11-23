@@ -13,7 +13,7 @@ Notif Tiles is a home-screen widget that shows your notifications as tiles, toge
 
 ## 2. What the widget shows
 - **Clock, weather, date**: tap the clock or date to open the clock or calendar. Weather comes from Open-Meteo (other sources can be chosen).
-- **Merged shape**: clock, weather and date can be shown together in one shape.
+- **Merged shape**: clock, weather and date can be shown together in one shape. Tap the clock part to open the clock, the weather part to open the weather app, the date part to open the calendar.
 - **Where to?**: opens Google Maps search. While Google Maps is navigating it turns into a red "Exit navigation" button.
 - **Fast-dial circles**: up to 5 contacts. Tap to call.
 - **Shortcuts row**: up to 5 circles that open an app, a screen inside an app, or an app shortcut (for example a direct WhatsApp chat).
@@ -92,7 +92,7 @@ One colour per button, used on the widget and in the panel together.
 - **Maps search box at the start**: puts Where to? first.
 - **Clock** (12 or 24 hour) and **Date** format.
 - **Weather**: city, mode, source, and **Temperature adjust** (to match your phone's weather app). "Compare all sources now" shows every source side by side.
-- **Show "Updated" time** under the refresh icon.
+- **Show "Updated" time** under the refresh icon: switch it off to hide the whole line (for example "Updated 12:50 AM - Open-Meteo"), on to show it again. The same switch is in Show / hide parts.
 
 ### Show / hide parts
 Switch off anything you do not want to see. Nothing is deleted, switch it on again any time.

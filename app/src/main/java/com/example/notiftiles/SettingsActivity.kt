@@ -71,6 +71,22 @@ class SettingsActivity : Activity() {
         applyFilter()
     }
 
+    // Opened from the widget's gear: Back returns straight to the home screen (the widget), not to a screen behind it.
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onBackPressed() {
+        openSections.clear()
+        if (intent.getBooleanExtra("from_widget", false)) {
+            try {
+                startActivity(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (e: Exception) {
+                // fall back to the normal Back
+            }
+            finish()
+        } else {
+            super.onBackPressed()
+        }
+    }
+
     override fun onRestart() {
         super.onRestart()
         rebuild()
@@ -104,7 +120,8 @@ class SettingsActivity : Activity() {
         setPadding(0, dp(topPad), 0, dp(4))
     }
 
-    private val openSections = mutableSetOf("Themes & accent colour")
+    // No group is open when Settings starts, and Back closes them all again.
+    private val openSections = mutableSetOf<String>()
 
     private fun showCheckEverything() {
         val lines = SelfCheck.run(this)
