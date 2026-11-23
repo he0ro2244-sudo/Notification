@@ -155,12 +155,15 @@ object Prefs {
         Look.clearAllImages(c)
     }
 
-    /** Everything that changes how the widget looks and where things sit goes back to default: themes, colours, fonts, shapes, sizes (Size / Width / Height),
+    /** Everything that changes how the widget looks and where things sit goes back to the standard widget: themes, colours, fonts, shapes, sizes (Size / Width / Height),
      *  switches, order, merge, free places. Your apps, contacts, shortcuts, notes, weather place and Where to? favourites are kept. */
     fun resetAllLook(c: Context) {
         resetLook(c)
         val e = sp(c).edit()
         e.remove("free_on").remove("free_pos").remove("free_grid_top").remove("free_snap")
+        // The standard widget: top row (clock, weather, date, Where to?), fast-dial circles, shortcuts row, Inbox row
+        // (title, mic, + Note, Clear all, pencil, gear), refresh icon and weather line. Pencil stays on so Reset can be reached.
+        e.putBoolean("quick_on", true).putBoolean("lay_editbtn", true)
         e.apply()
     }
 
@@ -275,8 +278,8 @@ object Prefs {
     fun itemH(c: Context, key: String): Int = sp(c).getInt("lay_hscale_$key", 100).coerceIn(50, 250)
     fun setItemH(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_hscale_$key", v.coerceIn(50, 250)).apply()
 
-    /** A small pencil on the widget that opens Arrange & resize (off until switched on). */
-    fun editBtn(c: Context): Boolean = sp(c).getBoolean("lay_editbtn", false)
+    /** The small pencil on the widget (opens Move / Arrange & resize / Reset). On by default so Reset can always be reached. */
+    fun editBtn(c: Context): Boolean = sp(c).getBoolean("lay_editbtn", true)
     fun setEditBtn(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_editbtn", v).apply()
 
     /** Size of one widget section in percent (100 = as before). */

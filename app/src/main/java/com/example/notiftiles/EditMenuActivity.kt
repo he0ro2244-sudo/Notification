@@ -44,9 +44,9 @@ class EditMenuActivity : Activity() {
         col.addView(choice("Arrange & resize", "Order of the sections, sizes, colours and what is shown.") {
             startActivity(Intent(this, ArrangeActivity::class.java))
         })
-        col.addView(choice("Reset", "Put everything back to default: themes, colours, fonts, shapes, sizes, order and places of all items. Your apps, contacts, shortcuts and notes are kept.") {
+        col.addView(choice("Reset", "Back to the standard widget: top row, fast-dial circles, shortcuts row and Inbox row in their normal places, no changes to colours, fonts, sizes or shapes. Your apps, contacts, shortcuts and notes are kept.") {
             AlertDialog.Builder(this)
-                .setMessage("Reset ALL themes, colours, sizes, widths, heights, switches, order and places to default? Your apps, contacts, shortcuts and notes are kept. This cannot be undone.")
+                .setMessage("Reset the widget to the standard layout (top row, fast-dial, shortcuts row, Inbox row) and remove ALL themes, colours, fonts, sizes and moved places? Your apps, contacts, shortcuts and notes are kept. This cannot be undone.")
                 .setPositiveButton("Reset all") { _, _ ->
                     Prefs.resetAllLook(this)
                     TilesWidget.refresh(applicationContext)
