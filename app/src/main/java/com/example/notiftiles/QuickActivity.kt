@@ -252,11 +252,18 @@ class QuickActivity : Activity() {
         val gm = "com.google.android.gm"
         val tm = "com.microsoft.teams"
         val presets = listOf(
-            Preset("Instagram: Story screen (test)", ig, "", "igstory", "Story"),
-            Preset("Instagram: Share / new post (test)", ig, "instagram://share", "", "New post"),
+            Preset("Instagram: New post", ig, "instagram://create_post", "", "New post"),
+            Preset("Instagram: Story camera", ig, "instagram://story_camera", "", "Story"),
+            Preset("Instagram: Camera", ig, "instagram://camera_modal", "", "Camera"),
+            Preset("Instagram: Reels camera", ig, "instagram://reels-camera", "", "Reels cam"),
             Preset("Instagram: Messages", ig, "instagram://direct-inbox", "", "Messages"),
             Preset("Instagram: Feed", ig, "instagram://mainfeed", "", "Feed"),
             Preset("Instagram: Explore", ig, "instagram://explore", "", "Explore"),
+            Preset("Instagram: Reels", ig, "instagram://reels_home", "", "Reels"),
+            Preset("Instagram: Search", ig, "instagram://search", "", "Search"),
+            Preset("Instagram: Saved", ig, "instagram://saved", "", "Saved"),
+            Preset("Instagram: Activity", ig, "instagram://news", "", "Activity"),
+            Preset("Instagram: My profile", ig, "instagram://profile", "", "Profile"),
             Preset("Facebook: Feed", fb, "fb://feed", "", "Feed"),
             Preset("Facebook: Notifications", fb, "fb://notifications", "", "Alerts"),
             Preset("Facebook: My profile", fb, "fb://profile", "", "Profile"),
@@ -273,9 +280,6 @@ class QuickActivity : Activity() {
             val p = presets[w]
             when (p.ask) {
                 "" -> saveLink(p.pkg, p.link, p.name)
-                "igstory" -> saveChain(p.pkg, listOf(
-                    Intent("com.instagram.share.ADD_TO_STORY").setPackage(p.pkg).setType("image/*").toUri(Intent.URI_INTENT_SCHEME)
-                ), p.name)
                 "phone" -> askText("Phone number with country code", "e.g. 966501234567") { num ->
                     val digits = num.filter { it.isDigit() }
                     if (digits.isEmpty()) finish() else saveLink(p.pkg, p.link + digits, p.name)
