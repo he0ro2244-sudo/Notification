@@ -123,6 +123,7 @@ class TilesWidget : AppWidgetProvider() {
         private val W_CLOCK = intArrayOf(R.id.wclock0, R.id.wclock1, R.id.wclock2)
         private val W_WEATHER = intArrayOf(R.id.wweather0, R.id.wweather1, R.id.wweather2)
         private val W_DATE = intArrayOf(R.id.wdate0, R.id.wdate1, R.id.wdate2)
+        private val W_MERGE = intArrayOf(R.id.wmerge0, R.id.wmerge1, R.id.wmerge2)
         // By position in the top row: 0 = before the 1st circle ... 3 = after the 3rd
         private val W_LOC = intArrayOf(R.id.wlocA, R.id.wlocC, R.id.wlocD, R.id.wlocB)
         private val W_PIN = intArrayOf(R.id.wpinA, R.id.wpinC, R.id.wpinD, R.id.wpinB)
@@ -133,6 +134,7 @@ class TilesWidget : AppWidgetProvider() {
             "quick" to R.layout.widget_blk_quick, "head" to R.layout.widget_blk_header
         )
         private fun bs(ctx: Context, key: String): Float = Prefs.blockScale(ctx, key) / 100f
+        private fun isc(ctx: Context, key: String): Float = Prefs.itemScale(ctx, key) / 100f
 
         private fun clickAll(rv: RemoteViews, ids: IntArray, pi: PendingIntent) {
             for (id in ids) rv.setOnClickPendingIntent(id, pi)
@@ -159,6 +161,8 @@ class TilesWidget : AppWidgetProvider() {
         fun build(ctx: Context, id: Int): RemoteViews {
             val rv = RemoteViews(ctx.packageName, R.layout.widget_tiles)
             // The sections above the tiles are added in the order chosen in Arrange (they must exist before anything below is set on them).
+            // Clear first: the widget host re-applies these steps on every refresh and would otherwise stack a second copy.
+            rv.removeAllViews(R.id.blocks)
             for (key in Prefs.blockOrder(ctx)) rv.addView(R.id.blocks, RemoteViews(ctx.packageName, BLOCK_LAYOUT.getValue(key)))
 
             val svc = Intent(ctx, TilesService::class.java)
@@ -222,7 +226,7 @@ class TilesWidget : AppWidgetProvider() {
             val wx = Intent(ctx, OpenWeatherActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             clickAll(rv, W_WEATHER, PendingIntent.getActivity(ctx, 4, wx, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             val clock = Intent(ctx, OpenClockActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            clickAll(rv, W_CLOCK, PendingIntent.getActivity(ctx, 6, clock, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
+            clickAll(rv, W_CLOCK + W_MERGE, PendingIntent.getActivity(ctx, 6, clock, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             mapsIcon(rv, ctx)
             val look = Intent(ctx, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             rv.setOnClickPendingIntent(
@@ -262,8 +266,30 @@ class TilesWidget : AppWidgetProvider() {
         private fun txt(rv: RemoteViews, ctx: Context, id: Int, text: String, baseSp: Float, bold: Boolean) =
             Look.setText(rv, ctx, id, text, baseSp, bold)
 
+        /** Sets the text of the merged shape (it carries the weather as plain text, so it is redone when the weather changes). */
+        private fun mergedFormats(rv: RemoteViews, ctx: Context) {
+            val mk = mergedItems(ctx)
+            if (mk.isEmpty()) return
+            val cf = Prefs.clockFmt(ctx)
+            val f12 = if (cf == 2) "HH:mm" else "h:mm"
+            val f24 = if (cf == 1) "h:mm" else "HH:mm"
+            val dateFmt = Prefs.DATE_FORMATS[Prefs.dateFmt(ctx)].first
+            val p12 = ArrayList<String>()
+            val p24 = ArrayList<String>()
+            for (k in Prefs.order(ctx)) if (k in mk) when (k) {
+                "clock" -> { p12.add(f12); p24.add(f24) }
+                "date" -> { p12.add(dateFmt); p24.add(dateFmt) }
+                else -> { val wt = lit(Weather.text(ctx)); p12.add(wt); p24.add(wt) }
+            }
+            for (mid in W_MERGE) {
+                rv.setCharSequence(mid, "setFormat12Hour", Look.span(ctx, p12.joinToString("\n"), true))
+                rv.setCharSequence(mid, "setFormat24Hour", Look.span(ctx, p24.joinToString("\n"), true))
+            }
+        }
+
         fun setWeather(rv: RemoteViews, ctx: Context) {
             for (w in W_WEATHER) txt(rv, ctx, w, Weather.text(ctx), 13f, true)
+            mergedFormats(rv, ctx)
             val upd = Weather.updatedText(ctx)
             if (Weather.showUpdated(ctx) && upd.isNotEmpty()) {
                 rv.setViewVisibility(R.id.wupdated, android.view.View.VISIBLE)
@@ -335,14 +361,14 @@ class TilesWidget : AppWidgetProvider() {
             val main = if (ov != 0) ov else if (lightText) 0xFFF2F2F5.toInt() else if (darkText) 0xFF1B1B1F.toInt() else ctx.getColor(R.color.nt_text)
             val sub = if (ov != 0) Feed.alpha(ov, 0xB3) else if (lightText) 0xFFB4B4BC.toInt() else if (darkText) 0xFF55555C.toInt() else ctx.getColor(R.color.nt_sub)
             val hsc = bs(ctx, "head")
-            txt(rv, ctx, R.id.hdr_title, "Inbox", 16f * hsc, true)
+            txt(rv, ctx, R.id.hdr_title, "Inbox", 16f * hsc * isc(ctx, "w_title"), true)
             rv.setTextColor(R.id.hdr_title, Prefs.partColor(ctx, "title").let { if (it != 0) it else main })
-            txt(rv, ctx, R.id.wnote, "+ Note", 13f * hsc, true)
-            txt(rv, ctx, R.id.wclear, if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all", 13f * hsc, false)
+            txt(rv, ctx, R.id.wnote, "+ Note", 13f * hsc * isc(ctx, "w_note"), true)
+            txt(rv, ctx, R.id.wclear, if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all", 13f * hsc * isc(ctx, "w_clear"), false)
             val ic = Prefs.iconColor(ctx)
             rv.setTextColor(R.id.wclear, Prefs.partColor(ctx, "clear").let { if (it != 0) it else if (ic != 0) ic else sub })
             rv.setInt(R.id.wset, "setColorFilter", Prefs.partColor(ctx, "gear").let { if (it != 0) it else if (ic != 0) ic else sub })
-            val gs = Prefs.gearSize(ctx).toFloat() * hsc
+            val gs = Prefs.gearSize(ctx).toFloat() * hsc * isc(ctx, "w_gear")
             rv.setViewLayoutWidth(R.id.wset, gs + 6f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wset, gs + 4f, TypedValue.COMPLEX_UNIT_DIP)
             txt(rv, ctx, R.id.empty_txt, Extras.quietText(ctx) ?: Prefs.emptyText(ctx), 13f, false)
@@ -391,6 +417,13 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setCharSequence(date, "setFormat12Hour", Look.span(ctx, dateFmt, true))
                 rv.setCharSequence(date, "setFormat24Hour", Look.span(ctx, dateFmt, true))
                 rv.setTextViewTextSize(date, TypedValue.COMPLEX_UNIT_SP, 12f * Look.scale(ctx))
+                // The merged shape: the chosen parts in the top-row order, one under the other.
+                val mid = W_MERGE[slot]
+                rv.setColorStateList(mid, "setBackgroundTintList", circleTint)
+                rv.setInt(mid, "setBackgroundResource", shapeRes)
+                rv.setTextColor(mid, circleText)
+                rv.setViewLayoutHeight(mid, topSize, TypedValue.COMPLEX_UNIT_DIP)
+                rv.setTextViewTextSize(mid, TypedValue.COMPLEX_UNIT_SP, 13f * Look.scale(ctx))
             }
             for (i in W_LOC.indices) {
                 rv.setColorStateList(W_LOC[i], "setBackgroundTintList", circleTint)
@@ -497,6 +530,12 @@ class TilesWidget : AppWidgetProvider() {
             rv.setViewVisibility(R.id.wnote, vis(Prefs.showItem(ctx, "w_note"), View.GONE))
             rv.setViewVisibility(R.id.wclear, vis(Prefs.showItem(ctx, "w_clear"), View.GONE))
             rv.setViewVisibility(R.id.wset, vis(Prefs.showItem(ctx, "w_gear"), View.GONE))
+            rv.setViewVisibility(R.id.wedit, if (Prefs.editBtn(ctx)) View.VISIBLE else View.GONE)
+            rv.setOnClickPendingIntent(
+                R.id.wedit,
+                PendingIntent.getActivity(ctx, 70, Intent(ctx, ArrangeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            )
 
             // ---- Pages (‹ 1/3 ›)
             val pages = Prefs.pagesOn(ctx)
@@ -520,24 +559,35 @@ class TilesWidget : AppWidgetProvider() {
                 val refC = Prefs.partColor(ctx, "refresh").let { if (it != 0) it else if (ic != 0) ic else sub }
                 val rec = RecordService.running()
                 val micC = if (rec) 0xFFE53935.toInt() else Prefs.partColor(ctx, "mic").let { if (it != 0) it else if (ic != 0) ic else Prefs.accent(ctx) }
-                set3d(rv, ctx, R.id.wset, R.drawable.ic_gear, gearC, Prefs.gearSize(ctx).toFloat() * bs(ctx, "head"))
+                set3d(rv, ctx, R.id.wset, R.drawable.ic_gear, gearC, Prefs.gearSize(ctx).toFloat() * bs(ctx, "head") * isc(ctx, "w_gear"))
                 set3d(rv, ctx, R.id.wrefresh, R.drawable.ic_refresh, refC, Prefs.refreshSize(ctx).toFloat())
-                set3d(rv, ctx, R.id.wmic, if (rec) R.drawable.ic_stop else R.drawable.ic_mic, micC, Prefs.micSize(ctx).toFloat() * bs(ctx, "head"))
+                set3d(rv, ctx, R.id.wmic, if (rec) R.drawable.ic_stop else R.drawable.ic_mic, micC, Prefs.micSize(ctx).toFloat() * bs(ctx, "head") * isc(ctx, "w_mic"))
             } else {
                 rv.setImageViewResource(R.id.wset, R.drawable.ic_gear)
                 rv.setImageViewResource(R.id.wrefresh, R.drawable.ic_refresh)
             }
         }
 
+        /** Items merged into one shape: only when 2 or more of the shown top-row items are chosen. */
+        private fun mergedItems(ctx: Context): Set<String> {
+            val m = Prefs.merged(ctx).filter { Prefs.show(ctx, it) }.toSet()
+            return if (m.size >= 2) m else emptySet()
+        }
+
+        private fun lit(s: String): String = "'" + s.replace("'", "''") + "'"
+
         // Which top-row items are shown, in which order, and the accent colour.
         private fun applyLayout(rv: RemoteViews, ctx: Context) {
             val order = Prefs.order(ctx)
             val groups = mapOf("clock" to W_CLOCK, "weather" to W_WEATHER, "date" to W_DATE)
+            val mergedKeys = mergedItems(ctx)
+            val mergeSlot = order.indexOfFirst { it in mergedKeys }
             for (slot in 0 until 3) {
                 for ((key, ids) in groups) {
-                    val on = order[slot] == key && Prefs.show(ctx, key)
+                    val on = order[slot] == key && Prefs.show(ctx, key) && key !in mergedKeys
                     rv.setViewVisibility(ids[slot], if (on) View.VISIBLE else View.GONE)
                 }
+                rv.setViewVisibility(W_MERGE[slot], if (mergedKeys.isNotEmpty() && slot == mergeSlot) View.VISIBLE else View.GONE)
             }
             val maps = Prefs.show(ctx, "maps")
             val pos = Prefs.pillPos(ctx)
@@ -548,7 +598,7 @@ class TilesWidget : AppWidgetProvider() {
             val recNow = RecordService.running()
             rv.setImageViewResource(R.id.wmic, if (recNow) R.drawable.ic_stop else R.drawable.ic_mic)
             rv.setInt(R.id.wmic, "setColorFilter", if (recNow) 0xFFE53935.toInt() else Prefs.partColor(ctx, "mic").let { if (it != 0) it else if (Prefs.iconColor(ctx) != 0) Prefs.iconColor(ctx) else accent })
-            val ms = Prefs.micSize(ctx).toFloat() * bs(ctx, "head")
+            val ms = Prefs.micSize(ctx).toFloat() * bs(ctx, "head") * isc(ctx, "w_mic")
             rv.setViewLayoutWidth(R.id.wmic, ms + 12f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wmic, ms + 4f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setColorStateList(R.id.count, "setBackgroundTintList", ColorStateList.valueOf(accent))

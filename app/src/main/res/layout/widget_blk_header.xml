@@ -70,6 +70,19 @@
             android:textColor="@color/nt_sub"
             android:textSize="13sp" />
 
+        <TextView
+            android:id="@+id/wedit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="6dp"
+            android:paddingTop="2dp"
+            android:paddingEnd="6dp"
+            android:paddingBottom="2dp"
+            android:text="✎"
+            android:textColor="@color/nt_sub"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
         <ImageView
             android:id="@+id/wset"
             android:layout_width="30dp"

@@ -89,6 +89,22 @@
             android:format24Hour="EEE&#10;d MMM"
             android:textSize="12sp"
             />
+        <TextClock
+            android:id="@+id/wmerge0"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:minWidth="50dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:textColor="@color/nt_text"
+            android:visibility="gone"
+            android:format12Hour="h:mm"
+            android:format24Hour="HH:mm"
+            android:textSize="13sp" />
+
 
         </LinearLayout>
 
@@ -172,6 +188,22 @@
             android:format24Hour="EEE&#10;d MMM"
             android:textSize="12sp"
             />
+        <TextClock
+            android:id="@+id/wmerge1"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:minWidth="50dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:textColor="@color/nt_text"
+            android:visibility="gone"
+            android:format12Hour="h:mm"
+            android:format24Hour="HH:mm"
+            android:textSize="13sp" />
+
 
         </LinearLayout>
 
@@ -255,6 +287,22 @@
             android:format24Hour="EEE&#10;d MMM"
             android:textSize="12sp"
             />
+        <TextClock
+            android:id="@+id/wmerge2"
+            android:layout_width="wrap_content"
+            android:layout_height="50dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/nt_circle_bg"
+            android:gravity="center"
+            android:minWidth="50dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:textColor="@color/nt_text"
+            android:visibility="gone"
+            android:format12Hour="h:mm"
+            android:format24Hour="HH:mm"
+            android:textSize="13sp" />
+
 
         </LinearLayout>
 

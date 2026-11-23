@@ -154,6 +154,11 @@ object Prefs {
     fun show(c: Context, key: String): Boolean = sp(c).getBoolean("lay_show_$key", true)
     fun setShow(c: Context, key: String, v: Boolean) = sp(c).edit().putBoolean("lay_show_$key", v).apply()
 
+    /** Top-row items merged into ONE shape (any of clock, weather, date; fewer than 2 = nothing merged). */
+    fun merged(c: Context): Set<String> =
+        (sp(c).getString("lay_merge", "") ?: "").split(",").filter { it in ITEMS }.toSet()
+    fun setMerged(c: Context, s: Set<String>) = sp(c).edit().putString("lay_merge", s.joinToString(",")).apply()
+
     fun pillFirst(c: Context): Boolean = sp(c).getBoolean("lay_pill_first", false)
     fun setPillFirst(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_pill_first", v).apply()
 
@@ -167,18 +172,28 @@ object Prefs {
 
     /** The sections of the widget above the tiles, top to bottom: top = clock/weather/date/Where to?, dial, quick = shortcuts row, head = Inbox row. */
     val BLOCKS = listOf("top", "dial", "quick", "head")
+    val ITEM_KEYS = listOf("w_title", "w_note", "w_clear", "w_mic", "w_gear")
     fun blockOrder(c: Context): List<String> {
         val l = (sp(c).getString("lay_blocks", "top,dial,quick,head") ?: "").split(",").filter { it in BLOCKS }.distinct()
         return if (l.size == BLOCKS.size) l else BLOCKS
     }
     fun setBlockOrder(c: Context, l: List<String>) = sp(c).edit().putString("lay_blocks", l.joinToString(",")).apply()
 
+    /** Size of one single item (w_title, w_note, w_clear, w_mic, w_gear) in percent, on top of its section's size. */
+    fun itemScale(c: Context, key: String): Int = sp(c).getInt("lay_iscale_$key", 100).coerceIn(50, 250)
+    fun setItemScale(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_iscale_$key", v.coerceIn(50, 250)).apply()
+
+    /** A small pencil on the widget that opens Arrange & resize (off until switched on). */
+    fun editBtn(c: Context): Boolean = sp(c).getBoolean("lay_editbtn", false)
+    fun setEditBtn(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_editbtn", v).apply()
+
     /** Size of one widget section in percent (100 = as before). */
     fun blockScale(c: Context, key: String): Int = sp(c).getInt("lay_scale_$key", 100).coerceIn(50, 200)
     fun setBlockScale(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_scale_$key", v.coerceIn(50, 200)).apply()
     fun resetArrange(c: Context) {
         val e = sp(c).edit()
-        for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first")) e.remove(k)
+        for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_editbtn")) e.remove(k)
+        for (k in ITEM_KEYS) e.remove("lay_iscale_$k")
         for (k in BLOCKS) e.remove("lay_scale_$k")
         e.apply()
     }

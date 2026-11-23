@@ -1,3 +1,9 @@
+NEW IN v0.9.56: Arrange & resize now also has "Inbox row items": show/hide and size for the title, count, mic, + Note, Clear all and gear, and an optional pencil button on the widget that opens it. Nothing changes until you use it.
+
+NEW IN v0.9.55: Merge. Arrange & resize > "Merge into one shape": tick two or more of clock, weather, date and they show together in one shape (e.g. clock + date). Off until you tick them.
+
+NEW IN v0.9.54: Fix for v0.9.53 (the widget showed its sections twice). Nothing else changed.
+
 NEW IN v0.9.53: Arrange & resize by dragging. Look & colors > Widget: clock, weather & layout > "Arrange & resize by dragging...".
 Hold the handle of a row and drag it: (1) the sections of the widget (top row, fast dial, shortcuts row, Inbox row) can go in any order;
 (2) the items of the top row - clock, weather, date and the "Where to?" box - can go in any order (the box can now sit between the circles);

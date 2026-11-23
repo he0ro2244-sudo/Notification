@@ -99,6 +99,32 @@ class ArrangeActivity : Activity() {
             box
         }) { l -> Prefs.setBlockOrder(this, l); redraw(); rebuild() })
 
+        // ---- Inbox row items: show / hide and size of each
+        col.addView(title("Inbox row items", 16f, 20))
+        col.addView(hint("Show or hide each item and make it bigger or smaller (on top of the section size above)."))
+        val hdrItems = listOf("w_title" to "Title (Inbox)", "w_count" to "Count badge", "w_mic" to "Mic", "w_note" to "+ Note",
+            "w_clear" to "Clear all", "w_gear" to "Settings gear")
+        for ((k, label) in hdrItems) {
+            val box = LinearLayout(this)
+            box.orientation = LinearLayout.VERTICAL
+            val top = LinearLayout(this)
+            top.orientation = LinearLayout.HORIZONTAL
+            top.gravity = Gravity.CENTER_VERTICAL
+            val nm = TextView(this)
+            nm.text = label
+            nm.textSize = 15f
+            top.addView(nm, LinearLayout.LayoutParams(0, WRAP, 1f))
+            top.addView(smallSwitch(Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); redraw() })
+            box.addView(top)
+            if (k in Prefs.ITEM_KEYS) box.addView(sizeBar(Prefs.itemScale(this, k), 50, 250) { Prefs.setItemScale(this, k, it) })
+            col.addView(box)
+        }
+        val pen = android.widget.Switch(this)
+        pen.text = "Show a ✎ button on the widget that opens this screen"
+        pen.isChecked = Prefs.editBtn(this)
+        pen.setOnCheckedChangeListener { _, v -> Prefs.setEditBtn(this, v); redraw() }
+        col.addView(pen)
+
         // ---- 2. Items of the top row
         col.addView(title("Top row items (left to right)", 16f, 20))
         col.addView(hint("Move \"Where to?\" between the circles, or reorder the circles."))
@@ -121,6 +147,20 @@ class ArrangeActivity : Activity() {
             Prefs.setPillPos(this, l.indexOf("maps"))
             redraw(); rebuild()
         })
+
+        col.addView(title("Merge into one shape", 16f, 20))
+        col.addView(hint("Tick two or more to show them together in one shape (for example clock + date). The shape sits where the first of them is."))
+        val mergedNow = Prefs.merged(this)
+        for (k in listOf("clock", "weather", "date")) {
+            val cb = android.widget.CheckBox(this)
+            cb.text = itemNames[k]
+            cb.isChecked = k in mergedNow
+            cb.setOnCheckedChangeListener { _, v ->
+                Prefs.setMerged(this, if (v) Prefs.merged(this) + k else Prefs.merged(this) - k)
+                redraw()
+            }
+            col.addView(cb)
+        }
 
         // ---- 3. Order of the message tiles (apps)
         col.addView(title("Order of the message tiles (apps)", 16f, 20))
@@ -161,7 +201,7 @@ class ArrangeActivity : Activity() {
         return sw
     }
 
-    private fun sizeBar(value: Int, set: (Int) -> Unit): View {
+    private fun sizeBar(value: Int, min: Int = 50, max: Int = 200, set: (Int) -> Unit): View {
         val box = LinearLayout(this)
         box.orientation = LinearLayout.VERTICAL
         val t = TextView(this)
@@ -170,12 +210,12 @@ class ArrangeActivity : Activity() {
         t.alpha = 0.7f
         box.addView(t)
         val sb = SeekBar(this)
-        sb.max = 150 // 50..200 %
-        sb.progress = (value - 50).coerceIn(0, 150)
+        sb.max = max - min
+        sb.progress = (value - min).coerceIn(0, max - min)
         sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
-                t.text = "Size: ${p + 50}%"
-                if (fromUser) set(p + 50)
+                t.text = "Size: ${p + min}%"
+                if (fromUser) set(p + min)
             }
             override fun onStartTrackingTouch(s: SeekBar) {}
             override fun onStopTrackingTouch(s: SeekBar) { redraw() }
