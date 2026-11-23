@@ -347,3 +347,6 @@ NEW IN v0.9.6
 The phone's Recorder ignores start requests from other apps, so the mic now has a helper: turn on
 "Notif Tiles recorder button" in Accessibility and the mic opens the Recorder and presses its red record
 button for you. Adjust where it taps in Look & colors > Voice recorder > Red button position.
+
+NEW IN v1.0.9
+"Add to shortcuts row" now has 3 choices only: App, Activity, Shortcut. The Shortcut list starts with Link finder, Type my own link and Ready-made links, followed by every app shortcut (search box on top filters by app or shortcut name).

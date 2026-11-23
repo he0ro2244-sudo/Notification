@@ -50,11 +50,10 @@ class QuickActivity : Activity() {
     private fun chooseKind() {
         AlertDialog.Builder(this)
             .setTitle(if (forPkg.isNotEmpty()) "Add a shortcut for " + Feed.label(this, forPkg) else "Add to shortcuts row")
-            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut (like Camera, New post...)", "Links (find, test, add your own)")) { _, w ->
+            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut (like Camera, New post...)")) { _, w ->
                 when (w) {
                     0 -> pickApp { pkg -> nameIt(Feed.label(this, pkg)) { n -> save(Quick("app", n, pkg, "")) } }
                     1 -> pickApp { pkg -> pickActivity(pkg) }
-                    3 -> pickLinkHub()
                     else -> pickAllShortcuts()
                 }
             }
@@ -204,9 +203,11 @@ class QuickActivity : Activity() {
                 }
             }
             items.sortBy { it.first.lowercase() }
+            items.add(0, Pair("Ready-made links (Instagram, WhatsApp, Gmail...)") { pickLink() })
+            items.add(0, Pair("Type my own link") { typeOwnLink() })
+            items.add(0, Pair("Link finder: pick an app, test and save its links") { pickApp { pkg -> pickFoundLink(pkg) } })
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
-                if (items.isEmpty()) { toast("No app offers shortcuts here"); finish(); return@runOnUiThread }
                 pickFrom("Choose a shortcut", items.map { it.first }) { w -> items[w].second() }
             }
         }.start()
