@@ -8,6 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
 import android.net.Uri
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.util.TypedValue
 import android.service.notification.StatusBarNotification
 import android.view.View
@@ -381,9 +384,26 @@ class TilesWidget : AppWidgetProvider() {
                 "date" -> { p12.add(dateFmt); p24.add(dateFmt) }
                 else -> { val wt = lit(Weather.text(ctx)); p12.add(wt); p24.add(wt) }
             }
+            // Colours: a colour picked for "merged shape" colours all of it; otherwise every part keeps its own colour
+            // (clock, weather, date) and a part with no colour follows the circle text colour.
+            val keys = Prefs.order(ctx).filter { it in mk }
+            val whole = Prefs.partColor(ctx, "merge")
+            fun coloured(parts: List<String>): CharSequence {
+                val sb = SpannableStringBuilder(Look.span(ctx, parts.joinToString(sep), true))
+                if (whole == 0) {
+                    var pos = 0
+                    for ((i, part) in parts.withIndex()) {
+                        val pc = Prefs.partColor(ctx, keys[i])
+                        if (pc != 0 && part.isNotEmpty()) sb.setSpan(ForegroundColorSpan(pc), pos, pos + part.length, Spanned.SPAN_INCLUSIVE_INCLUSIVE)
+                        pos += part.length + sep.length
+                    }
+                }
+                return sb
+            }
             for (mid in W_MERGE) {
-                rv.setCharSequence(mid, "setFormat12Hour", Look.span(ctx, p12.joinToString(sep), true))
-                rv.setCharSequence(mid, "setFormat24Hour", Look.span(ctx, p24.joinToString(sep), true))
+                rv.setCharSequence(mid, "setFormat12Hour", coloured(p12))
+                rv.setCharSequence(mid, "setFormat24Hour", coloured(p24))
+                if (whole != 0) rv.setTextColor(mid, whole)
             }
         }
 
@@ -522,7 +542,7 @@ class TilesWidget : AppWidgetProvider() {
                 val mid = W_MERGE[slot]
                 rv.setColorStateList(mid, "setBackgroundTintList", circleTint)
                 rv.setInt(mid, "setBackgroundResource", shapeRes)
-                rv.setTextColor(mid, circleText)
+                rv.setTextColor(mid, Prefs.partColor(ctx, "merge").let { if (it != 0) it else circleText })
                 rv.setInt(mid, "setMinHeight", Math.round(topSize * isc(ctx, "w_merge") * hst(ctx, "w_merge") * ctx.resources.displayMetrics.density))
                 if (Prefs.itemW(ctx, "w_merge") != 100) {
                     val baseW = if (Prefs.mergeHoriz(ctx)) 160f else 70f

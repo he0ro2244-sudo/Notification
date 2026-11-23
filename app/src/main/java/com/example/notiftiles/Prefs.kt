@@ -535,6 +535,7 @@ object Prefs {
         "clock" to "Widget: clock",
         "weather" to "Widget: weather",
         "date" to "Widget: date",
+        "merge" to "Widget: merged shape (clock + weather + date together)",
         "where" to "Widget: Where to?",
         "empty" to "Widget: Nothing new text",
         "updated" to "Widget: Updated line (weather)",

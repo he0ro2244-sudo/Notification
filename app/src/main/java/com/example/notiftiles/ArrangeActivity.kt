@@ -121,7 +121,7 @@ class ArrangeActivity : Activity() {
         val specs = ArrayList<Pair<String, List<Spec>>>()
         specs.add("Top row" to listOf(
             top("w_clock", "clock", "Clock", "clock"), top("w_weather", "weather", "Weather", "weather"),
-            top("w_date", "date", "Date", "date"), Spec("w_merge", "Merged shape", null, null, null),
+            top("w_date", "date", "Date", "date"), Spec("w_merge", "Merged shape", null, null, "merge"),
             top("w_where", "maps", "Where to? box", "where")))
         specs.add("Fast-dial circles" to (0 until Prefs.DIAL_SLOTS).map { Spec("d$it", "Circle ${it + 1}", null, null, null) })
         specs.add("Shortcuts row circles" to (0 until Prefs.QUICK_SLOTS).map { Spec("q$it", "Circle ${it + 1}", null, null, null) })

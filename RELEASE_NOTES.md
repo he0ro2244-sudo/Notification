@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.2
+- **Full user manual inside the app**: Look & colors > HELP > User manual (read me), at the bottom of Settings. The same text is in USER_MANUAL.md.
+- **Merged shape colours fixed**: the merged clock / weather / date shape now uses the colours picked for Clock, Weather and Date (before, it ignored them and always used the shared circle text colour).
+- **New colour for the merged shape**: Text colour per part > "Widget: merged shape" (also a Colour button in Arrange & resize). When set it colours the whole merged shape; on Auto each part keeps its own colour.
+
 ## 1.1.1
 - Added the user manual (USER_MANUAL.md) and these release notes.
 - GitHub releases now show these notes.

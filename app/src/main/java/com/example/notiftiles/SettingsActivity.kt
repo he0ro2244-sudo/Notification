@@ -966,6 +966,9 @@ class SettingsActivity : Activity() {
         lp.topMargin = dp(24)
         col.addView(reset, lp)
 
+        category("HELP")
+        section("User manual (read me)") { Manual.addTo(this, col) }
+
         updatePreviews()
     }
 
