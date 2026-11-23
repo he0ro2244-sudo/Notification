@@ -163,6 +163,8 @@ class TilesWidget : AppWidgetProvider() {
         )
         private fun bs(ctx: Context, key: String): Float = Prefs.blockScale(ctx, key) / 100f
         private fun isc(ctx: Context, key: String): Float = Prefs.itemScale(ctx, key) / 100f
+        private fun wst(ctx: Context, key: String): Float = Prefs.itemW(ctx, key) / 100f
+        private fun hst(ctx: Context, key: String): Float = Prefs.itemH(ctx, key) / 100f
 
         private fun clickAll(rv: RemoteViews, ids: IntArray, pi: PendingIntent) {
             for (id in ids) rv.setOnClickPendingIntent(id, pi)
@@ -484,8 +486,8 @@ class TilesWidget : AppWidgetProvider() {
                     rv.setColorStateList(id, "setBackgroundTintList", circleTint)
                     rv.setInt(id, "setBackgroundResource", shapeRes)
                     rv.setTextColor(id, circleText)
-                    rv.setViewLayoutWidth(id, topSize * isc(ctx, ik), TypedValue.COMPLEX_UNIT_DIP)
-                    rv.setViewLayoutHeight(id, topSize * isc(ctx, ik), TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutWidth(id, topSize * isc(ctx, ik) * wst(ctx, ik), TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutHeight(id, topSize * isc(ctx, ik) * hst(ctx, ik), TypedValue.COMPLEX_UNIT_DIP)
                 }
                 for ((k, ids) in listOf("clock" to W_CLOCK, "weather" to W_WEATHER, "date" to W_DATE)) {
                     val pc = Prefs.partColor(ctx, k)
@@ -504,12 +506,16 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setColorStateList(mid, "setBackgroundTintList", circleTint)
                 rv.setInt(mid, "setBackgroundResource", shapeRes)
                 rv.setTextColor(mid, circleText)
-                rv.setInt(mid, "setMinHeight", Math.round(topSize * isc(ctx, "w_merge") * ctx.resources.displayMetrics.density))
+                rv.setInt(mid, "setMinHeight", Math.round(topSize * isc(ctx, "w_merge") * hst(ctx, "w_merge") * ctx.resources.displayMetrics.density))
+                if (Prefs.itemW(ctx, "w_merge") != 100) {
+                    val baseW = if (Prefs.mergeHoriz(ctx)) 160f else 70f
+                    rv.setViewLayoutWidth(mid, baseW * isc(ctx, "w_merge") * wst(ctx, "w_merge"), TypedValue.COMPLEX_UNIT_DIP)
+                }
                 rv.setTextViewTextSize(mid, TypedValue.COMPLEX_UNIT_SP, 13f * Look.scale(ctx) * isc(ctx, "w_merge"))
             }
             for (i in W_LOC.indices) {
                 rv.setColorStateList(W_LOC[i], "setBackgroundTintList", circleTint)
-                rv.setViewLayoutHeight(W_LOC[i], 40f * bs(ctx, "top") * isc(ctx, "w_where"), TypedValue.COMPLEX_UNIT_DIP)
+                rv.setViewLayoutHeight(W_LOC[i], 40f * bs(ctx, "top") * isc(ctx, "w_where") * hst(ctx, "w_where"), TypedValue.COMPLEX_UNIT_DIP)
             }
             // While Google Maps is navigating this box becomes a one-tap red "Exit navigation"
             val navigating = LocationAuto.navNotification() != null
@@ -544,8 +550,8 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setTextColor(DIAL_CIRCLE[i], fgc)
                 rv.setColorStateList(DIAL_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(bgc))
                 rv.setInt(DIAL_CIRCLE[i], "setBackgroundResource", shapeRes)
-                rv.setViewLayoutWidth(DIAL_CIRCLE[i], dsize * isc(ctx, "d$i"), TypedValue.COMPLEX_UNIT_DIP)
-                rv.setViewLayoutHeight(DIAL_CIRCLE[i], dsize * isc(ctx, "d$i"), TypedValue.COMPLEX_UNIT_DIP)
+                rv.setViewLayoutWidth(DIAL_CIRCLE[i], dsize * isc(ctx, "d$i") * wst(ctx, "d$i"), TypedValue.COMPLEX_UNIT_DIP)
+                rv.setViewLayoutHeight(DIAL_CIRCLE[i], dsize * isc(ctx, "d$i") * hst(ctx, "d$i"), TypedValue.COMPLEX_UNIT_DIP)
                 txt(rv, ctx, DIAL_NAME[i], if (has) label else "Add", 10f, false)
                 val dn = Prefs.partColor(ctx, "dialnames")
                 rv.setTextColor(DIAL_NAME[i], if (ownText != 0) ownText else if (dn != 0) dn else sub)
@@ -571,6 +577,9 @@ class TilesWidget : AppWidgetProvider() {
                 for (i in 0 until Prefs.QUICK_SLOTS) {
                     val q = Prefs.quick(ctx, i)
                     val qs = qsize * isc(ctx, "q$i")
+                    val qw = qs * wst(ctx, "q$i")
+                    val qh = qs * hst(ctx, "q$i")
+                    val qm = minOf(qw, qh)
                     val has = q != null
                     val show = has || !addShown
                     if (!has) addShown = true
@@ -591,12 +600,12 @@ class TilesWidget : AppWidgetProvider() {
                     rv.setTextColor(Q_CIRCLE[i], fgc)
                     rv.setColorStateList(Q_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(bgc))
                     rv.setInt(Q_CIRCLE[i], "setBackgroundResource", shapeRes)
-                    rv.setViewLayoutWidth(Q_CIRCLE[i], qs, TypedValue.COMPLEX_UNIT_DIP)
-                    rv.setViewLayoutHeight(Q_CIRCLE[i], qs, TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutWidth(Q_CIRCLE[i], qw, TypedValue.COMPLEX_UNIT_DIP)
+                    rv.setViewLayoutHeight(Q_CIRCLE[i], qh, TypedValue.COMPLEX_UNIT_DIP)
                     if (icon != null) {
                         rv.setImageViewBitmap(Q_ICON[i], icon)
-                        rv.setViewLayoutWidth(Q_ICON[i], qs * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
-                        rv.setViewLayoutHeight(Q_ICON[i], qs * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
+                        rv.setViewLayoutWidth(Q_ICON[i], qm * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
+                        rv.setViewLayoutHeight(Q_ICON[i], qm * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
                         rv.setViewVisibility(Q_ICON[i], View.VISIBLE)
                     } else {
                         rv.setViewVisibility(Q_ICON[i], View.GONE)

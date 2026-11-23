@@ -111,7 +111,7 @@ class ArrangeActivity : Activity() {
 
         // ---- Every item: show / hide, size and colour of each one on its own
         col.addView(title("Every item", 16f, 20))
-        col.addView(hint("Each item has its own size (100% = as before). Switches hide an item. Tap Colour to change it (Auto = the normal colour)."))
+        col.addView(hint("Each item has its own size (100% = as before); circles, shapes and boxes also have Width and Height sliders to stretch them one way only. Switches hide an item. Tap Colour to change it (Auto = the normal colour)."))
         // key, label, show getter/setter (null = no switch), colour key (null = none)
         class Spec(val key: String, val label: String, val on: (() -> Boolean)?, val setOn: ((Boolean) -> Unit)?, val color: String?)
         fun hdr(k: String, label: String, color: String?) =
@@ -163,6 +163,9 @@ class ArrangeActivity : Activity() {
                 if (sp.on != null && sp.setOn != null) rowTop.addView(smallSwitch(sp.on.invoke()) { sp.setOn.invoke(it); redraw() })
                 box.addView(rowTop)
                 box.addView(sizeBar(Prefs.itemScale(this, sp.key), 50, 250) { Prefs.setItemScale(this, sp.key, it) })
+                val isBox = sp.key in setOf("w_clock", "w_weather", "w_date", "w_merge") || sp.key.startsWith("d") || sp.key.startsWith("q")
+                if (isBox) box.addView(sizeBar(Prefs.itemW(this, sp.key), 50, 250, "Width (on top of Size)") { Prefs.setItemW(this, sp.key, it) })
+                if (isBox || sp.key == "w_where") box.addView(sizeBar(Prefs.itemH(this, sp.key), 50, 250, "Height (on top of Size)") { Prefs.setItemH(this, sp.key, it) })
                 col.addView(box)
             }
         }

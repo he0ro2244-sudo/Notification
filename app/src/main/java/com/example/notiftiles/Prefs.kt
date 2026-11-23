@@ -260,6 +260,12 @@ object Prefs {
     fun itemScale(c: Context, key: String): Int = sp(c).getInt("lay_iscale_$key", 100).coerceIn(50, 250)
     fun setItemScale(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_iscale_$key", v.coerceIn(50, 250)).apply()
 
+    /** Extra width / height of one box item in percent (100 = the Size slider alone), on top of its Size. */
+    fun itemW(c: Context, key: String): Int = sp(c).getInt("lay_wscale_$key", 100).coerceIn(50, 250)
+    fun setItemW(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_wscale_$key", v.coerceIn(50, 250)).apply()
+    fun itemH(c: Context, key: String): Int = sp(c).getInt("lay_hscale_$key", 100).coerceIn(50, 250)
+    fun setItemH(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_hscale_$key", v.coerceIn(50, 250)).apply()
+
     /** A small pencil on the widget that opens Arrange & resize (off until switched on). */
     fun editBtn(c: Context): Boolean = sp(c).getBoolean("lay_editbtn", false)
     fun setEditBtn(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_editbtn", v).apply()
@@ -270,7 +276,7 @@ object Prefs {
     fun resetArrange(c: Context) {
         val e = sp(c).edit()
         for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_merge_h", "lay_editbtn", "lay_row_top", "lay_row_head")) e.remove(k)
-        for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_")) e.remove(k)
+        for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_") || k.startsWith("lay_wscale_") || k.startsWith("lay_hscale_")) e.remove(k)
         for (k in BLOCKS) e.remove("lay_scale_$k")
         e.remove("free_on").remove("free_pos").remove("free_grid_top")
         e.apply()
