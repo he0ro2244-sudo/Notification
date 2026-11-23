@@ -155,6 +155,15 @@ object Prefs {
         Look.clearAllImages(c)
     }
 
+    /** Everything that changes how the widget looks and where things sit goes back to default: themes, colours, fonts, shapes, sizes (Size / Width / Height),
+     *  switches, order, merge, free places. Your apps, contacts, shortcuts, notes, weather place and Where to? favourites are kept. */
+    fun resetAllLook(c: Context) {
+        resetLook(c)
+        val e = sp(c).edit()
+        e.remove("free_on").remove("free_pos").remove("free_grid_top").remove("free_snap")
+        e.apply()
+    }
+
     // ---- Accent colour (buttons, badge) ----
     fun accent(c: Context): Int = sp(c).getInt("look_accent", 0xFF3B82F6.toInt())
     fun setAccent(c: Context, v: Int) = sp(c).edit().putInt("look_accent", v).apply()

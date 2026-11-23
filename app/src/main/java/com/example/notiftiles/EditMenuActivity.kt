@@ -1,6 +1,7 @@
 package com.example.notiftiles
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -10,7 +11,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 
-/** What the pencil on the widget does: Move (drag items to another place) or Arrange & resize (sections, sizes, colours). */
+/** What the pencil on the widget does: Move (drag items to another place), Arrange & resize (sections, sizes, colours) or Reset (everything back to default). */
 class EditMenuActivity : Activity() {
 
     private val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -42,6 +43,17 @@ class EditMenuActivity : Activity() {
         })
         col.addView(choice("Arrange & resize", "Order of the sections, sizes, colours and what is shown.") {
             startActivity(Intent(this, ArrangeActivity::class.java))
+        })
+        col.addView(choice("Reset", "Put everything back to default: themes, colours, fonts, shapes, sizes, order and places of all items. Your apps, contacts, shortcuts and notes are kept.") {
+            AlertDialog.Builder(this)
+                .setMessage("Reset ALL themes, colours, sizes, widths, heights, switches, order and places to default? Your apps, contacts, shortcuts and notes are kept. This cannot be undone.")
+                .setPositiveButton("Reset all") { _, _ ->
+                    Prefs.resetAllLook(this)
+                    TilesWidget.refresh(applicationContext)
+                    android.widget.Toast.makeText(this, "Everything is back to default", android.widget.Toast.LENGTH_SHORT).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         })
         setContentView(col)
     }
