@@ -203,6 +203,11 @@ class ArrangeActivity : Activity() {
             }
             col.addView(cb)
         }
+        val horiz = android.widget.CheckBox(this)
+        horiz.text = "Side by side (one line) instead of one under the other"
+        horiz.isChecked = Prefs.mergeHoriz(this)
+        horiz.setOnCheckedChangeListener { _, v -> Prefs.setMergeHoriz(this, v); redraw() }
+        col.addView(horiz)
 
         // ---- 3. Order of the message tiles (apps)
         col.addView(title("Order of the message tiles (apps)", 16f, 20))

@@ -39,11 +39,9 @@ class EditMenuActivity : Activity() {
 
         col.addView(choice("Move", "Press any item of the widget (clock, date, weather, Where to?, each fast-dial circle, each shortcut circle, title, count, mic, + Note, Clear all, pencil, gear) and drag it to any place. No rows.") {
             startActivity(Intent(this, MoveActivity::class.java))
-            finish()
         })
         col.addView(choice("Arrange & resize", "Order of the sections, sizes, colours and what is shown.") {
             startActivity(Intent(this, ArrangeActivity::class.java))
-            finish()
         })
         setContentView(col)
     }

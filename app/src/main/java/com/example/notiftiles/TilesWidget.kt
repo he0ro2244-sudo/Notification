@@ -354,6 +354,7 @@ class TilesWidget : AppWidgetProvider() {
             val f12 = if (cf == 2) "HH:mm" else "h:mm"
             val f24 = if (cf == 1) "h:mm" else "HH:mm"
             val dateFmt = Prefs.DATE_FORMATS[Prefs.dateFmt(ctx)].first
+            val sep = if (Prefs.mergeHoriz(ctx)) " · " else "\n"
             val p12 = ArrayList<String>()
             val p24 = ArrayList<String>()
             for (k in Prefs.order(ctx)) if (k in mk) when (k) {
@@ -362,8 +363,8 @@ class TilesWidget : AppWidgetProvider() {
                 else -> { val wt = lit(Weather.text(ctx)); p12.add(wt); p24.add(wt) }
             }
             for (mid in W_MERGE) {
-                rv.setCharSequence(mid, "setFormat12Hour", Look.span(ctx, p12.joinToString("\n"), true))
-                rv.setCharSequence(mid, "setFormat24Hour", Look.span(ctx, p24.joinToString("\n"), true))
+                rv.setCharSequence(mid, "setFormat12Hour", Look.span(ctx, p12.joinToString(sep), true))
+                rv.setCharSequence(mid, "setFormat24Hour", Look.span(ctx, p24.joinToString(sep), true))
             }
         }
 
