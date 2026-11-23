@@ -165,7 +165,7 @@ class ArrangeActivity : Activity() {
                 box.addView(sizeBar(Prefs.itemScale(this, sp.key), 50, 250) { Prefs.setItemScale(this, sp.key, it) })
                 val isBox = sp.key in setOf("w_clock", "w_weather", "w_date", "w_merge") || sp.key.startsWith("d") || sp.key.startsWith("q")
                 if (isBox) box.addView(sizeBar(Prefs.itemW(this, sp.key), 50, 250, "Shape width only (text size stays)") { Prefs.setItemW(this, sp.key, it) })
-                if (sp.key == "w_where" && !free) box.addView(whereWidthBar())
+                if (sp.key == "w_where") box.addView(if (free) freeWhereWidthBar() else whereWidthBar())
                 if (isBox || sp.key == "w_where") box.addView(sizeBar(Prefs.itemH(this, sp.key), 50, 250, "Shape height only (text size stays)") { Prefs.setItemH(this, sp.key, it) })
                 col.addView(box)
             }
@@ -248,35 +248,13 @@ class ArrangeActivity : Activity() {
     /** Shown instead of the sections list while the free layout is on: what it is, snap, Where to? width, back to rows. */
     private fun addFreeSection() {
         col.addView(title("Free layout is ON", 16f, 16))
-        col.addView(hint("Every item sits where you put it with Move, so the sections list and the top-row order are not used. Sizes, colours, switches and Merge below still work."))
+        col.addView(hint("Every item sits where you put it with Move, so the sections list and the top-row order are not used. Sizes, colours, switches and Merge below still work. The Where to? box width is in the Where to? card below."))
         val sw = Switch(this)
         sw.text = "Snap to a small grid while moving"
         sw.isChecked = Prefs.freeSnap(this)
         sw.setOnCheckedChangeListener { _, v -> Prefs.setFreeSnap(this, v) }
         col.addView(sw, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
 
-        val wp = Prefs.freePos(this)["maps"]
-        if (wp != null) {
-            val cur = (if (wp.w > 0f) wp.w else 150f).toInt().coerceIn(80, 320)
-            val t = TextView(this)
-            t.text = "Where to? box width: $cur dp"
-            t.textSize = 12f
-            t.alpha = 0.7f
-            t.setPadding(0, dp(12), 0, 0)
-            col.addView(t)
-            val sb = SeekBar(this)
-            sb.max = 240
-            sb.progress = cur - 80
-            sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
-                    t.text = "Where to? box width: ${p + 80} dp"
-                    if (fromUser) Prefs.setFreeWidth(this@ArrangeActivity, "maps", (p + 80).toFloat())
-                }
-                override fun onStartTrackingTouch(s: SeekBar) {}
-                override fun onStopTrackingTouch(s: SeekBar) { redraw() }
-            })
-            col.addView(sb)
-        }
         val back = Button(this)
         back.text = "Back to the old rows layout"
         back.isAllCaps = false
@@ -295,6 +273,32 @@ class ArrangeActivity : Activity() {
         sw.isChecked = on
         sw.setOnCheckedChangeListener { _, v -> change(v) }
         return sw
+    }
+
+    /** Width of the Where to? box in the free layout, in dp (the same slider that used to sit at the top of this screen). */
+    private fun freeWhereWidthBar(): View {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        val wp = Prefs.freePos(this)["maps"]
+        val cur = (if (wp != null && wp.w > 0f) wp.w else 150f).toInt().coerceIn(80, 320)
+        val t = TextView(this)
+        t.text = "Box width: $cur dp"
+        t.textSize = 12f
+        t.alpha = 0.7f
+        box.addView(t)
+        val sb = SeekBar(this)
+        sb.max = 240
+        sb.progress = cur - 80
+        sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
+                t.text = "Box width: ${p + 80} dp"
+                if (fromUser) Prefs.setFreeWidth(this@ArrangeActivity, "maps", (p + 80).toFloat())
+            }
+            override fun onStartTrackingTouch(s: SeekBar) {}
+            override fun onStopTrackingTouch(s: SeekBar) { redraw() }
+        })
+        box.addView(sb)
+        return box
     }
 
     /** Width of the Where to? box in the rows layout: far left = fills the row (as before), otherwise a width in dp. */
