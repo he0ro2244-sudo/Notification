@@ -713,6 +713,21 @@ class SettingsActivity : Activity() {
             col.addView(toggleRaw("Pin to top", p in Prefs.pinned(this)) { Prefs.setPinned(this, p, it); applyLook() })
             col.addView(toggleRaw("Mute", p in Prefs.muted(this)) { Prefs.setMuted(this, p, it); applyLook() })
             col.addView(swatchRow(bgColors, Prefs.appColor(this, p)) { Prefs.setAppColor(this, p, it); applyLook(); rebuild() })
+            col.addView(hint("Shortcuts for this app (shown on its card in the panel)"))
+            for ((si, sc) in Prefs.appShortcuts(this, p).withIndex()) {
+                val r = LinearLayout(this)
+                r.orientation = LinearLayout.HORIZONTAL
+                r.gravity = Gravity.CENTER_VERTICAL
+                val nm = TextView(this)
+                nm.text = sc.name + "  (" + (if (sc.type == "app") "app" else if (sc.type == "act") "screen" else "shortcut") + ")"
+                r.addView(nm, LinearLayout.LayoutParams(0, WRAP, 1f))
+                r.addView(moveButton("Remove", true) { Prefs.removeAppShortcut(this, p, si); rebuild() })
+                col.addView(r)
+            }
+            val addSc = Button(this)
+            addSc.text = "Add a shortcut for " + Feed.label(this, p)
+            addSc.setOnClickListener { startActivity(Intent(this, QuickActivity::class.java).putExtra("for_pkg", p)) }
+            col.addView(addSc)
         }
 
         }

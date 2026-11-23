@@ -100,6 +100,25 @@ object Prefs {
     fun setQuick(c: Context, i: Int, q: Quick) = sp(c).edit().putString(
         "quick_$i", org.json.JSONObject().put("t", q.type).put("n", q.name).put("p", q.pkg).put("g", q.target).toString()
     ).apply()
+    // ---- Shortcuts that belong to one app (shown on that app's opened card in the panel) ----
+    fun appShortcuts(c: Context, pkg: String): List<Quick> {
+        val t = sp(c).getString("appsc_$pkg", null) ?: return emptyList()
+        return try {
+            val a = org.json.JSONArray(t)
+            (0 until a.length()).map { val o = a.getJSONObject(it); Quick(o.optString("t"), o.optString("n"), o.optString("p"), o.optString("g")) }
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+    private fun putAppShortcuts(c: Context, pkg: String, l: List<Quick>) {
+        val a = org.json.JSONArray()
+        for (q in l) a.put(org.json.JSONObject().put("t", q.type).put("n", q.name).put("p", q.pkg).put("g", q.target))
+        if (l.isEmpty()) sp(c).edit().remove("appsc_$pkg").apply() else sp(c).edit().putString("appsc_$pkg", a.toString()).apply()
+    }
+    fun addAppShortcut(c: Context, pkg: String, q: Quick) = putAppShortcuts(c, pkg, appShortcuts(c, pkg) + q)
+    fun removeAppShortcut(c: Context, pkg: String, i: Int) =
+        putAppShortcuts(c, pkg, appShortcuts(c, pkg).filterIndexed { k, _ -> k != i })
+
     fun clearQuick(c: Context, i: Int) = sp(c).edit().remove("quick_$i").apply()
 
     // ---- Fast dial (5 slots) ----

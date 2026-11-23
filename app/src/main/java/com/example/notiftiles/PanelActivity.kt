@@ -964,6 +964,28 @@ class PanelActivity : Activity() {
             bar.addView(pill("Clear $count", fg, bg, false) { clearApp(sbn.packageName) }, blp())
         }
         card.addView(bar)
+        // Shortcuts that belong to this app (add them in Settings > Apps, or with the + here). Long-press one to remove it.
+        val scBar = LinearLayout(this)
+        scBar.orientation = LinearLayout.HORIZONTAL
+        scBar.setPadding(0, dp(6), 0, 0)
+        val pkgNow = sbn.packageName
+        for ((idx, sc) in Prefs.appShortcuts(this, pkgNow).withIndex()) {
+            val b = pill(sc.name, fg, bg, false) { QuickActivity.go(this, sc); finish() }
+            b.setOnLongClickListener {
+                android.app.AlertDialog.Builder(this).setMessage("Remove shortcut \"" + sc.name + "\"?")
+                    .setPositiveButton("Remove") { _, _ -> Prefs.removeAppShortcut(this, pkgNow, idx); b.visibility = View.GONE }
+                    .setNegativeButton("Cancel", null).show()
+                true
+            }
+            scBar.addView(b, blp())
+        }
+        scBar.addView(pill("＋ Shortcut", fg, bg, false) {
+            startActivity(Intent(this, QuickActivity::class.java).putExtra("for_pkg", pkgNow).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }, blp())
+        val scScroll = android.widget.HorizontalScrollView(this)
+        scScroll.isHorizontalScrollBarEnabled = false
+        scScroll.addView(scBar)
+        card.addView(scScroll)
         return card
     }
 

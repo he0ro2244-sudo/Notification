@@ -1,3 +1,7 @@
+NEW IN v0.9.60: Adding a shortcut (shortcuts row, and the per-app shortcuts) has a 4th choice: "App shortcuts (the ones you get by long-pressing an app)". It lists every app that declares shortcuts of its own, then the shortcuts of that app. The older "Shortcut (like Nova)" choice is unchanged.
+
+NEW IN v0.9.59: Shortcuts for each app. On an opened message card in the panel there is a row of that app's own shortcuts and a "+ Shortcut" button (long-press a shortcut to remove it). Same choice as the shortcuts row: App, Activity or Shortcut (e.g. a WhatsApp chat). Also in Look & colors > Apps: "Add a shortcut for <app>" with a Remove button for each.
+
 NEW IN v0.9.58: Arrange & resize > "Every item": each item (clock, weather, date, merged shape, Where to?, every dial and shortcut circle, title, count, mic, + Note, Clear all, gear, pencil, refresh) has its own size slider; most also have a show/hide switch and a colour. All start at 100% so nothing looks different until you change them.
 
 NEW IN v0.9.57: The pencil button now has its own size slider and colour (Arrange & resize, and Look & colors > Widget colours). Nothing else changed.
