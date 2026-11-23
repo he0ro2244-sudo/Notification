@@ -59,6 +59,7 @@ jobs:
           tag_name: build-${{ github.run_number }}
           name: Notif Tiles build ${{ github.run_number }}
           prerelease: true
+          body_path: RELEASE_NOTES.md
           files: |
             app/build/outputs/apk/debug/app-debug.apk
             app/build/outputs/apk/release/app-release.apk
