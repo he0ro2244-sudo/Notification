@@ -1,3 +1,5 @@
+NEW IN v1.0.0: First full release. Everything from v0.9.x is kept unchanged. Since v0.9.60: adding a shortcut has three choices, App, Activity (a screen inside an app) and one combined "Shortcut" list (the apps' long-press shortcuts plus the older shortcut-makers, all in one list). All three pickers have a Search box. Settings > Button log has a "Failed only" tick box (on by default); untick it to see every line.
+
 NEW IN v0.9.60: Adding a shortcut (shortcuts row, and the per-app shortcuts) has a 4th choice: "App shortcuts (the ones you get by long-pressing an app)". It lists every app that declares shortcuts of its own, then the shortcuts of that app. The older "Shortcut (like Nova)" choice is unchanged.
 
 NEW IN v0.9.59: Shortcuts for each app. On an opened message card in the panel there is a row of that app's own shortcuts and a "+ Shortcut" button (long-press a shortcut to remove it). Same choice as the shortcuts row: App, Activity or Shortcut (e.g. a WhatsApp chat). Also in Look & colors > Apps: "Add a shortcut for <app>" with a Remove button for each.
