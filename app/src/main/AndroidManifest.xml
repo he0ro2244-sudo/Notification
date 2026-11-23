@@ -99,6 +99,18 @@
             android:theme="@style/NtPanelTheme" />
 
         <activity
+            android:name=".EditMenuActivity"
+            android:exported="false"
+            android:label="Pencil"
+            android:theme="@style/NtTheme" />
+
+        <activity
+            android:name=".MoveActivity"
+            android:exported="false"
+            android:label="Move items"
+            android:theme="@style/NtTheme" />
+
+        <activity
             android:name=".ArrangeActivity"
             android:exported="false"
             android:label="Arrange &amp; resize"

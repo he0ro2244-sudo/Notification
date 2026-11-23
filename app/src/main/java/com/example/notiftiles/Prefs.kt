@@ -162,12 +162,51 @@ object Prefs {
     // ---- Widget arrangement ----
     val ITEMS = listOf("clock", "weather", "date")
 
-    fun order(c: Context): List<String> {
-        val l = (sp(c).getString("lay_order", "clock,weather,date") ?: "").split(",").filter { it in ITEMS }.distinct()
-        return if (l.size == 3) l else ITEMS
+    /** Items that can be moved. Each one sits in exactly one row: the top row ("top") or the Inbox row ("head"). */
+    val TOP_ITEMS = listOf("clock", "weather", "date", "maps")
+    val HEAD_ITEMS = listOf("title", "count", "mic", "note", "clear", "edit", "gear")
+    val ALL_ITEMS = TOP_ITEMS + HEAD_ITEMS
+
+    private fun rowPref(c: Context, key: String): MutableList<String> =
+        (sp(c).getString(key, "") ?: "").split(",").filter { it in ALL_ITEMS }.distinct().toMutableList()
+
+    /** Before items could be moved: the three circles in their order, the Where to? box at its place. */
+    private fun legacyTop(c: Context): MutableList<String> {
+        val s = sp(c)
+        val o = (s.getString("lay_order", "clock,weather,date") ?: "").split(",").filter { it in ITEMS }.distinct()
+        val l = (if (o.size == 3) o else ITEMS).toMutableList()
+        val pos = (if (s.contains("lay_pill_pos")) s.getInt("lay_pill_pos", 3) else if (pillFirst(c)) 0 else 3).coerceIn(0, 3)
+        l.add(pos.coerceAtMost(l.size), "maps")
+        return l
     }
 
-    fun setOrder(c: Context, l: List<String>) = sp(c).edit().putString("lay_order", l.joinToString(",")).apply()
+    /** Which items sit in the top row ("top") and in the Inbox row ("head"), in order. */
+    fun rows(c: Context): Map<String, List<String>> {
+        val s = sp(c)
+        val moved = s.contains("lay_row_top") || s.contains("lay_row_head")
+        val top = if (moved) rowPref(c, "lay_row_top") else legacyTop(c)
+        val head = (if (moved) rowPref(c, "lay_row_head") else HEAD_ITEMS.toMutableList()).filter { it !in top }.toMutableList()
+        // An item that is in neither row goes back to its usual row
+        for (k in ALL_ITEMS) if (k !in top && k !in head) { if (k in TOP_ITEMS) top.add(k) else head.add(k) }
+        return mapOf("top" to top, "head" to head)
+    }
+
+    /** Saves which items sit in each row. */
+    fun setRows(c: Context, top: List<String>, head: List<String>) {
+        val t = top.filter { it in ALL_ITEMS }.distinct()
+        val h = head.filter { it in ALL_ITEMS && it !in t }.distinct()
+        sp(c).edit().putString("lay_row_top", t.joinToString(",")).putString("lay_row_head", h.joinToString(",")).apply()
+    }
+
+    /** The circles of the top row in their order (clock, weather, date, as far as they sit in the top row). */
+    fun order(c: Context): List<String> = rows(c)["top"]!!.filter { it in ITEMS }
+
+    fun setOrder(c: Context, l: List<String>) {
+        val r = rows(c)
+        val picks = l.filter { it in ITEMS && it in r["top"]!! }.toMutableList()
+        val top = r["top"]!!.map { if (it in ITEMS && picks.isNotEmpty()) picks.removeAt(0) else it }
+        setRows(c, top, r["head"]!!)
+    }
 
     /** key: clock, weather, date, maps, dial */
     fun show(c: Context, key: String): Boolean = sp(c).getBoolean("lay_show_$key", true)
@@ -181,13 +220,28 @@ object Prefs {
     fun pillFirst(c: Context): Boolean = sp(c).getBoolean("lay_pill_first", false)
     fun setPillFirst(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_pill_first", v).apply()
 
-    /** Where the "Where to?" box sits in the top row: 0 = before the 1st circle ... 3 = after the 3rd (the old "at the end"). */
-    fun pillPos(c: Context): Int {
-        val s = sp(c)
-        return if (s.contains("lay_pill_pos")) s.getInt("lay_pill_pos", 3).coerceIn(0, 3) else if (pillFirst(c)) 0 else 3
+    /** Where the "Where to?" box sits in the top row: 0 = before the 1st item ... 3 = after the 3rd (3 when it is not in the top row). */
+    fun pillPos(c: Context): Int = rows(c)["top"]!!.indexOf("maps").let { if (it < 0) 3 else it }
+
+    fun setPillPos(c: Context, v: Int) {
+        val r = rows(c)
+        val top = r["top"]!!.filter { it != "maps" }.toMutableList()
+        top.add(v.coerceIn(0, top.size), "maps")
+        setRows(c, top, r["head"]!!.filter { it != "maps" })
     }
-    fun setPillPos(c: Context, v: Int) =
-        sp(c).edit().putInt("lay_pill_pos", v.coerceIn(0, 3)).putBoolean("lay_pill_first", v == 0).apply()
+
+    /** Whether an item is shown: the switch for it in Arrange & resize. */
+    fun itemOn(c: Context, key: String): Boolean = when (key) {
+        "title", "count", "mic", "note", "clear", "gear" -> showItem(c, "w_$key")
+        "edit" -> editBtn(c)
+        else -> show(c, key)
+    }
+
+    fun setItemOn(c: Context, key: String, v: Boolean) = when (key) {
+        "title", "count", "mic", "note", "clear", "gear" -> setShowItem(c, "w_$key", v)
+        "edit" -> setEditBtn(c, v)
+        else -> setShow(c, key, v)
+    }
 
     /** The sections of the widget above the tiles, top to bottom: top = clock/weather/date/Where to?, dial, quick = shortcuts row, head = Inbox row. */
     val BLOCKS = listOf("top", "dial", "quick", "head")
@@ -211,7 +265,7 @@ object Prefs {
     fun setBlockScale(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_scale_$key", v.coerceIn(50, 200)).apply()
     fun resetArrange(c: Context) {
         val e = sp(c).edit()
-        for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_editbtn")) e.remove(k)
+        for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_editbtn", "lay_row_top", "lay_row_head")) e.remove(k)
         for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_")) e.remove(k)
         for (k in BLOCKS) e.remove("lay_scale_$k")
         e.apply()

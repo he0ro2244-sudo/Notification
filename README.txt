@@ -1,3 +1,5 @@
+NEW IN v1.0.12: The pencil on the widget now opens a menu: Move, or Arrange & resize (as before). Move shows the real widget: press and drag any item (clock, date, weather, Where to?, title, count, mic, + Note, Clear all, pencil, gear) into the top row or the Inbox row and let go. Arrange has a Move button too. Everything else works as before.
+
 NEW IN v1.0.8: Adding a shortcut now has 4 choices: App, Activity, Shortcut and Links. The Shortcut list also shows links found in every app (Camera, New post, Story, Search... marked "(link)"). Links has ready-made links, the Link finder and "Type my own link". In the Link finder, tap any link to Test it now, or Save it (by link alone, or with the exact screen that declares it). New Instagram entries: Story camera / Reels camera (exact screen) and Camera screen (CameraLauncherActivity). Nothing else changed.
 
 NEW IN v1.0.7: Instagram entries in the Link choice now use links read from Instagram itself on this phone: New post, Story camera, Camera, Reels camera, Messages, Feed, Explore, Reels, Search, Saved, Activity, My profile.

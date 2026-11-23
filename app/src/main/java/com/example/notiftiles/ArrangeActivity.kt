@@ -2,6 +2,7 @@ package com.example.notiftiles
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
@@ -74,6 +75,10 @@ class ArrangeActivity : Activity() {
     private fun build() {
         col.addView(title("Arrange & resize the widget", 20f, 0))
         col.addView(hint("Hold the ☰ handle of a row and drag it up or down. The widget on your home screen follows at once. Switches hide a part, sliders make a part bigger or smaller (100% = as before)."))
+        val moveBtn = Button(this)
+        moveBtn.text = "Move items (drag any item to the top row or the Inbox row)…"
+        moveBtn.setOnClickListener { startActivity(Intent(this, MoveActivity::class.java)) }
+        col.addView(moveBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { bottomMargin = dp(8) })
 
         // ---- 1. Sections of the widget
         col.addView(title("Sections (top to bottom)", 16f, 16))
@@ -157,26 +162,24 @@ class ArrangeActivity : Activity() {
             }
         }
 
-        // ---- 2. Items of the top row
+        // ---- 2. Items of the top row (any item can be moved to the other row with Move)
         col.addView(title("Top row items (left to right)", 16f, 20))
-        col.addView(hint("Move \"Where to?\" between the circles, or reorder the circles."))
-        val circles = Prefs.order(this).toMutableList()
-        val row = circles.toMutableList()
-        row.add(Prefs.pillPos(this).coerceIn(0, 3), "maps")
-        val itemNames = mapOf("clock" to "Clock", "weather" to "Weather", "date" to "Date", "maps" to "Where to? box")
-        col.addView(dragList(row, { key ->
+        col.addView(hint("Drag to change the order. To move an item into the Inbox row, or anywhere else, use Move (the button above, or the pencil ✎ on the widget)."))
+        val itemNames = mapOf("clock" to "Clock", "weather" to "Weather", "date" to "Date", "maps" to "Where to? box",
+            "title" to "Title (Inbox)", "count" to "Count badge", "mic" to "Mic", "note" to "+ Note",
+            "clear" to "Clear all", "edit" to "Pencil ✎", "gear" to "Settings gear")
+        col.addView(dragList(Prefs.rows(this)["top"] ?: emptyList(), { key ->
             val h = LinearLayout(this)
             h.orientation = LinearLayout.HORIZONTAL
             h.gravity = Gravity.CENTER_VERTICAL
             val name = TextView(this)
-            name.text = itemNames[key]
+            name.text = itemNames[key] ?: key
             name.textSize = 15f
             h.addView(name, LinearLayout.LayoutParams(0, WRAP, 1f))
-            h.addView(smallSwitch(Prefs.show(this, key)) { Prefs.setShow(this, key, it); redraw() })
+            h.addView(smallSwitch(Prefs.itemOn(this, key)) { Prefs.setItemOn(this, key, it); redraw() })
             h
         }) { l ->
-            Prefs.setOrder(this, l.filter { it != "maps" })
-            Prefs.setPillPos(this, l.indexOf("maps"))
+            Prefs.setRows(this, l, Prefs.rows(this)["head"] ?: emptyList())
             redraw(); rebuild()
         })
 

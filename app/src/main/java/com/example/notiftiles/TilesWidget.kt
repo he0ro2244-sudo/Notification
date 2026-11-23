@@ -120,14 +120,26 @@ class TilesWidget : AppWidgetProvider() {
         const val ACTION_PAGE_PREV = "com.example.notiftiles.PAGE_PREV"
         const val ACTION_PAGE_NEXT = "com.example.notiftiles.PAGE_NEXT"
 
-        private val W_CLOCK = intArrayOf(R.id.wclock0, R.id.wclock1, R.id.wclock2)
-        private val W_WEATHER = intArrayOf(R.id.wweather0, R.id.wweather1, R.id.wweather2)
-        private val W_DATE = intArrayOf(R.id.wdate0, R.id.wdate1, R.id.wdate2)
-        private val W_MERGE = intArrayOf(R.id.wmerge0, R.id.wmerge1, R.id.wmerge2)
-        // By position in the top row: 0 = before the 1st circle ... 3 = after the 3rd
-        private val W_LOC = intArrayOf(R.id.wlocA, R.id.wlocC, R.id.wlocD, R.id.wlocB)
-        private val W_PIN = intArrayOf(R.id.wpinA, R.id.wpinC, R.id.wpinD, R.id.wpinB)
-        private val W_WW = intArrayOf(R.id.wwA, R.id.wwC, R.id.wwD, R.id.wwB)
+        // One view per item. Each item is added into the row it sits in (top row or Inbox row), see addItems.
+        val ITEM_VIEW = mapOf(
+            "clock" to R.id.wclock, "weather" to R.id.wweather, "date" to R.id.wdate, "maps" to R.id.wloc,
+            "merge" to R.id.wmerge, "title" to R.id.hdr_title, "count" to R.id.count, "mic" to R.id.wmic,
+            "note" to R.id.wnote, "clear" to R.id.wclear, "edit" to R.id.wedit, "gear" to R.id.wset
+        )
+        private val ITEM_LAYOUT = mapOf(
+            "clock" to R.layout.item_clock, "weather" to R.layout.item_weather, "date" to R.layout.item_date,
+            "maps" to R.layout.item_where, "title" to R.layout.item_title, "count" to R.layout.item_count,
+            "mic" to R.layout.item_mic, "note" to R.layout.item_note, "clear" to R.layout.item_clear,
+            "edit" to R.layout.item_edit, "gear" to R.layout.item_gear
+        )
+        private val W_CLOCK = intArrayOf(R.id.wclock)
+        private val W_WEATHER = intArrayOf(R.id.wweather)
+        private val W_DATE = intArrayOf(R.id.wdate)
+        private val W_MERGE = intArrayOf(R.id.wmerge)
+        // The Where to? box (one view; it sits where the Move screen put it)
+        private val W_LOC = intArrayOf(R.id.wloc)
+        private val W_PIN = intArrayOf(R.id.wpin)
+        private val W_WW = intArrayOf(R.id.ww)
 
         private val BLOCK_LAYOUT = mapOf(
             "top" to R.layout.widget_blk_top, "dial" to R.layout.widget_blk_dial,
@@ -164,6 +176,7 @@ class TilesWidget : AppWidgetProvider() {
             // Clear first: the widget host re-applies these steps on every refresh and would otherwise stack a second copy.
             rv.removeAllViews(R.id.blocks)
             for (key in Prefs.blockOrder(ctx)) rv.addView(R.id.blocks, RemoteViews(ctx.packageName, BLOCK_LAYOUT.getValue(key)))
+            addItems(rv, ctx)
 
             val svc = Intent(ctx, TilesService::class.java)
             svc.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
@@ -246,6 +259,23 @@ class TilesWidget : AppWidgetProvider() {
             clickAll(rv, W_LOC, PendingIntent.getActivity(ctx, 5, where, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             setDynamic(rv, ctx)
             return rv
+        }
+
+        /**
+         * Puts every item into the row it sits in, in the order chosen with Move. The merged shape always exists in the
+         * top row (hidden unless two or more of its items are on): it sits where the first of them is.
+         */
+        private fun addItems(rv: RemoteViews, ctx: Context) {
+            val rows = Prefs.rows(ctx)
+            val top = rows["top"] ?: emptyList()
+            val merged = Prefs.merged(ctx).filter { it in top }
+            val mergeAt = if (merged.size >= 2) top.indexOfFirst { it in merged } else top.size
+            for ((i, key) in top.withIndex()) {
+                if (i == mergeAt) rv.addView(R.id.top_row, RemoteViews(ctx.packageName, R.layout.item_merge))
+                rv.addView(R.id.top_row, RemoteViews(ctx.packageName, ITEM_LAYOUT.getValue(key)))
+            }
+            if (mergeAt == top.size) rv.addView(R.id.top_row, RemoteViews(ctx.packageName, R.layout.item_merge))
+            for (key in rows["head"] ?: emptyList()) rv.addView(R.id.header, RemoteViews(ctx.packageName, ITEM_LAYOUT.getValue(key)))
         }
 
         // Show the real Google Maps icon from this phone; the built-in red pin stays if Maps isn't installed.
@@ -397,7 +427,8 @@ class TilesWidget : AppWidgetProvider() {
             val f12 = if (clockFmt == 2) "HH:mm" else "h:mm"
             val f24 = if (clockFmt == 1) "h:mm" else "HH:mm"
             val dateFmt = Prefs.DATE_FORMATS[Prefs.dateFmt(ctx)].first
-            for (slot in 0 until 3) {
+            run {
+                val slot = 0 // one view per item now (see addItems)
                 for ((id, ik) in listOf(W_CLOCK[slot] to "w_clock", W_WEATHER[slot] to "w_weather", W_DATE[slot] to "w_date")) {
                     rv.setColorStateList(id, "setBackgroundTintList", circleTint)
                     rv.setInt(id, "setBackgroundResource", shapeRes)
@@ -536,7 +567,7 @@ class TilesWidget : AppWidgetProvider() {
             rv.setTextColor(R.id.wedit, Prefs.partColor(ctx, "edit").let { if (it != 0) it else if (Prefs.iconColor(ctx) != 0) Prefs.iconColor(ctx) else sub })
             rv.setOnClickPendingIntent(
                 R.id.wedit,
-                PendingIntent.getActivity(ctx, 70, Intent(ctx, ArrangeActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                PendingIntent.getActivity(ctx, 70, Intent(ctx, EditMenuActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             )
 
@@ -571,30 +602,23 @@ class TilesWidget : AppWidgetProvider() {
             }
         }
 
-        /** Items merged into one shape: only when 2 or more of the shown top-row items are chosen. */
+        /** Items merged into one shape: only when 2 or more of the shown items in the top row are chosen. */
         private fun mergedItems(ctx: Context): Set<String> {
-            val m = Prefs.merged(ctx).filter { Prefs.show(ctx, it) }.toSet()
+            val top = Prefs.rows(ctx)["top"] ?: emptyList()
+            val m = Prefs.merged(ctx).filter { it in top && Prefs.show(ctx, it) }.toSet()
             return if (m.size >= 2) m else emptySet()
         }
 
         private fun lit(s: String): String = "'" + s.replace("'", "''") + "'"
 
-        // Which top-row items are shown, in which order, and the accent colour.
+        // Which top-row items are shown, and the merged shape (it replaces its items while two or more of them are on).
         private fun applyLayout(rv: RemoteViews, ctx: Context) {
-            val order = Prefs.order(ctx)
-            val groups = mapOf("clock" to W_CLOCK, "weather" to W_WEATHER, "date" to W_DATE)
             val mergedKeys = mergedItems(ctx)
-            val mergeSlot = order.indexOfFirst { it in mergedKeys }
-            for (slot in 0 until 3) {
-                for ((key, ids) in groups) {
-                    val on = order[slot] == key && Prefs.show(ctx, key) && key !in mergedKeys
-                    rv.setViewVisibility(ids[slot], if (on) View.VISIBLE else View.GONE)
-                }
-                rv.setViewVisibility(W_MERGE[slot], if (mergedKeys.isNotEmpty() && slot == mergeSlot) View.VISIBLE else View.GONE)
-            }
-            val maps = Prefs.show(ctx, "maps")
-            val pos = Prefs.pillPos(ctx)
-            for (i in W_LOC.indices) rv.setViewVisibility(W_LOC[i], if (maps && pos == i) View.VISIBLE else View.GONE)
+            rv.setViewVisibility(R.id.wclock, if (Prefs.show(ctx, "clock") && "clock" !in mergedKeys) View.VISIBLE else View.GONE)
+            rv.setViewVisibility(R.id.wweather, if (Prefs.show(ctx, "weather") && "weather" !in mergedKeys) View.VISIBLE else View.GONE)
+            rv.setViewVisibility(R.id.wdate, if (Prefs.show(ctx, "date") && "date" !in mergedKeys) View.VISIBLE else View.GONE)
+            rv.setViewVisibility(R.id.wmerge, if (mergedKeys.isNotEmpty()) View.VISIBLE else View.GONE)
+            rv.setViewVisibility(R.id.wloc, if (Prefs.show(ctx, "maps")) View.VISIBLE else View.GONE)
             rv.setViewVisibility(R.id.dialwrap, if (Prefs.show(ctx, "dial")) View.VISIBLE else View.GONE)
             val accent = Prefs.accent(ctx)
             rv.setTextColor(R.id.wnote, Prefs.partColor(ctx, "note").let { if (it != 0) it else accent })
