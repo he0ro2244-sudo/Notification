@@ -132,6 +132,22 @@ class TilesWidget : AppWidgetProvider() {
             "mic" to R.layout.item_mic, "note" to R.layout.item_note, "clear" to R.layout.item_clear,
             "edit" to R.layout.item_edit, "gear" to R.layout.item_gear
         )
+
+        /** Free layout: every item that can be placed anywhere, and the view that stands for it. */
+        val FREE_VIEW: Map<String, Int> = ITEM_VIEW + mapOf(
+            "d0" to R.id.dial0, "d1" to R.id.dial1, "d2" to R.id.dial2, "d3" to R.id.dial3, "d4" to R.id.dial4,
+            "q0" to R.id.quick0, "q1" to R.id.quick1, "q2" to R.id.quick2, "q3" to R.id.quick3, "q4" to R.id.quick4
+        )
+        private val FREE_LAYOUT = mapOf(
+            "clock" to R.layout.item_clock, "weather" to R.layout.item_weather, "date" to R.layout.item_date,
+            "maps" to R.layout.item_free_where, "merge" to R.layout.item_merge, "title" to R.layout.item_free_title,
+            "count" to R.layout.item_count, "mic" to R.layout.item_mic, "note" to R.layout.item_note,
+            "clear" to R.layout.item_clear, "edit" to R.layout.item_edit, "gear" to R.layout.item_gear,
+            "d0" to R.layout.item_dial0, "d1" to R.layout.item_dial1, "d2" to R.layout.item_dial2,
+            "d3" to R.layout.item_dial3, "d4" to R.layout.item_dial4,
+            "q0" to R.layout.item_quick0, "q1" to R.layout.item_quick1, "q2" to R.layout.item_quick2,
+            "q3" to R.layout.item_quick3, "q4" to R.layout.item_quick4
+        )
         private val W_CLOCK = intArrayOf(R.id.wclock)
         private val W_WEATHER = intArrayOf(R.id.wweather)
         private val W_DATE = intArrayOf(R.id.wdate)
@@ -175,8 +191,15 @@ class TilesWidget : AppWidgetProvider() {
             // The sections above the tiles are added in the order chosen in Arrange (they must exist before anything below is set on them).
             // Clear first: the widget host re-applies these steps on every refresh and would otherwise stack a second copy.
             rv.removeAllViews(R.id.blocks)
-            for (key in Prefs.blockOrder(ctx)) rv.addView(R.id.blocks, RemoteViews(ctx.packageName, BLOCK_LAYOUT.getValue(key)))
-            addItems(rv, ctx)
+            rv.removeAllViews(R.id.canvas)
+            val free = Prefs.freeOn(ctx)
+            if (free) {
+                // Free layout: no rows and no sections, every item is added on its own and placed by applyFree
+                addFree(rv, ctx)
+            } else {
+                for (key in Prefs.blockOrder(ctx)) rv.addView(R.id.blocks, RemoteViews(ctx.packageName, BLOCK_LAYOUT.getValue(key)))
+                addItems(rv, ctx)
+            }
 
             val svc = Intent(ctx, TilesService::class.java)
             svc.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
@@ -257,8 +280,35 @@ class TilesWidget : AppWidgetProvider() {
             val where = Intent(ctx, DestinationActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .putExtra("exit_if_nav", true)
             clickAll(rv, W_LOC, PendingIntent.getActivity(ctx, 5, where, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
+            if (free) {
+                // The title and the count used to be part of the Inbox row, which opened the panel
+                clickAll(rv, intArrayOf(R.id.hdr_title, R.id.count),
+                    PendingIntent.getActivity(ctx, 0, open, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
+                applyFree(rv, ctx)
+            }
             setDynamic(rv, ctx)
             return rv
+        }
+
+        /** Free layout: adds every item to the canvas (the views are placed by applyFree). */
+        private fun addFree(rv: RemoteViews, ctx: Context) {
+            for (key in Prefs.FREE_KEYS) rv.addView(R.id.canvas, RemoteViews(ctx.packageName, FREE_LAYOUT.getValue(key)))
+        }
+
+        /** Free layout: puts each item at its own place (dp from the top-left corner) and the message tiles under the chosen line. */
+        private fun applyFree(rv: RemoteViews, ctx: Context) {
+            val pos = Prefs.freePos(ctx)
+            for ((n, key) in Prefs.FREE_KEYS.withIndex()) {
+                val id = FREE_VIEW.getValue(key)
+                val p = pos[key]
+                val x = p?.x ?: (8f + (n % 8) * 34f)
+                val y = p?.y ?: 8f
+                rv.setViewLayoutMargin(id, RemoteViews.MARGIN_START, x, TypedValue.COMPLEX_UNIT_DIP)
+                rv.setViewLayoutMargin(id, RemoteViews.MARGIN_TOP, y, TypedValue.COMPLEX_UNIT_DIP)
+                if (key == "maps" && p != null && p.w > 0f) rv.setViewLayoutWidth(id, p.w, TypedValue.COMPLEX_UNIT_DIP)
+            }
+            // The content area has an 8dp padding of its own
+            rv.setViewLayoutMargin(R.id.gridwrap, RemoteViews.MARGIN_TOP, (Prefs.freeGridTop(ctx) - 8f).coerceAtLeast(0f), TypedValue.COMPLEX_UNIT_DIP)
         }
 
         /**
@@ -473,6 +523,7 @@ class TilesWidget : AppWidgetProvider() {
             val filled = Feed.style("com.whatsapp")
             val empty = Feed.style("")
             val dc = Prefs.dialCircle(ctx)
+            val free = Prefs.freeOn(ctx)
             val dsize = Prefs.dialSize(ctx).toFloat() * bs(ctx, "dial")
             val qsize = Prefs.dialSize(ctx).toFloat() * bs(ctx, "quick")
             val showNames = Prefs.dialNames(ctx)
@@ -498,10 +549,19 @@ class TilesWidget : AppWidgetProvider() {
                 val dn = Prefs.partColor(ctx, "dialnames")
                 rv.setTextColor(DIAL_NAME[i], if (ownText != 0) ownText else if (dn != 0) dn else sub)
                 rv.setViewVisibility(DIAL_NAME[i], if (showNames) View.VISIBLE else View.GONE)
+                if (free) {
+                    // Each circle is on its own now: the strip colour (if one is set) becomes a plate behind each circle
+                    val pdbg = Prefs.dialBg(ctx)
+                    val plate = if (pdbg != 0) ((Prefs.dialBgAlpha(ctx) * 255 / 100) shl 24) or (pdbg and 0xFFFFFF) else 0
+                    rv.setInt(DIAL_BOX[i], "setBackgroundResource", R.drawable.nt_dial_bg)
+                    rv.setColorStateList(DIAL_BOX[i], "setBackgroundTintList", ColorStateList.valueOf(plate))
+                    rv.setViewVisibility(DIAL_BOX[i], if (Prefs.show(ctx, "dial")) View.VISIBLE else View.GONE)
+                }
             }
             // ---- Shortcuts row under the fast dial (off until switched on; filled slots + one "Add")
             val qOn = Prefs.quickOn(ctx)
             rv.setViewVisibility(R.id.quickwrap, if (qOn) View.VISIBLE else View.GONE)
+            if (free && !qOn) for (b in Q_BOX) rv.setViewVisibility(b, View.GONE)
             if (qOn) {
                 val qdbg = Prefs.dialBg(ctx)
                 val qTint = if (qdbg != 0) ((Prefs.dialBgAlpha(ctx) * 255 / 100) shl 24) or (qdbg and 0xFFFFFF) else 0
@@ -513,7 +573,13 @@ class TilesWidget : AppWidgetProvider() {
                     val has = q != null
                     val show = has || !addShown
                     if (!has) addShown = true
-                    rv.setViewVisibility(Q_BOX[i], if (show) View.VISIBLE else View.INVISIBLE)
+                    rv.setViewVisibility(Q_BOX[i], if (show) View.VISIBLE else if (free) View.GONE else View.INVISIBLE)
+                    if (free) {
+                        val pdbg = Prefs.dialBg(ctx)
+                        val plate = if (pdbg != 0) ((Prefs.dialBgAlpha(ctx) * 255 / 100) shl 24) or (pdbg and 0xFFFFFF) else 0
+                        rv.setInt(Q_BOX[i], "setBackgroundResource", R.drawable.nt_dial_bg)
+                        rv.setColorStateList(Q_BOX[i], "setBackgroundTintList", ColorStateList.valueOf(plate))
+                    }
                     val st = if (has) filled else empty
                     val bgc = if (dc != 0) dc else st.bg(dark)
                     val letterC = Prefs.partColor(ctx, "dialletter")

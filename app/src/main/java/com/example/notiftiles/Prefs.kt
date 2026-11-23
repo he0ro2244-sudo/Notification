@@ -268,7 +268,45 @@ object Prefs {
         for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_editbtn", "lay_row_top", "lay_row_head")) e.remove(k)
         for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_")) e.remove(k)
         for (k in BLOCKS) e.remove("lay_scale_$k")
+        e.remove("free_on").remove("free_pos").remove("free_grid_top")
         e.apply()
+    }
+
+    // ---- Free layout: every item of the widget sits at its own place (off until the first item is moved) ----
+    /** A place on the widget in dp from its top-left corner; [w] is a width in dp (0 = the item's own width). */
+    class FreePos(val x: Float, val y: Float, val w: Float)
+
+    /** Every item that can be placed freely: the 11 items, the merged shape, the 5 fast-dial and the 5 shortcut circles. */
+    val FREE_KEYS: List<String> = ALL_ITEMS + listOf("merge") +
+        (0 until DIAL_SLOTS).map { "d$it" } + (0 until QUICK_SLOTS).map { "q$it" }
+
+    fun freeOn(c: Context): Boolean = sp(c).getBoolean("free_on", false)
+    fun setFreeOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("free_on", v).apply()
+
+    fun freePos(c: Context): Map<String, FreePos> {
+        val out = LinkedHashMap<String, FreePos>()
+        for (part in (sp(c).getString("free_pos", "") ?: "").split(";")) {
+            val kv = part.split("=")
+            if (kv.size != 2 || kv[0] !in FREE_KEYS) continue
+            val n = kv[1].split(",").mapNotNull { it.toFloatOrNull() }
+            if (n.size >= 2) out[kv[0]] = FreePos(n[0], n[1], n.getOrElse(2) { 0f })
+        }
+        return out
+    }
+
+    fun setFreePos(c: Context, m: Map<String, FreePos>) {
+        val s = m.entries.filter { it.key in FREE_KEYS }
+            .joinToString(";") { "${it.key}=${it.value.x},${it.value.y},${it.value.w}" }
+        sp(c).edit().putString("free_pos", s).apply()
+    }
+
+    /** Where the message tiles start, in dp from the top of the widget. */
+    fun freeGridTop(c: Context): Float = sp(c).getFloat("free_grid_top", 120f).coerceAtLeast(0f)
+    fun setFreeGridTop(c: Context, v: Float) = sp(c).edit().putFloat("free_grid_top", v.coerceAtLeast(0f)).apply()
+
+    /** Back to the rows layout (the places are forgotten). */
+    fun resetFree(c: Context) {
+        sp(c).edit().remove("free_on").remove("free_pos").remove("free_grid_top").apply()
     }
 
     // ---- "Where to?" ----

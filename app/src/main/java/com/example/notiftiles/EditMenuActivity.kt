@@ -37,7 +37,7 @@ class EditMenuActivity : Activity() {
         hint.setPadding(0, dp(2), 0, dp(4))
         col.addView(hint)
 
-        col.addView(choice("Move", "Press any item and drag it into either row; drop between items to set its position. Items can be reordered freely across the Top row and Inbox row.") {
+        col.addView(choice("Move", "Press any item of the widget (clock, date, weather, Where to?, each fast-dial circle, each shortcut circle, title, count, mic, + Note, Clear all, pencil, gear) and drag it to any place. No rows.") {
             startActivity(Intent(this, MoveActivity::class.java))
             finish()
         })

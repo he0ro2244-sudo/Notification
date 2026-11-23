@@ -76,13 +76,13 @@ class ArrangeActivity : Activity() {
         col.addView(title("Arrange & resize the widget", 20f, 0))
         col.addView(hint("Hold the ☰ handle of a row and drag it up or down. The widget on your home screen follows at once. Switches hide a part, sliders make a part bigger or smaller (100% = as before)."))
         val moveBtn = Button(this)
-        moveBtn.text = "Move items (drag and reorder items in either row)…"
+        moveBtn.text = "Move items (drag every item to any place)…"
         moveBtn.setOnClickListener { startActivity(Intent(this, MoveActivity::class.java)) }
         col.addView(moveBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { bottomMargin = dp(8) })
 
         // ---- 1. Sections of the widget
         col.addView(title("Sections (top to bottom)", 16f, 16))
-        col.addView(hint("The message tiles always fill the space under these sections."))
+        col.addView(hint("The message tiles always fill the space under these sections. (Once you have moved an item with Move, items sit where you put them and these sections are not used; Move > 'Back to the old rows layout' brings them back.)"))
         val names = mapOf("top" to "Top row (clock, weather, date, Where to?)", "dial" to "Fast-dial circles",
             "quick" to "Shortcuts row", "head" to "Inbox row (title, mic, + Note, Clear all, gear)")
         col.addView(dragList(Prefs.blockOrder(this), { key ->
@@ -164,7 +164,7 @@ class ArrangeActivity : Activity() {
 
         // ---- 2. Items of the top row (any item can be moved to the other row with Move)
         col.addView(title("Top row items (left to right)", 16f, 20))
-        col.addView(hint("Drag to change the order within a row. Use Move above (or the widget pencil ✎) to move any item between rows and choose its position."))
+        col.addView(hint("Drag to change the order. To move an item into the Inbox row, or anywhere else, use Move (the button above, or the pencil ✎ on the widget)."))
         val itemNames = mapOf("clock" to "Clock", "weather" to "Weather", "date" to "Date", "maps" to "Where to? box",
             "title" to "Title (Inbox)", "count" to "Count badge", "mic" to "Mic", "note" to "+ Note",
             "clear" to "Clear all", "edit" to "Pencil ✎", "gear" to "Settings gear")
