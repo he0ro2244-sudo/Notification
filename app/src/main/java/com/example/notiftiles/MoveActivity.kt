@@ -51,7 +51,7 @@ class MoveActivity : Activity() {
         col.addView(heading)
 
         val hint = TextView(this)
-        hint.text = "Press and drag any item of the widget to any place, then let go. Every item (clock, date, weather, Where to?, each fast-dial circle, each shortcut circle, title, count, mic, + Note, Clear all, pencil, gear) stays exactly where you drop it. Drag the bar \"Messages start here\" to choose where the message tiles begin. A hidden item is shown again in Arrange & resize first."
+        hint.text = "Press and drag any item of the widget to any place, then let go. Every item (clock, date, weather, Where to?, each fast-dial circle, each shortcut circle, title, count, mic, + Note, Clear all, pencil, gear) stays exactly where you drop it. Drag the bar \"Messages start here\" to choose where the message tiles begin. While you drag, an item clicks into line with its neighbours (same height, same left or right edge) when it is close. "Tidy up" lines up whole rows for you. A hidden item is shown again in Arrange & resize first."
         hint.textSize = 13f
         hint.alpha = 0.7f
         hint.setPadding(0, dp(2), 0, dp(6))
@@ -69,6 +69,18 @@ class MoveActivity : Activity() {
         holder.clipChildren = false
         col.addView(holder, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
 
+        val alignBtn = Button(this)
+        alignBtn.text = "Tidy up: align items in each row"
+        alignBtn.isAllCaps = false
+        alignBtn.setOnClickListener { tidy(false) }
+        col.addView(alignBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(16) })
+
+        val spaceBtn = Button(this)
+        spaceBtn.text = "Tidy up: align and space evenly"
+        spaceBtn.isAllCaps = false
+        spaceBtn.setOnClickListener { tidy(true) }
+        col.addView(spaceBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
+
         val back = Button(this)
         back.text = "Back to the old rows layout"
         back.isAllCaps = false
@@ -77,7 +89,7 @@ class MoveActivity : Activity() {
             TilesWidget.rebuildAll(applicationContext)
             render()
         }
-        col.addView(back, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(16) })
+        col.addView(back, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
 
         val arr = Button(this)
         arr.text = "Arrange & resize (sizes, colours, show / hide)…"
@@ -211,6 +223,69 @@ class MoveActivity : Activity() {
         return placeOf(g, rootLoc()).second
     }
 
+    /** Width and height in dp of every item on show, read from the preview. */
+    private fun sizes(): Map<String, Pair<Float, Float>> {
+        val out = HashMap<String, Pair<Float, Float>>()
+        val r = root ?: return out
+        for ((key, id) in TilesWidget.FREE_VIEW) {
+            val v = r.findViewById<View>(id) ?: continue
+            if (v.visibility == View.GONE || v.width <= 0) continue
+            out[key] = Pair(v.width / density, v.height / density)
+        }
+        return out
+    }
+
+    /**
+     * Lines items up. Items whose middles are within about 14dp of each other form a row and are put on one line;
+     * with [space] the items of a row (3 or more) also get equal gaps between the first and the last.
+     */
+    private fun tidy(space: Boolean) {
+        if (!Prefs.freeOn(this)) {
+            showNote("Move an item first, then Tidy up lines the items up.")
+            return
+        }
+        val sz = sizes()
+        val places = currentPlaces()
+        val keys = places.keys.filter { it in sz }.sortedBy { places.getValue(it).y + sz.getValue(it).second / 2f }
+        val rows = ArrayList<MutableList<String>>()
+        for (k in keys) {
+            val c = places.getValue(k).y + sz.getValue(k).second / 2f
+            val row = rows.lastOrNull()
+            if (row != null) {
+                val mean = row.map { places.getValue(it).y + sz.getValue(it).second / 2f }.average().toFloat()
+                if (kotlin.math.abs(c - mean) <= 14f) { row.add(k); continue }
+            }
+            rows.add(mutableListOf(k))
+        }
+        for (row in rows) {
+            if (row.size < 2) continue
+            val mid = row.map { places.getValue(it).y + sz.getValue(it).second / 2f }.average().toFloat()
+            for (k in row) {
+                val p = places.getValue(k)
+                places[k] = Prefs.FreePos(p.x, (mid - sz.getValue(k).second / 2f).coerceAtLeast(0f), p.w)
+            }
+            if (space && row.size >= 3) {
+                val byX = row.sortedBy { places.getValue(it).x }
+                val first = places.getValue(byX.first()).x
+                val last = byX.last()
+                val end = places.getValue(last).x + sz.getValue(last).first
+                val total = byX.sumOf { sz.getValue(it).first.toDouble() }.toFloat()
+                val gap = (end - first - total) / (byX.size - 1)
+                if (gap >= 0f) {
+                    var x = first
+                    for (k in byX) {
+                        val p = places.getValue(k)
+                        places[k] = Prefs.FreePos(x, p.y, p.w)
+                        x += sz.getValue(k).first + gap
+                    }
+                }
+            }
+        }
+        Prefs.setFreePos(this, places)
+        TilesWidget.rebuildAll(applicationContext)
+        holder.post { render() }
+    }
+
     // ---- Dragging ----
 
     private fun attachDrag(item: View, key: String) {
@@ -276,8 +351,28 @@ class MoveActivity : Activity() {
         val old = places[key]
         val maxX = (widthDp - 24).toFloat().coerceAtLeast(0f)
         val maxY = (heightDp - 24).toFloat().coerceAtLeast(0f)
-        val x = snap(p0.first + dxDp).coerceIn(0f, maxX)
-        val y = snap(p0.second + dyDp).coerceIn(0f, maxY)
+        var x = snap(p0.first + dxDp).coerceIn(0f, maxX)
+        var y = snap(p0.second + dyDp).coerceIn(0f, maxY)
+        // Guides: click into line with a neighbour (same middle height, same left or right edge) when it is close
+        if (Prefs.freeSnap(this)) {
+            val sz = sizes()
+            val mw = dragged.width / density
+            val mh = dragged.height / density
+            var bestY = 9f
+            var bestX = 7f
+            val rawX = p0.first + dxDp
+            val rawY = p0.second + dyDp
+            for ((ok, op) in places) {
+                if (ok == key) continue
+                val s = sz[ok] ?: continue
+                val dyc = (op.y + s.second / 2f) - (rawY + mh / 2f)
+                if (kotlin.math.abs(dyc) < bestY) { bestY = kotlin.math.abs(dyc); y = (op.y + s.second / 2f - mh / 2f).coerceIn(0f, maxY) }
+                val dl = op.x - rawX
+                val dr = (op.x + s.first) - (rawX + mw)
+                if (kotlin.math.abs(dl) < bestX) { bestX = kotlin.math.abs(dl); x = op.x.coerceIn(0f, maxX) }
+                if (kotlin.math.abs(dr) < bestX) { bestX = kotlin.math.abs(dr); x = (op.x + s.first - mw).coerceIn(0f, maxX) }
+            }
+        }
         val w = old?.w ?: (if (key == "maps") dragged.width / density else 0f)
         places[key] = Prefs.FreePos(x, y, w)
         Prefs.setFreePos(this, places)
