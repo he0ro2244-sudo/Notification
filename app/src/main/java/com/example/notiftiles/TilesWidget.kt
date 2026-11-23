@@ -503,7 +503,7 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setColorStateList(mid, "setBackgroundTintList", circleTint)
                 rv.setInt(mid, "setBackgroundResource", shapeRes)
                 rv.setTextColor(mid, circleText)
-                rv.setViewLayoutHeight(mid, topSize * isc(ctx, "w_merge"), TypedValue.COMPLEX_UNIT_DIP)
+                rv.setInt(mid, "setMinHeight", Math.round(topSize * isc(ctx, "w_merge") * ctx.resources.displayMetrics.density))
                 rv.setTextViewTextSize(mid, TypedValue.COMPLEX_UNIT_SP, 13f * Look.scale(ctx) * isc(ctx, "w_merge"))
             }
             for (i in W_LOC.indices) {
@@ -671,7 +671,8 @@ class TilesWidget : AppWidgetProvider() {
         /** Items merged into one shape: only when 2 or more of the shown items in the top row are chosen. */
         private fun mergedItems(ctx: Context): Set<String> {
             val top = Prefs.rows(ctx)["top"] ?: emptyList()
-            val m = Prefs.merged(ctx).filter { it in top && Prefs.show(ctx, it) }.toSet()
+            val free = Prefs.freeOn(ctx)
+            val m = Prefs.merged(ctx).filter { (free || it in top) && Prefs.show(ctx, it) }.toSet()
             return if (m.size >= 2) m else emptySet()
         }
 
