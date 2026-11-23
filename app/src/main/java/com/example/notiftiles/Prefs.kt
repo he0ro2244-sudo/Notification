@@ -278,6 +278,10 @@ object Prefs {
     fun itemH(c: Context, key: String): Int = sp(c).getInt("lay_hscale_$key", 100).coerceIn(50, 250)
     fun setItemH(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_hscale_$key", v.coerceIn(50, 250)).apply()
 
+    /** Width of the Where to? box in the normal (rows) layout, in dp. 0 = it fills the rest of its row (as before). */
+    fun whereWidth(c: Context): Int = sp(c).getInt("lay_where_w", 0).coerceIn(0, 400)
+    fun setWhereWidth(c: Context, v: Int) = sp(c).edit().putInt("lay_where_w", v.coerceIn(0, 400)).apply()
+
     /** The small pencil on the widget (opens Move / Arrange & resize / Reset). On by default so Reset can always be reached. */
     fun editBtn(c: Context): Boolean = sp(c).getBoolean("lay_editbtn", true)
     fun setEditBtn(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_editbtn", v).apply()
@@ -287,7 +291,7 @@ object Prefs {
     fun setBlockScale(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_scale_$key", v.coerceIn(50, 200)).apply()
     fun resetArrange(c: Context) {
         val e = sp(c).edit()
-        for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_merge_h", "lay_editbtn", "lay_row_top", "lay_row_head")) e.remove(k)
+        for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_merge_h", "lay_where_w", "lay_editbtn", "lay_row_top", "lay_row_head")) e.remove(k)
         for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_") || k.startsWith("lay_wscale_") || k.startsWith("lay_hscale_")) e.remove(k)
         for (k in BLOCKS) e.remove("lay_scale_$k")
         e.remove("free_on").remove("free_pos").remove("free_grid_top")

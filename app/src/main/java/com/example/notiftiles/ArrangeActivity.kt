@@ -165,6 +165,7 @@ class ArrangeActivity : Activity() {
                 box.addView(sizeBar(Prefs.itemScale(this, sp.key), 50, 250) { Prefs.setItemScale(this, sp.key, it) })
                 val isBox = sp.key in setOf("w_clock", "w_weather", "w_date", "w_merge") || sp.key.startsWith("d") || sp.key.startsWith("q")
                 if (isBox) box.addView(sizeBar(Prefs.itemW(this, sp.key), 50, 250, "Shape width only (text size stays)") { Prefs.setItemW(this, sp.key, it) })
+                if (sp.key == "w_where" && !free) box.addView(whereWidthBar())
                 if (isBox || sp.key == "w_where") box.addView(sizeBar(Prefs.itemH(this, sp.key), 50, 250, "Shape height only (text size stays)") { Prefs.setItemH(this, sp.key, it) })
                 col.addView(box)
             }
@@ -294,6 +295,33 @@ class ArrangeActivity : Activity() {
         sw.isChecked = on
         sw.setOnCheckedChangeListener { _, v -> change(v) }
         return sw
+    }
+
+    /** Width of the Where to? box in the rows layout: far left = fills the row (as before), otherwise a width in dp. */
+    private fun whereWidthBar(): View {
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        val t = TextView(this)
+        t.textSize = 12f
+        t.alpha = 0.7f
+        fun label(w: Int) = if (w <= 0) "Box width: fills the row (default)" else "Box width: $w dp"
+        val cur = Prefs.whereWidth(this)
+        t.text = label(cur)
+        box.addView(t)
+        val sb = SeekBar(this)
+        sb.max = 280
+        sb.progress = if (cur <= 0) 0 else (cur - 79).coerceIn(1, 280)
+        sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
+                val w = if (p <= 0) 0 else p + 79
+                t.text = label(w)
+                if (fromUser) Prefs.setWhereWidth(this@ArrangeActivity, w)
+            }
+            override fun onStartTrackingTouch(s: SeekBar) {}
+            override fun onStopTrackingTouch(s: SeekBar) { redraw() }
+        })
+        box.addView(sb)
+        return box
     }
 
     private fun sizeBar(value: Int, min: Int = 50, max: Int = 200, label: String = "Size", set: (Int) -> Unit): View {

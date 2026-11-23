@@ -324,11 +324,15 @@ class TilesWidget : AppWidgetProvider() {
             val mergeAt = if (merged.size >= 2) top.indexOfFirst { it in merged } else top.size
             for ((i, key) in top.withIndex()) {
                 if (i == mergeAt) rv.addView(R.id.top_row, RemoteViews(ctx.packageName, R.layout.item_merge))
-                rv.addView(R.id.top_row, RemoteViews(ctx.packageName, ITEM_LAYOUT.getValue(key)))
+                rv.addView(R.id.top_row, RemoteViews(ctx.packageName, itemLayoutFor(ctx, key)))
             }
             if (mergeAt == top.size) rv.addView(R.id.top_row, RemoteViews(ctx.packageName, R.layout.item_merge))
-            for (key in rows["head"] ?: emptyList()) rv.addView(R.id.header, RemoteViews(ctx.packageName, ITEM_LAYOUT.getValue(key)))
+            for (key in rows["head"] ?: emptyList()) rv.addView(R.id.header, RemoteViews(ctx.packageName, itemLayoutFor(ctx, key)))
         }
+
+        /** The Where to? box fills the rest of its row; with a chosen width it uses the fixed-width layout instead. */
+        private fun itemLayoutFor(ctx: Context, key: String): Int =
+            if (key == "maps" && Prefs.whereWidth(ctx) > 0) R.layout.item_free_where else ITEM_LAYOUT.getValue(key)
 
         // Show the real Google Maps icon from this phone; the built-in red pin stays if Maps isn't installed.
         private fun mapsIcon(rv: RemoteViews, ctx: Context) {
@@ -514,6 +518,8 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setTextViewTextSize(mid, TypedValue.COMPLEX_UNIT_SP, 13f * Look.scale(ctx) * isc(ctx, "w_merge"))
             }
             for (i in W_LOC.indices) {
+                if (!Prefs.freeOn(ctx) && Prefs.whereWidth(ctx) > 0)
+                    rv.setViewLayoutWidth(W_LOC[i], Prefs.whereWidth(ctx).toFloat(), TypedValue.COMPLEX_UNIT_DIP)
                 rv.setColorStateList(W_LOC[i], "setBackgroundTintList", circleTint)
                 rv.setViewLayoutHeight(W_LOC[i], 40f * bs(ctx, "top") * isc(ctx, "w_where") * hst(ctx, "w_where"), TypedValue.COMPLEX_UNIT_DIP)
             }
