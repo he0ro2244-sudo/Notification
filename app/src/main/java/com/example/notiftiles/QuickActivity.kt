@@ -50,10 +50,11 @@ class QuickActivity : Activity() {
     private fun chooseKind() {
         AlertDialog.Builder(this)
             .setTitle(if (forPkg.isNotEmpty()) "Add a shortcut for " + Feed.label(this, forPkg) else "Add to shortcuts row")
-            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut")) { _, w ->
+            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut", "Link (open a screen of an app, e.g. Instagram camera)")) { _, w ->
                 when (w) {
                     0 -> pickApp { pkg -> nameIt(Feed.label(this, pkg)) { n -> save(Quick("app", n, pkg, "")) } }
                     1 -> pickApp { pkg -> pickActivity(pkg) }
+                    3 -> pickLink()
                     else -> pickAllShortcuts()
                 }
             }
@@ -213,6 +214,72 @@ class QuickActivity : Activity() {
         } catch (e: Exception) {
             toast("That shortcut could not be started")
             finish()
+        }
+    }
+
+    private fun saveLink(pkg: String, link: String, def: String) {
+        val uri = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(link)).setPackage(pkg).toUri(Intent.URI_INTENT_SCHEME)
+        nameIt(def) { n -> save(Quick("sc", n, pkg, uri)) }
+    }
+
+    private fun askText(title: String, hint: String, done: (String) -> Unit) {
+        val et = EditText(this)
+        et.hint = hint
+        et.isSingleLine = true
+        AlertDialog.Builder(this).setTitle(title).setView(et)
+            .setPositiveButton("OK") { _, _ ->
+                val t = et.text.toString().trim()
+                if (t.isEmpty()) finish() else done(t)
+            }
+            .setNegativeButton("Cancel") { _, _ -> finish() }
+            .setOnCancelListener { finish() }
+            .show()
+    }
+
+    private class Preset(val label: String, val pkg: String, val link: String, val ask: String, val name: String)
+
+    /** Opens one screen of an app through a link (not every app supports every link; apps can change them). */
+    private fun pickLink() {
+        val ig = "com.instagram.android"
+        val fb = "com.facebook.katana"
+        val sn = "com.snapchat.android"
+        val wa = "com.whatsapp"
+        val gm = "com.google.android.gm"
+        val tm = "com.microsoft.teams"
+        val presets = listOf(
+            Preset("Instagram: Camera", ig, "instagram://camera", "", "Camera"),
+            Preset("Instagram: Story camera", ig, "instagram://story-camera", "", "Story"),
+            Preset("Instagram: Messages", ig, "instagram://direct-inbox", "", "Messages"),
+            Preset("Instagram: Feed", ig, "instagram://mainfeed", "", "Feed"),
+            Preset("Instagram: Explore", ig, "instagram://explore", "", "Explore"),
+            Preset("Facebook: Feed", fb, "fb://feed", "", "Feed"),
+            Preset("Facebook: Notifications", fb, "fb://notifications", "", "Alerts"),
+            Preset("Facebook: My profile", fb, "fb://profile", "", "Profile"),
+            Preset("Snapchat: Camera", sn, "snapchat://", "", "Camera"),
+            Preset("Snapchat: Add a friend (username)", sn, "snapchat://add/", "user", "Add"),
+            Preset("WhatsApp: chat with a phone number", wa, "https://wa.me/", "phone", "Chat"),
+            Preset("Gmail: Write a new email", gm, "mailto:", "", "Compose"),
+            Preset("Gmail: Write to an address", gm, "mailto:", "mail", "Email"),
+            Preset("Teams: Open", tm, "msteams://", "", "Teams"),
+            Preset("Teams: Chat with an email", tm, "https://teams.microsoft.com/l/chat/0/0?users=", "mail", "Chat"),
+            Preset("Type my own link", "", "", "own", "")
+        )
+        pickFrom("Choose a link", presets.map { it.label }) { w ->
+            val p = presets[w]
+            when (p.ask) {
+                "" -> saveLink(p.pkg, p.link, p.name)
+                "phone" -> askText("Phone number with country code", "e.g. 966501234567") { num ->
+                    val digits = num.filter { it.isDigit() }
+                    if (digits.isEmpty()) finish() else saveLink(p.pkg, p.link + digits, p.name)
+                }
+                "user" -> askText("Snapchat username", "username") { u -> saveLink(p.pkg, p.link + u, p.name) }
+                "mail" -> askText("Email address", "name@example.com") { m ->
+                    saveLink(p.pkg, p.link + m, p.name)
+                }
+                else -> askText("Link", "e.g. instagram://camera") { link ->
+                    pickApp { pkg -> saveLink(pkg, link, Feed.label(this, pkg)) }
+                }
+            }
         }
     }
 

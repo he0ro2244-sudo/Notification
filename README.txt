@@ -1,3 +1,7 @@
+NEW IN v1.0.2: The Link choice has ready-made entries for Instagram (camera, story camera, messages, feed, explore), Facebook (feed, notifications, profile), Snapchat (camera, add a friend), WhatsApp (chat with a number), Gmail (new email, write to an address) and Teams (open, chat with an email), plus "Type my own link". Some links may not work on every phone or app version.
+
+NEW IN v1.0.1: Adding a shortcut has a 4th choice, "Link": open one screen of an app through a link (ready-made: Instagram Camera, Instagram Feed, WhatsApp chat with a number; or type your own link). Everything else is unchanged.
+
 NEW IN v1.0.0: First full release. Everything from v0.9.x is kept unchanged. Since v0.9.60: adding a shortcut has three choices, App, Activity (a screen inside an app) and one combined "Shortcut" list (the apps' long-press shortcuts plus the older shortcut-makers, all in one list). All three pickers have a Search box. Settings > Button log has a "Failed only" tick box (on by default); untick it to see every line.
 
 NEW IN v0.9.60: Adding a shortcut (shortcuts row, and the per-app shortcuts) has a 4th choice: "App shortcuts (the ones you get by long-pressing an app)". It lists every app that declares shortcuts of its own, then the shortcuts of that app. The older "Shortcut (like Nova)" choice is unchanged.
