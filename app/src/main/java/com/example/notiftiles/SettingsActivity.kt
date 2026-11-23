@@ -405,6 +405,12 @@ class SettingsActivity : Activity() {
             col.addView(seekRange(label, Prefs.grpSize(this, g), 60, 220, "%") { Prefs.setGrpSize(this, g, it) })
         }
 
+        col.addView(title("Text size per part of the widget", 14f, 12))
+        col.addView(hint("Every text on the home-screen widget has its own size, on top of the overall text size above. 100% = as designed. The Updated line has its own slider under Widget wording."))
+        for ((k, label) in Prefs.WIDGET_SIZE_PARTS) {
+            col.addView(seekRange(label, Prefs.partSize(this, k), 50, 300, "%") { Prefs.setPartSize(this, k, it); applyLook() })
+        }
+
         // ---- Wording of the widget
         col.addView(title("Widget wording", 16f, 20))
         col.addView(hint("Change the text shown when there are no messages, and the word before the weather update time. Empty + Save = original wording. Colours: see Text colour per part below."))
@@ -574,6 +580,9 @@ class SettingsActivity : Activity() {
         col.addView(cmp)
         col.addView(seekRange("Temperature adjust", Weather.offset(this), -6, 6, "°") { Weather.setOffset(this, it); applyLook() })
         col.addView(toggleRaw("Show \"Updated\" time in the widget", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); TilesWidget.rebuildAll(applicationContext); applyLook(); rebuild() })
+        col.addView(toggleRaw("Updated line: show the time (Updated 12:50 AM)", Weather.showUpdTime(this)) { Weather.setShowUpdTime(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
+        col.addView(toggleRaw("Updated line: show the source (Open-Meteo / Phone weather app)", Weather.showUpdSource(this)) { Weather.setShowUpdSource(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
+        col.addView(toggleRaw("Updated line: show the \"to match phone\" note", Weather.showUpdNote(this)) { Weather.setShowUpdNote(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
 
         }
 
@@ -588,6 +597,9 @@ class SettingsActivity : Activity() {
         col.addView(toggleRaw("Names under fast-dial circles", Prefs.dialNames(this)) { Prefs.setDialNames(this, it); applyLook() })
         col.addView(toggleRaw("Refresh icon (centre of the widget)", Prefs.refreshShow(this)) { Prefs.setRefreshShow(this, it); applyLook() })
         col.addView(toggleRaw("\"Updated\" time under the refresh icon", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); TilesWidget.rebuildAll(applicationContext); applyLook(); rebuild() })
+        col.addView(toggleRaw("Updated line: show the time (Updated 12:50 AM)", Weather.showUpdTime(this)) { Weather.setShowUpdTime(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
+        col.addView(toggleRaw("Updated line: show the source (Open-Meteo / Phone weather app)", Weather.showUpdSource(this)) { Weather.setShowUpdSource(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
+        col.addView(toggleRaw("Updated line: show the \"to match phone\" note", Weather.showUpdNote(this)) { Weather.setShowUpdNote(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
         col.addView(toggleRaw("\"Nothing new\" message", Prefs.showEmptyText(this)) { Prefs.setShowEmptyText(this, it); applyLook() })
         col.addView(title("Widget header, tiles and panel", 16f, 16))
         for ((k, label) in Prefs.SHOW_ITEMS) {

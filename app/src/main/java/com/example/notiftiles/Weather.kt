@@ -44,8 +44,22 @@ object Weather {
         val sh = shown(c) ?: return ""
         if (sh.time == 0L) return ""
         val time = java.text.DateFormat.getTimeInstance(java.text.DateFormat.SHORT).format(java.util.Date(sh.time))
-        return "${Prefs.updatedLabel(c)} $time · ${sh.label}"
+        // Three parts that can each be shown or hidden: "Updated 12:50 AM", the source (Open-Meteo / Phone weather app) and the "to match phone" note
+        val parts = ArrayList<String>()
+        if (showUpdTime(c)) parts.add("${Prefs.updatedLabel(c)} $time")
+        val tail = StringBuilder()
+        if (showUpdSource(c)) tail.append(sh.src)
+        if (showUpdNote(c) && sh.note.isNotEmpty()) { if (tail.isNotEmpty()) tail.append(", "); tail.append(sh.note) }
+        if (tail.isNotEmpty()) parts.add(tail.toString())
+        return parts.joinToString(" · ")
     }
+
+    fun showUpdTime(c: Context): Boolean = sp(c).getBoolean("w_upd_time", true)
+    fun setShowUpdTime(c: Context, v: Boolean) = sp(c).edit().putBoolean("w_upd_time", v).apply()
+    fun showUpdSource(c: Context): Boolean = sp(c).getBoolean("w_upd_src", true)
+    fun setShowUpdSource(c: Context, v: Boolean) = sp(c).edit().putBoolean("w_upd_src", v).apply()
+    fun showUpdNote(c: Context): Boolean = sp(c).getBoolean("w_upd_note", true)
+    fun setShowUpdNote(c: Context, v: Boolean) = sp(c).edit().putBoolean("w_upd_note", v).apply()
 
     // ---- Temperature copied from the phone's own weather app (read on screen by the helper) ----
     val APPS = listOf(
@@ -72,7 +86,7 @@ object Weather {
     /** Right after a copy the phone's number is shown as is; later the online number plus the learned difference. */
     private const val APP_EXACT_MS = 20 * 60 * 1000L
 
-    private class Shown(val temp: Int, val code: Int, val day: Boolean, val label: String, val time: Long)
+    private class Shown(val temp: Int, val code: Int, val day: Boolean, val label: String, val time: Long, val src: String = "", val note: String = "")
 
     private fun shown(c: Context): Shown? {
         val p = sp(c)
@@ -83,11 +97,12 @@ object Weather {
         fun app(): Shown {
             val ac = p.getInt("w_appcode", -1)
             val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-            return Shown(appTemp(c), if (ac >= 0) ac else p.getInt("w_code", 0), hour in 6..17, "Phone weather app", appTime(c))
+            return Shown(appTemp(c), if (ac >= 0) ac else p.getInt("w_code", 0), hour in 6..17, "Phone weather app", appTime(c), "Phone weather app", "")
         }
         fun online(adj: Int): Shown = Shown(
             p.getInt("w_temp", 0) + adj, p.getInt("w_code", 0), p.getInt("w_day", 1) == 1,
-            sourceName(c) + (if (adj != 0) ", " + signed(adj) + "° to match phone" else ""), p.getLong("w_time", 0L)
+            sourceName(c) + (if (adj != 0) ", " + signed(adj) + "° to match phone" else ""), p.getLong("w_time", 0L),
+            sourceName(c), if (adj != 0) signed(adj) + "° to match phone" else ""
         )
         return when (m) {
             "online" -> if (hasOnline) online(0) else null

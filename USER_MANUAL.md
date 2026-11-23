@@ -67,6 +67,7 @@ Background of the control panel, the shadow behind it and the home-screen widget
 - **Message time stamp**: smart style (today = time, yesterday = "Yesterday", older = date).
 - **Font**, **Weight**, **Italic**, **Letter case** and the overall **Text size**.
 - **Text size per part of the panel**: extra size for each part, on top of the overall size.
+- **Text size per part of the widget**: its own size for the Inbox title, + Note, Clear all, clock, weather, date, merged shape, Where to? text, Nothing new text, the letters and names of the fast-dial and shortcut circles, the tile texts and the page buttons. 100% = as designed.
 - **Widget wording**: the "Nothing new" text, the word before the weather update time, and the size of the Updated line.
 - **Text colour (widget)**: one colour for all widget text. Auto = follows the theme.
 - **Text colour per part**: tap a row to pick its colour with the big palette, the sliders or a hex code. "Auto" puts a part back to the overall colour.
@@ -93,7 +94,7 @@ One colour per button, used on the widget and in the panel together.
 - **Maps search box at the start**: puts Where to? first.
 - **Clock** (12 or 24 hour) and **Date** format.
 - **Weather**: city, mode, source, and **Temperature adjust** (to match your phone's weather app). "Compare all sources now" shows every source side by side.
-- **Show "Updated" time** under the refresh icon: switch it off to hide the whole line (for example "Updated 12:50 AM - Open-Meteo"), on to show it again. The same switch is in Show / hide parts.
+- **Updated line**: three extra switches show or hide only the time ("Updated 12:50 AM"), only the source ("Open-Meteo" or "Phone weather app"), or only the "to match phone" note. **Show "Updated" time** under the refresh icon: switch it off to hide the whole line (for example "Updated 12:50 AM - Open-Meteo"), on to show it again. The same switch is in Show / hide parts.
 
 ### Show / hide parts
 Switch off anything you do not want to see. Nothing is deleted, switch it on again any time.

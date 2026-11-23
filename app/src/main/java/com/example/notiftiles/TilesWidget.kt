@@ -163,6 +163,7 @@ class TilesWidget : AppWidgetProvider() {
         )
         private fun bs(ctx: Context, key: String): Float = Prefs.blockScale(ctx, key) / 100f
         private fun isc(ctx: Context, key: String): Float = Prefs.itemScale(ctx, key) / 100f
+        private fun psc(ctx: Context, key: String): Float = Prefs.partSize(ctx, key) / 100f
         private fun wst(ctx: Context, key: String): Float = Prefs.itemW(ctx, key) / 100f
         private fun hst(ctx: Context, key: String): Float = Prefs.itemH(ctx, key) / 100f
 
@@ -426,7 +427,7 @@ class TilesWidget : AppWidgetProvider() {
         }
 
         fun setWeather(rv: RemoteViews, ctx: Context) {
-            for (w in W_WEATHER) txt(rv, ctx, w, Weather.text(ctx), 13f * isc(ctx, "w_weather"), true)
+            for (w in W_WEATHER) txt(rv, ctx, w, Weather.text(ctx), 13f * isc(ctx, "w_weather") * psc(ctx, "weather"), true)
             mergedFormats(rv, ctx)
             val upd = Weather.updatedText(ctx)
             if (Weather.showUpdated(ctx) && upd.isNotEmpty()) {
@@ -499,17 +500,17 @@ class TilesWidget : AppWidgetProvider() {
             val main = if (ov != 0) ov else if (lightText) 0xFFF2F2F5.toInt() else if (darkText) 0xFF1B1B1F.toInt() else ctx.getColor(R.color.nt_text)
             val sub = if (ov != 0) Feed.alpha(ov, 0xB3) else if (lightText) 0xFFB4B4BC.toInt() else if (darkText) 0xFF55555C.toInt() else ctx.getColor(R.color.nt_sub)
             val hsc = bs(ctx, "head")
-            txt(rv, ctx, R.id.hdr_title, "Inbox", 16f * hsc * isc(ctx, "w_title"), true)
+            txt(rv, ctx, R.id.hdr_title, "Inbox", 16f * hsc * isc(ctx, "w_title") * psc(ctx, "title"), true)
             rv.setTextColor(R.id.hdr_title, Prefs.partColor(ctx, "title").let { if (it != 0) it else main })
-            txt(rv, ctx, R.id.wnote, "+ Note", 13f * hsc * isc(ctx, "w_note"), true)
-            txt(rv, ctx, R.id.wclear, if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all", 13f * hsc * isc(ctx, "w_clear"), false)
+            txt(rv, ctx, R.id.wnote, "+ Note", 13f * hsc * isc(ctx, "w_note") * psc(ctx, "note"), true)
+            txt(rv, ctx, R.id.wclear, if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all", 13f * hsc * isc(ctx, "w_clear") * psc(ctx, "clear"), false)
             val ic = Prefs.iconColor(ctx)
             rv.setTextColor(R.id.wclear, Prefs.partColor(ctx, "clear").let { if (it != 0) it else if (ic != 0) ic else sub })
             rv.setInt(R.id.wset, "setColorFilter", Prefs.partColor(ctx, "gear").let { if (it != 0) it else if (ic != 0) ic else sub })
             val gs = Prefs.gearSize(ctx).toFloat() * hsc * isc(ctx, "w_gear")
             rv.setViewLayoutWidth(R.id.wset, gs + 6f, TypedValue.COMPLEX_UNIT_DIP)
             rv.setViewLayoutHeight(R.id.wset, gs + 4f, TypedValue.COMPLEX_UNIT_DIP)
-            txt(rv, ctx, R.id.empty_txt, Extras.quietText(ctx) ?: Prefs.emptyText(ctx), 13f, false)
+            txt(rv, ctx, R.id.empty_txt, Extras.quietText(ctx) ?: Prefs.emptyText(ctx), 13f * psc(ctx, "empty"), false)
             // Hide only the "Nothing new" wording; the snooze / quiet-hours message always stays visible.
             rv.setViewVisibility(
                 R.id.empty_txt,
@@ -551,11 +552,11 @@ class TilesWidget : AppWidgetProvider() {
                 val clock = W_CLOCK[slot]
                 rv.setCharSequence(clock, "setFormat12Hour", Look.span(ctx, f12, true))
                 rv.setCharSequence(clock, "setFormat24Hour", Look.span(ctx, f24, true))
-                rv.setTextViewTextSize(clock, TypedValue.COMPLEX_UNIT_SP, 14f * Look.scale(ctx) * isc(ctx, "w_clock"))
+                rv.setTextViewTextSize(clock, TypedValue.COMPLEX_UNIT_SP, 14f * Look.scale(ctx) * isc(ctx, "w_clock") * psc(ctx, "clock"))
                 val date = W_DATE[slot]
                 rv.setCharSequence(date, "setFormat12Hour", Look.span(ctx, dateFmt, true))
                 rv.setCharSequence(date, "setFormat24Hour", Look.span(ctx, dateFmt, true))
-                rv.setTextViewTextSize(date, TypedValue.COMPLEX_UNIT_SP, 12f * Look.scale(ctx) * isc(ctx, "w_date"))
+                rv.setTextViewTextSize(date, TypedValue.COMPLEX_UNIT_SP, 12f * Look.scale(ctx) * isc(ctx, "w_date") * psc(ctx, "date"))
                 // The merged shape: the chosen parts in the top-row order, one under the other (or side by side).
                 val mid = W_MERGE[slot]
                 rv.setColorStateList(mid, "setBackgroundTintList", circleTint)
@@ -567,7 +568,7 @@ class TilesWidget : AppWidgetProvider() {
                     // Space around each part: bigger and easier to tap (up and down when stacked, left and right when side by side)
                     if (Prefs.mergeHoriz(ctx)) rv.setViewPadding(pid, gapPx, 0, gapPx, 0) else rv.setViewPadding(pid, 0, gapPx, 0, gapPx)
                     rv.setInt(pid, "setMinHeight", perPart)
-                    rv.setTextViewTextSize(pid, TypedValue.COMPLEX_UNIT_SP, (if (pid == R.id.wmc_date) 12f else 13f) * Look.scale(ctx) * isc(ctx, "w_merge"))
+                    rv.setTextViewTextSize(pid, TypedValue.COMPLEX_UNIT_SP, (if (pid == R.id.wmc_date) 12f else 13f) * Look.scale(ctx) * isc(ctx, "w_merge") * psc(ctx, "merge"))
                 }
                 if (Prefs.itemW(ctx, "w_merge") != 100) {
                     val baseW = if (Prefs.mergeHoriz(ctx)) 160f else 70f
@@ -583,7 +584,7 @@ class TilesWidget : AppWidgetProvider() {
             // While Google Maps is navigating this box becomes a one-tap red "Exit navigation"
             val navigating = LocationAuto.navNotification() != null
             val whereText = if (navigating) "Exit navigation" else "Where to?"
-            for (w in W_WW) txt(rv, ctx, w, whereText, 12f * bs(ctx, "top") * isc(ctx, "w_where"), false)
+            for (w in W_WW) txt(rv, ctx, w, whereText, 12f * bs(ctx, "top") * isc(ctx, "w_where") * psc(ctx, "where"), false)
             val wc = Prefs.partColor(ctx, "where")
             val whereColor = if (navigating) 0xFFE53935.toInt() else if (wc != 0) wc else circleSub
             for (w in W_WW) rv.setTextColor(w, whereColor)
@@ -609,13 +610,13 @@ class TilesWidget : AppWidgetProvider() {
                 val ownText = Prefs.dialTextOf(ctx, i)
                 val letterC = Prefs.partColor(ctx, "dialletter")
                 val fgc = if (ownText != 0) ownText else if (letterC != 0) letterC else autoFg
-                txt(rv, ctx, DIAL_CIRCLE[i], initial, 18f * isc(ctx, "d$i"), true)
+                txt(rv, ctx, DIAL_CIRCLE[i], initial, 18f * isc(ctx, "d$i") * psc(ctx, "dialletter"), true)
                 rv.setTextColor(DIAL_CIRCLE[i], fgc)
                 rv.setColorStateList(DIAL_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(bgc))
                 rv.setInt(DIAL_CIRCLE[i], "setBackgroundResource", shapeRes)
                 rv.setViewLayoutWidth(DIAL_CIRCLE[i], dsize * isc(ctx, "d$i") * wst(ctx, "d$i"), TypedValue.COMPLEX_UNIT_DIP)
                 rv.setViewLayoutHeight(DIAL_CIRCLE[i], dsize * isc(ctx, "d$i") * hst(ctx, "d$i"), TypedValue.COMPLEX_UNIT_DIP)
-                txt(rv, ctx, DIAL_NAME[i], if (has) label else "Add", 10f, false)
+                txt(rv, ctx, DIAL_NAME[i], if (has) label else "Add", 10f * psc(ctx, "dialnames"), false)
                 val dn = Prefs.partColor(ctx, "dialnames")
                 rv.setTextColor(DIAL_NAME[i], if (ownText != 0) ownText else if (dn != 0) dn else sub)
                 rv.setViewVisibility(DIAL_NAME[i], if (showNames) View.VISIBLE else View.GONE)
@@ -659,7 +660,7 @@ class TilesWidget : AppWidgetProvider() {
                     val fgc = if (letterC != 0) letterC else if (dc != 0) Look.contrast(dc) else st.fg(dark)
                     val icon = if (q != null) appIconBitmap(ctx, q.pkg) else null
                     val initial = if (q == null) "+" else if (icon != null) "" else q.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "•"
-                    txt(rv, ctx, Q_CIRCLE[i], initial, 18f * isc(ctx, "q$i"), true)
+                    txt(rv, ctx, Q_CIRCLE[i], initial, 18f * isc(ctx, "q$i") * psc(ctx, "quickletter"), true)
                     rv.setTextColor(Q_CIRCLE[i], fgc)
                     rv.setColorStateList(Q_CIRCLE[i], "setBackgroundTintList", ColorStateList.valueOf(bgc))
                     rv.setInt(Q_CIRCLE[i], "setBackgroundResource", shapeRes)
@@ -673,7 +674,7 @@ class TilesWidget : AppWidgetProvider() {
                     } else {
                         rv.setViewVisibility(Q_ICON[i], View.GONE)
                     }
-                    txt(rv, ctx, Q_NAME[i], q?.name ?: "Add", 10f, false)
+                    txt(rv, ctx, Q_NAME[i], q?.name ?: "Add", 10f * psc(ctx, "quicknames"), false)
                     val dn = Prefs.partColor(ctx, "dialnames")
                     rv.setTextColor(Q_NAME[i], if (dn != 0) dn else sub)
                     rv.setViewVisibility(Q_NAME[i], if (showNames) View.VISIBLE else View.GONE)
@@ -719,7 +720,7 @@ class TilesWidget : AppWidgetProvider() {
                 val now = Arrange.pageNow(ctx, "w", total)
                 val pc = Prefs.partColor(ctx, "pages").let { if (it != 0) it else Prefs.accent(ctx) }
                 val pn = Arrange.pageName(ctx, "w")
-                txt(rv, ctx, R.id.wpage, (if (pn != null) "$pn  " else "") + "${now + 1}/$n", 12f, false)
+                txt(rv, ctx, R.id.wpage, (if (pn != null) "$pn  " else "") + "${now + 1}/$n", 12f * psc(ctx, "pages"), false)
                 rv.setTextColor(R.id.wpage, pc)
                 rv.setTextColor(R.id.wprev, pc)
                 rv.setTextColor(R.id.wnext, pc)
@@ -829,11 +830,11 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
         val fg = st.fg(dark)
         val rv = RemoteViews(ctx.packageName, R.layout.widget_tile)
         rv.setColorStateList(R.id.tile_root, "setBackgroundTintList", ColorStateList.valueOf(bg))
-        Look.setText(rv, ctx, R.id.appname, Feed.label(ctx, pkg), 11f, false)
+        Look.setText(rv, ctx, R.id.appname, Feed.label(ctx, pkg), 11f * Prefs.partSize(ctx, "tapp") / 100f, false)
         rv.setTextColor(R.id.appname, Prefs.partColor(ctx, "tapp").let { if (it != 0) it else Feed.alpha(fg, 0xCC) })
-        Look.setText(rv, ctx, R.id.title, "Shortcut", 13f, true)
+        Look.setText(rv, ctx, R.id.title, "Shortcut", 13f * Prefs.partSize(ctx, "ttitle") / 100f, true)
         rv.setTextColor(R.id.title, Prefs.partColor(ctx, "ttitle").let { if (it != 0) it else fg })
-        Look.setText(rv, ctx, R.id.text, "Tap to open", 12f, false)
+        Look.setText(rv, ctx, R.id.text, "Tap to open", 12f * Prefs.partSize(ctx, "ttext") / 100f, false)
         rv.setTextColor(R.id.text, Prefs.partColor(ctx, "ttext").let { if (it != 0) it else Feed.alpha(fg, 0xDD) })
         rv.setViewVisibility(R.id.cnt, View.GONE)
         rv.setViewVisibility(R.id.appname, if (Prefs.showItem(ctx, "t_app")) View.VISIBLE else View.INVISIBLE)
@@ -858,14 +859,14 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
 
         val rv = RemoteViews(ctx.packageName, R.layout.widget_tile)
         rv.setColorStateList(R.id.tile_root, "setBackgroundTintList", ColorStateList.valueOf(bg))
-        Look.setText(rv, ctx, R.id.appname, Feed.label(ctx, sbn.packageName), 11f, false)
+        Look.setText(rv, ctx, R.id.appname, Feed.label(ctx, sbn.packageName), 11f * Prefs.partSize(ctx, "tapp") / 100f, false)
         rv.setTextColor(R.id.appname, Prefs.partColor(ctx, "tapp").let { if (it != 0) it else Feed.alpha(fg, 0xCC) })
         Look.setText(rv, ctx, R.id.cnt, tile.count.toString(), 11f, true)
         rv.setTextColor(R.id.cnt, bg)
         rv.setColorStateList(R.id.cnt, "setBackgroundTintList", ColorStateList.valueOf(fg))
-        Look.setText(rv, ctx, R.id.title, tile.title, 13f, true)
+        Look.setText(rv, ctx, R.id.title, tile.title, 13f * Prefs.partSize(ctx, "ttitle") / 100f, true)
         rv.setTextColor(R.id.title, Prefs.partColor(ctx, "ttitle").let { if (it != 0) it else fg })
-        Look.setText(rv, ctx, R.id.text, tile.text, 12f, false)
+        Look.setText(rv, ctx, R.id.text, tile.text, 12f * Prefs.partSize(ctx, "ttext") / 100f, false)
         rv.setTextColor(R.id.text, Prefs.partColor(ctx, "ttext").let { if (it != 0) it else Feed.alpha(fg, 0xDD) })
 
         // Show / hide the parts of a tile

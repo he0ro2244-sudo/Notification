@@ -550,6 +550,28 @@ object Prefs {
         "ttext" to "Widget tiles: message text",
         "pages" to "Widget: page buttons"
     )
+    // Text size per part of the widget (percent, 100 = as designed)
+    val WIDGET_SIZE_PARTS = listOf(
+        "title" to "Inbox title",
+        "note" to "+ Note",
+        "clear" to "Clear all / Read all",
+        "clock" to "Clock",
+        "weather" to "Weather",
+        "date" to "Date",
+        "merge" to "Merged shape (clock, weather, date together)",
+        "where" to "Where to? text",
+        "empty" to "Nothing new text",
+        "dialletter" to "Fast-dial letters (inside circles)",
+        "dialnames" to "Names under fast-dial circles",
+        "quickletter" to "Shortcut letters (inside circles)",
+        "quicknames" to "Names under shortcut circles",
+        "tapp" to "Tiles: app name",
+        "ttitle" to "Tiles: message title",
+        "ttext" to "Tiles: message text",
+        "pages" to "Page buttons"
+    )
+    fun partSize(c: Context, k: String): Int = sp(c).getInt("look_ps_$k", 100).coerceIn(50, 300)
+    fun setPartSize(c: Context, k: String, v: Int) = sp(c).edit().putInt("look_ps_$k", v).apply()
     // Wording of the widget's empty message and of the weather "Updated" line (blank = original wording)
     const val EMPTY_DEFAULT = "Nothing new from your apps"
     const val UPDATED_DEFAULT = "Updated"
