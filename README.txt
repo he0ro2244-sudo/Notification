@@ -350,3 +350,9 @@ button for you. Adjust where it taps in Look & colors > Voice recorder > Red but
 
 NEW IN v1.0.9
 "Add to shortcuts row" now has 3 choices only: App, Activity, Shortcut. The Shortcut list starts with Link finder, Type my own link and Ready-made links, followed by every app shortcut (search box on top filters by app or shortcut name).
+
+NEW IN v1.0.10
+"Add to shortcuts row" has 4 choices: App, Activity, Shortcut, Link. Shortcut shows a searchable list of apps; tap an app to see only its own shortcuts (no links). Link holds Ready-made links, Link finder and Type my own link.
+
+NEW IN v1.0.11
+The 4th choice in "Add to shortcuts row" is now just "Type my own link" (no Ready-made links or Link finder menu).

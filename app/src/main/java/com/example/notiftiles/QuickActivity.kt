@@ -50,10 +50,11 @@ class QuickActivity : Activity() {
     private fun chooseKind() {
         AlertDialog.Builder(this)
             .setTitle(if (forPkg.isNotEmpty()) "Add a shortcut for " + Feed.label(this, forPkg) else "Add to shortcuts row")
-            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut (like Camera, New post...)")) { _, w ->
+            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut (like Camera, New post...)", "Type my own link")) { _, w ->
                 when (w) {
                     0 -> pickApp { pkg -> nameIt(Feed.label(this, pkg)) { n -> save(Quick("app", n, pkg, "")) } }
                     1 -> pickApp { pkg -> pickActivity(pkg) }
+                    3 -> typeOwnLink()
                     else -> pickAllShortcuts()
                 }
             }
@@ -180,35 +181,29 @@ class QuickActivity : Activity() {
         return out.distinctBy { it.uri }
     }
 
-    /** One list with every kind of app shortcut: the long-press ones (read from manifests) and the ones an app creates on request. */
+    /** Shortcut: a list of apps that have shortcuts; tap an app to see its own shortcuts (no links). */
     private fun pickAllShortcuts() {
         toast("Looking for shortcuts (a few seconds)...")
         Thread {
-            val items = ArrayList<Pair<String, () -> Unit>>()
+            val byPkg = LinkedHashMap<String, ArrayList<Pair<String, () -> Unit>>>()
             for (pkg in launcherApps()) {
                 for (sc in staticShortcuts(pkg)) {
-                    items.add(Pair(Feed.label(this, pkg) + ": " + sc.label) { nameIt(sc.label) { n -> save(Quick("sc", n, pkg, sc.uri)) } })
+                    byPkg.getOrPut(pkg) { ArrayList() }.add(Pair(sc.label) { nameIt(sc.label) { n -> save(Quick("sc", n, pkg, sc.uri)) } })
                 }
             }
             val creators = try { packageManager.queryIntentActivities(Intent(Intent.ACTION_CREATE_SHORTCUT), 0) } catch (e: Exception) { emptyList() }
             for (ri in creators) {
                 val ai = ri.activityInfo
-                items.add(Pair(Feed.label(this, ai.packageName) + ": " + ri.loadLabel(packageManager) + " (choose...)") { startCreator(ai) })
+                byPkg.getOrPut(ai.packageName) { ArrayList() }.add(Pair(ri.loadLabel(packageManager).toString() + " (choose...)") { startCreator(ai) })
             }
-            for (pkg in launcherApps()) {
-                for (f in foundLinks(pkg)) {
-                    val host = f.uri.substringAfter("://")
-                    if (host.isBlank() || QUICK_WORDS.none { host.lowercase().contains(it) }) continue
-                    items.add(Pair(Feed.label(this, pkg) + ": " + host + " (link)") { linkActions(pkg, f) })
-                }
-            }
-            items.sortBy { it.first.lowercase() }
-            items.add(0, Pair("Ready-made links (Instagram, WhatsApp, Gmail...)") { pickLink() })
-            items.add(0, Pair("Type my own link") { typeOwnLink() })
-            items.add(0, Pair("Link finder: pick an app, test and save its links") { pickApp { pkg -> pickFoundLink(pkg) } })
+            val pkgs = byPkg.keys.sortedBy { Feed.label(this, it).lowercase() }
             runOnUiThread {
                 if (isFinishing) return@runOnUiThread
-                pickFrom("Choose a shortcut", items.map { it.first }) { w -> items[w].second() }
+                if (pkgs.isEmpty()) { toast("No app offers shortcuts here"); finish(); return@runOnUiThread }
+                pickFrom("Choose an app", pkgs.map { Feed.label(this, it) }) { w ->
+                    val list = byPkg[pkgs[w]]!!
+                    pickFrom(Feed.label(this, pkgs[w]) + ": choose a shortcut", list.map { it.first }) { i -> list[i].second() }
+                }
             }
         }.start()
     }
