@@ -33,6 +33,7 @@ class MoveActivity : Activity() {
     private var root: View? = null
     private var widthDp = 250
     private var heightDp = 300
+    private var optW = 0f // the widget width (dp) the home screen reports; the places are saved for it
 
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
     private fun dpf(n: Float) = (n * resources.displayMetrics.density).toInt()
@@ -143,6 +144,7 @@ class MoveActivity : Activity() {
         val opt = mgr.getAppWidgetOptions(ids[0])
         val screenW = (resources.displayMetrics.widthPixels / density).toInt() - 32
         val wOpt = opt.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)
+        optW = wOpt.toFloat()
         widthDp = (if (wOpt > 0) wOpt else 320).coerceIn(120, screenW.coerceAtLeast(120))
         val hMax = opt.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
         val hMin = opt.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
@@ -282,6 +284,7 @@ class MoveActivity : Activity() {
             }
         }
         Prefs.setFreePos(this, places)
+        Prefs.setFreeRefW(this, optW)
         TilesWidget.rebuildAll(applicationContext)
         holder.post { render() }
     }
@@ -335,7 +338,13 @@ class MoveActivity : Activity() {
 
     /** The places of every item: the saved ones, or (the first time) read from the widget as it looks now. */
     private fun currentPlaces(): MutableMap<String, Prefs.FreePos> {
-        if (Prefs.freeOn(this)) return Prefs.freePos(this).toMutableMap()
+        if (Prefs.freeOn(this)) {
+            // Saved places are stretched to the current widget width first, the same way the widget draws them
+            val s = Prefs.freeScaleFor(this, optW)
+            val m = LinkedHashMap<String, Prefs.FreePos>()
+            for ((k, p) in Prefs.freePos(this)) m[k] = if (s == 1f) p else Prefs.FreePos(p.x * s, p.y, p.w * s)
+            return m
+        }
         Prefs.setFreeGridTop(this, measureGridTop())
         return measureAll()
     }
@@ -376,6 +385,7 @@ class MoveActivity : Activity() {
         val w = old?.w ?: (if (key == "maps") dragged.width / density else 0f)
         places[key] = Prefs.FreePos(x, y, w)
         Prefs.setFreePos(this, places)
+        Prefs.setFreeRefW(this, optW)
         Prefs.setFreeOn(this, true)
         TilesWidget.rebuildAll(applicationContext)
         holder.post { render() }
@@ -423,6 +433,7 @@ class MoveActivity : Activity() {
                         val newTop = snap((startTop + dy) / density).coerceIn(0f, maxTop)
                         val places = currentPlaces()
                         Prefs.setFreePos(this, places)
+        Prefs.setFreeRefW(this, optW)
                         Prefs.setFreeGridTop(this, newTop)
                         Prefs.setFreeOn(this, true)
                         TilesWidget.rebuildAll(applicationContext)

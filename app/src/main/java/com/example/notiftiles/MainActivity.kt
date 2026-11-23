@@ -91,8 +91,29 @@ class MainActivity : Activity() {
         super.onResume()
         status.text = if (Access.enabled(this)) "Notification access: on" else "Notification access: OFF"
         Access.rebindIfNeeded(this)
+        askBatteryOnce()
         renderDial()
         renderList()
+    }
+
+    /** Asked once: some phones stop apps in the background, which freezes the widget and the notifications. */
+    private fun askBatteryOnce() {
+        try {
+            val prefs = getSharedPreferences("nt", MODE_PRIVATE)
+            if (prefs.getBoolean("battery_asked", false)) return
+            val pm = getSystemService(android.os.PowerManager::class.java)
+            if (pm.isIgnoringBatteryOptimizations(packageName)) return
+            prefs.edit().putBoolean("battery_asked", true).apply()
+            android.app.AlertDialog.Builder(this)
+                .setTitle("Keep Notif Tiles running")
+                .setMessage("Some phones stop apps in the background, so the widget and the notifications can freeze. Allow Notif Tiles to run without battery limits?")
+                .setPositiveButton("Open settings") { _, _ ->
+                    try { startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) } catch (e: Exception) { }
+                }
+                .setNegativeButton("Not now", null)
+                .show()
+        } catch (e: Exception) {
+        }
     }
 
     private fun renderDial() {

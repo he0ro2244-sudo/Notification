@@ -11,7 +11,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
 
-/** What the pencil on the widget does: Move (drag items to another place), Arrange & resize (sections, sizes, colours) or Reset (everything back to default). */
+/** What the pencil on the widget does: Move (drag items to another place), Arrange & resize (sections, sizes, colours) Saved layouts, or Reset (everything back to default). */
 class EditMenuActivity : Activity() {
 
     private val WRAP = ViewGroup.LayoutParams.WRAP_CONTENT
@@ -44,18 +44,75 @@ class EditMenuActivity : Activity() {
         col.addView(choice("Arrange & resize", "Order of the sections, sizes, colours and what is shown.") {
             startActivity(Intent(this, ArrangeActivity::class.java))
         })
+        col.addView(choice("Saved layouts", "Save the widget as it looks now under a name, and load it again later.") {
+            showLayouts()
+        })
         col.addView(choice("Reset", "Back to the standard widget: top row, fast-dial circles, shortcuts row and Inbox row in their normal places, no changes to colours, fonts, sizes or shapes. Your apps, contacts, shortcuts and notes are kept.") {
             AlertDialog.Builder(this)
-                .setMessage("Reset the widget to the standard layout (top row, fast-dial, shortcuts row, Inbox row) and remove ALL themes, colours, fonts, sizes and moved places? Your apps, contacts, shortcuts and notes are kept. This cannot be undone.")
+                .setMessage("Reset the widget to the standard layout (top row, fast-dial, shortcuts row, Inbox row) and remove ALL themes, colours, fonts, sizes and moved places? Your apps, contacts, shortcuts and notes are kept. You can undo this from this menu.")
                 .setPositiveButton("Reset all") { _, _ ->
                     Prefs.resetAllLook(this)
                     TilesWidget.refresh(applicationContext)
                     android.widget.Toast.makeText(this, "Everything is back to default", android.widget.Toast.LENGTH_SHORT).show()
+                    recreate()
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
         })
+        if (Prefs.hasUndo(this)) {
+            col.addView(choice("Undo last reset or load", "Bring back the look and places you had before the last Reset or loaded layout. Custom background pictures are not brought back.") {
+                val ok = Prefs.undoLook(this)
+                TilesWidget.rebuildAll(applicationContext)
+                android.widget.Toast.makeText(this, if (ok) "Brought back" else "Nothing to undo", android.widget.Toast.LENGTH_SHORT).show()
+                recreate()
+            })
+        }
         setContentView(col)
+    }
+
+    private fun showLayouts() {
+        val names = Prefs.presetNames(this)
+        val items = arrayOf("+ Save the widget as it is now...") + names.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Saved layouts")
+            .setItems(items) { _, i ->
+                if (i == 0) askName() else openLayout(names[i - 1])
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    private fun askName() {
+        val input = android.widget.EditText(this)
+        input.hint = "Name, for example Work"
+        input.setSingleLine()
+        AlertDialog.Builder(this)
+            .setTitle("Save this layout")
+            .setView(input)
+            .setPositiveButton("Save") { _, _ ->
+                val ok = Prefs.savePreset(this, input.text.toString())
+                android.widget.Toast.makeText(this, if (ok) "Saved" else "Type a name first", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun openLayout(name: String) {
+        AlertDialog.Builder(this)
+            .setTitle(name)
+            .setMessage("Load this layout? It replaces the current look and places (you can undo it from this menu).")
+            .setPositiveButton("Load") { _, _ ->
+                val ok = Prefs.loadPreset(this, name)
+                TilesWidget.rebuildAll(applicationContext)
+                android.widget.Toast.makeText(this, if (ok) "Loaded" else "Could not load it", android.widget.Toast.LENGTH_SHORT).show()
+                recreate()
+            }
+            .setNeutralButton("Delete") { _, _ ->
+                Prefs.deletePreset(this, name)
+                android.widget.Toast.makeText(this, "Deleted", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun choice(name: String, sub: String, onTap: () -> Unit): View {

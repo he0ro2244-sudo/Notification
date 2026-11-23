@@ -158,14 +158,85 @@ object Prefs {
     /** Everything that changes how the widget looks and where things sit goes back to the standard widget: themes, colours, fonts, shapes, sizes (Size / Width / Height),
      *  switches, order, merge, free places. Your apps, contacts, shortcuts, notes, weather place and Where to? favourites are kept. */
     fun resetAllLook(c: Context) {
+        saveUndo(c)
         resetLook(c)
         val e = sp(c).edit()
-        e.remove("free_on").remove("free_pos").remove("free_grid_top").remove("free_snap")
+        e.remove("free_on").remove("free_pos").remove("free_ref_w").remove("free_grid_top").remove("free_snap")
         // The standard widget: top row (clock, weather, date, Where to?), fast-dial circles, shortcuts row, Inbox row
         // (title, mic, + Note, Clear all, pencil, gear), refresh icon and weather line. Pencil stays on so Reset can be reached.
         e.putBoolean("quick_on", true).putBoolean("lay_editbtn", true)
         e.apply()
     }
+
+    // ---- Undo and saved layouts: a copy of every look / layout setting (custom background pictures are not part of it) ----
+    private fun isLookKey(k: String) = k.startsWith("look_") || k.startsWith("lay_") || k.startsWith("free_") || k == "quick_on"
+
+    private fun snapshotJson(c: Context): String {
+        val o = org.json.JSONObject()
+        for ((k, v) in sp(c).all) {
+            if (!isLookKey(k)) continue
+            val e = org.json.JSONObject()
+            when (v) {
+                is Boolean -> e.put("t", "b").put("v", v)
+                is Int -> e.put("t", "i").put("v", v)
+                is Long -> e.put("t", "l").put("v", v)
+                is Float -> e.put("t", "f").put("v", v.toDouble())
+                is String -> e.put("t", "s").put("v", v)
+                else -> continue
+            }
+            o.put(k, e)
+        }
+        return o.toString()
+    }
+
+    private fun restoreJson(c: Context, json: String): Boolean = try {
+        val o = org.json.JSONObject(json)
+        val e = sp(c).edit()
+        for (k in sp(c).all.keys) if (isLookKey(k)) e.remove(k)
+        val iter = o.keys()
+        while (iter.hasNext()) {
+            val k = iter.next()
+            if (!isLookKey(k)) continue
+            val x = o.getJSONObject(k)
+            when (x.getString("t")) {
+                "b" -> e.putBoolean(k, x.getBoolean("v"))
+                "i" -> e.putInt(k, x.getInt("v"))
+                "l" -> e.putLong(k, x.getLong("v"))
+                "f" -> e.putFloat(k, x.getDouble("v").toFloat())
+                "s" -> e.putString(k, x.getString("v"))
+            }
+        }
+        e.apply()
+        true
+    } catch (ex: Exception) {
+        false
+    }
+
+    fun saveUndo(c: Context) = sp(c).edit().putString("undo_look", snapshotJson(c)).apply()
+    fun hasUndo(c: Context): Boolean = !(sp(c).getString("undo_look", "") ?: "").isEmpty()
+    fun undoLook(c: Context): Boolean {
+        val j = sp(c).getString("undo_look", "") ?: ""
+        if (j.isEmpty()) return false
+        val ok = restoreJson(c, j)
+        if (ok) sp(c).edit().remove("undo_look").apply()
+        return ok
+    }
+
+    fun presetNames(c: Context): List<String> =
+        sp(c).all.keys.filter { it.startsWith("preset_") }.map { it.removePrefix("preset_") }.sortedBy { it.lowercase() }
+    fun savePreset(c: Context, name: String): Boolean {
+        val n = name.trim().take(30)
+        if (n.isEmpty()) return false
+        sp(c).edit().putString("preset_$n", snapshotJson(c)).apply()
+        return true
+    }
+    fun loadPreset(c: Context, name: String): Boolean {
+        val j = sp(c).getString("preset_$name", "") ?: ""
+        if (j.isEmpty()) return false
+        saveUndo(c)
+        return restoreJson(c, j)
+    }
+    fun deletePreset(c: Context, name: String) = sp(c).edit().remove("preset_$name").apply()
 
     // ---- Accent colour (buttons, badge) ----
     fun accent(c: Context): Int = sp(c).getInt("look_accent", 0xFF3B82F6.toInt())
@@ -294,7 +365,7 @@ object Prefs {
         for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_merge_h", "lay_where_w", "lay_editbtn", "lay_row_top", "lay_row_head")) e.remove(k)
         for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_") || k.startsWith("lay_wscale_") || k.startsWith("lay_hscale_")) e.remove(k)
         for (k in BLOCKS) e.remove("lay_scale_$k")
-        e.remove("free_on").remove("free_pos").remove("free_grid_top")
+        e.remove("free_on").remove("free_pos").remove("free_ref_w").remove("free_grid_top")
         e.apply()
     }
 
@@ -309,21 +380,34 @@ object Prefs {
     fun freeOn(c: Context): Boolean = sp(c).getBoolean("free_on", false)
     fun setFreeOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("free_on", v).apply()
 
+    // The parsed places are remembered while the saved text stays the same (the widget reads them on every redraw)
+    private var freeRaw: String? = null
+    private var freeParsed: Map<String, FreePos> = emptyMap()
+
     fun freePos(c: Context): Map<String, FreePos> {
-        val out = LinkedHashMap<String, FreePos>()
-        for (part in (sp(c).getString("free_pos", "") ?: "").split(";")) {
-            val kv = part.split("=")
-            if (kv.size != 2 || kv[0] !in FREE_KEYS) continue
-            val n = kv[1].split(",").mapNotNull { it.toFloatOrNull() }
-            if (n.size >= 2) out[kv[0]] = FreePos(n[0], n[1], n.getOrElse(2) { 0f })
+        val raw = sp(c).getString("free_pos", "") ?: ""
+        synchronized(this) {
+            if (raw != freeRaw) {
+                freeParsed = FreeCodec.parse(raw, FREE_KEYS).mapValues { FreePos(it.value.x, it.value.y, it.value.w) }
+                freeRaw = raw
+            }
+            return LinkedHashMap(freeParsed)
         }
-        return out
     }
 
     fun setFreePos(c: Context, m: Map<String, FreePos>) {
-        val s = m.entries.filter { it.key in FREE_KEYS }
-            .joinToString(";") { "${it.key}=${it.value.x},${it.value.y},${it.value.w}" }
+        val s = FreeCodec.encode(m.mapValues { FreeCodec.Spot(it.value.x, it.value.y, it.value.w) }, FREE_KEYS)
         sp(c).edit().putString("free_pos", s).apply()
+    }
+
+    /** Width of the widget (dp) the saved places were made for, 0 = unknown. Places are stretched when the widget is resized. */
+    fun freeRefW(c: Context): Float = sp(c).getFloat("free_ref_w", 0f)
+    fun setFreeRefW(c: Context, v: Float) {
+        if (v > 0f) sp(c).edit().putFloat("free_ref_w", v).apply() else sp(c).edit().remove("free_ref_w").apply()
+    }
+    fun freeScaleFor(c: Context, curW: Float): Float {
+        val ref = freeRefW(c)
+        return if (ref <= 0f || curW <= 0f) 1f else (curW / ref).coerceIn(0.5f, 2f)
     }
 
     /** Where the message tiles start, in dp from the top of the widget. */
@@ -344,7 +428,7 @@ object Prefs {
 
     /** Back to the rows layout (the places are forgotten). */
     fun resetFree(c: Context) {
-        sp(c).edit().remove("free_on").remove("free_pos").remove("free_grid_top").apply()
+        sp(c).edit().remove("free_on").remove("free_pos").remove("free_ref_w").remove("free_grid_top").apply()
     }
 
     // ---- "Where to?" ----

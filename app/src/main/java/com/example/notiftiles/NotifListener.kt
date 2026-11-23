@@ -27,6 +27,10 @@ class NotifListener : NotificationListenerService() {
 
     override fun onListenerDisconnected() {
         instance = null
+        try {
+            if (Access.enabled(this)) NotificationListenerService.requestRebind(ComponentName(this, NotifListener::class.java))
+        } catch (e: Exception) {
+        }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {

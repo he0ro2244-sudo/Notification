@@ -178,7 +178,24 @@ class TilesWidget : AppWidgetProvider() {
         private val Q_NAME = intArrayOf(R.id.qn0, R.id.qn1, R.id.qn2, R.id.qn3, R.id.qn4)
         private val Q_BOX = intArrayOf(R.id.quick0, R.id.quick1, R.id.quick2, R.id.quick3, R.id.quick4)
 
-        private fun appIconBitmap(ctx: Context, pkg: String): android.graphics.Bitmap? = try {
+        // App icons are drawn once and kept for ten minutes: the widget is redrawn on every notification
+        private val iconCache = HashMap<String, Pair<Long, android.graphics.Bitmap>>()
+
+        private fun appIconBitmap(ctx: Context, pkg: String): android.graphics.Bitmap? {
+            val now = System.currentTimeMillis()
+            synchronized(iconCache) {
+                val e = iconCache[pkg]
+                if (e != null && now - e.first < 10 * 60 * 1000L) return e.second
+            }
+            val b = drawIcon(ctx, pkg)
+            if (b != null) synchronized(iconCache) {
+                if (iconCache.size > 24) iconCache.clear()
+                iconCache[pkg] = Pair(now, b)
+            }
+            return b
+        }
+
+        private fun drawIcon(ctx: Context, pkg: String): android.graphics.Bitmap? = try {
             val d = ctx.packageManager.getApplicationIcon(pkg)
             val b = android.graphics.Bitmap.createBitmap(96, 96, android.graphics.Bitmap.Config.ARGB_8888)
             d.setBounds(0, 0, 96, 96)
@@ -286,7 +303,7 @@ class TilesWidget : AppWidgetProvider() {
                 // The title and the count used to be part of the Inbox row, which opened the panel
                 clickAll(rv, intArrayOf(R.id.hdr_title, R.id.count),
                     PendingIntent.getActivity(ctx, 0, open, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
-                applyFree(rv, ctx)
+                applyFree(rv, ctx, id)
             }
             setDynamic(rv, ctx)
             return rv
@@ -298,16 +315,21 @@ class TilesWidget : AppWidgetProvider() {
         }
 
         /** Free layout: puts each item at its own place (dp from the top-left corner) and the message tiles under the chosen line. */
-        private fun applyFree(rv: RemoteViews, ctx: Context) {
+        private fun applyFree(rv: RemoteViews, ctx: Context, widgetId: Int) {
             val pos = Prefs.freePos(ctx)
+            // The places were made for one widget width: when the widget is resized they are stretched to fit
+            val curW = try {
+                AppWidgetManager.getInstance(ctx).getAppWidgetOptions(widgetId).getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0).toFloat()
+            } catch (e: Exception) { 0f }
+            val scale = Prefs.freeScaleFor(ctx, curW)
             for ((n, key) in Prefs.FREE_KEYS.withIndex()) {
                 val id = FREE_VIEW.getValue(key)
                 val p = pos[key]
-                val x = p?.x ?: (8f + (n % 8) * 34f)
+                val x = if (p != null) p.x * scale else (8f + (n % 8) * 34f)
                 val y = p?.y ?: (Prefs.freeGridTop(ctx) - 40f).coerceAtLeast(0f)
                 rv.setViewLayoutMargin(id, RemoteViews.MARGIN_START, x, TypedValue.COMPLEX_UNIT_DIP)
                 rv.setViewLayoutMargin(id, RemoteViews.MARGIN_TOP, y, TypedValue.COMPLEX_UNIT_DIP)
-                if (key == "maps" && p != null && p.w > 0f) rv.setViewLayoutWidth(id, p.w, TypedValue.COMPLEX_UNIT_DIP)
+                if (key == "maps" && p != null && p.w > 0f) rv.setViewLayoutWidth(id, p.w * scale, TypedValue.COMPLEX_UNIT_DIP)
             }
             // The content area has an 8dp padding of its own
             rv.setViewLayoutMargin(R.id.gridwrap, RemoteViews.MARGIN_TOP, (Prefs.freeGridTop(ctx) - 8f).coerceAtLeast(0f), TypedValue.COMPLEX_UNIT_DIP)
@@ -336,17 +358,8 @@ class TilesWidget : AppWidgetProvider() {
 
         // Show the real Google Maps icon from this phone; the built-in red pin stays if Maps isn't installed.
         private fun mapsIcon(rv: RemoteViews, ctx: Context) {
-            try {
-                val d = ctx.packageManager.getApplicationIcon("com.google.android.apps.maps")
-                val size = 96
-                val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
-                val canvas = android.graphics.Canvas(bmp)
-                d.setBounds(0, 0, size, size)
-                d.draw(canvas)
-                for (pin in W_PIN) rv.setImageViewBitmap(pin, bmp)
-            } catch (e: Exception) {
-                // keep the default pin
-            }
+            val bmp = appIconBitmap(ctx, "com.google.android.apps.maps") ?: return // keep the default pin
+            for (pin in W_PIN) rv.setImageViewBitmap(pin, bmp)
         }
 
         private fun txt(rv: RemoteViews, ctx: Context, id: Int, text: String, baseSp: Float, bold: Boolean) =
