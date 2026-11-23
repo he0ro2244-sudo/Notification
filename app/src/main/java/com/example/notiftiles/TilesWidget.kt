@@ -562,7 +562,10 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setInt(mid, "setBackgroundResource", shapeRes)
                 val minH = Math.round(topSize * isc(ctx, "w_merge") * hst(ctx, "w_merge") * ctx.resources.displayMetrics.density)
                 val perPart = if (Prefs.mergeHoriz(ctx)) minH else minH / mergedItems(ctx).size.coerceAtLeast(1)
+                val gapPx = Math.round(Prefs.mergeGap(ctx) * ctx.resources.displayMetrics.density)
                 for (pid in MC_ID.values) {
+                    // Space around each part: bigger and easier to tap (up and down when stacked, left and right when side by side)
+                    if (Prefs.mergeHoriz(ctx)) rv.setViewPadding(pid, gapPx, 0, gapPx, 0) else rv.setViewPadding(pid, 0, gapPx, 0, gapPx)
                     rv.setInt(pid, "setMinHeight", perPart)
                     rv.setTextViewTextSize(pid, TypedValue.COMPLEX_UNIT_SP, (if (pid == R.id.wmc_date) 12f else 13f) * Look.scale(ctx) * isc(ctx, "w_merge"))
                 }

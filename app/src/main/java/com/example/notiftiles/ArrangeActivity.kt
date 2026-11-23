@@ -212,6 +212,23 @@ class ArrangeActivity : Activity() {
         horiz.isChecked = Prefs.mergeHoriz(this)
         horiz.setOnCheckedChangeListener { _, v -> Prefs.setMergeHoriz(this, v); redraw() }
         col.addView(horiz)
+        val gapLabel = TextView(this)
+        gapLabel.textSize = 12f
+        gapLabel.alpha = 0.7f
+        gapLabel.text = "Space between the parts: ${Prefs.mergeGap(this)} dp (bigger = easier to tap each one)"
+        col.addView(gapLabel)
+        val gapBar = SeekBar(this)
+        gapBar.max = 30
+        gapBar.progress = Prefs.mergeGap(this)
+        gapBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
+                gapLabel.text = "Space between the parts: $p dp (bigger = easier to tap each one)"
+                if (fromUser) Prefs.setMergeGap(this@ArrangeActivity, p)
+            }
+            override fun onStartTrackingTouch(s: SeekBar) {}
+            override fun onStopTrackingTouch(s: SeekBar) { redraw() }
+        })
+        col.addView(gapBar)
 
         // ---- 3. Order of the message tiles (apps)
         col.addView(title("Order of the message tiles (apps)", 16f, 20))

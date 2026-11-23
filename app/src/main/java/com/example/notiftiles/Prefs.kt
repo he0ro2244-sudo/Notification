@@ -304,6 +304,10 @@ object Prefs {
     fun mergeHoriz(c: Context): Boolean = sp(c).getBoolean("lay_merge_h", false)
     fun setMergeHoriz(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_merge_h", v).apply()
 
+    /** Extra space around each part of the merged shape, in dp (a bigger area to tap for each app). 0 = as before. */
+    fun mergeGap(c: Context): Int = sp(c).getInt("lay_merge_gap", 0).coerceIn(0, 30)
+    fun setMergeGap(c: Context, v: Int) = sp(c).edit().putInt("lay_merge_gap", v).apply()
+
     fun pillFirst(c: Context): Boolean = sp(c).getBoolean("lay_pill_first", false)
     fun setPillFirst(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_pill_first", v).apply()
 
@@ -362,7 +366,7 @@ object Prefs {
     fun setBlockScale(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_scale_$key", v.coerceIn(50, 200)).apply()
     fun resetArrange(c: Context) {
         val e = sp(c).edit()
-        for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_merge_h", "lay_where_w", "lay_editbtn", "lay_row_top", "lay_row_head")) e.remove(k)
+        for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_merge_h", "lay_merge_gap", "lay_where_w", "lay_editbtn", "lay_row_top", "lay_row_head")) e.remove(k)
         for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_") || k.startsWith("lay_wscale_") || k.startsWith("lay_hscale_")) e.remove(k)
         for (k in BLOCKS) e.remove("lay_scale_$k")
         e.remove("free_on").remove("free_pos").remove("free_ref_w").remove("free_grid_top")

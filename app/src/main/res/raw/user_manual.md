@@ -39,6 +39,7 @@ Press and hold any item and drag it anywhere. It stays exactly where you drop it
 - The **Merged shape** has its own Colour button too.
 - **Where to? box width**: far left means it fills the row, otherwise a fixed width.
 - **Merge into one shape**: pick two or more of clock, weather and date to show them together, one under the other or side by side ("Side by side" switch).
+- **Space between the parts**: a slider (0-30 dp) under Merge into one shape. More space makes each part bigger, so it is easier to tap the clock, weather or date on its own.
 
 ### Saved layouts
 Save the widget's look and places under a name (for example "Work"), load it later, or delete it. Loading replaces the current look and places.
