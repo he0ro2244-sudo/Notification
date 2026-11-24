@@ -136,16 +136,25 @@ class SettingsActivity : Activity() {
         b.show()
     }
 
-    private fun category(t: String) {
+    private fun category(t: String, sub: String = "") {
         val h = TextView(this)
         h.text = t
-        h.textSize = 12f
+        h.textSize = 14f
         h.setTypeface(null, Typeface.BOLD)
         h.letterSpacing = 0.12f
-        h.alpha = 0.6f
-        h.setPadding(dp(4), dp(22), dp(4), dp(0))
+        h.alpha = 0.85f
+        h.setPadding(dp(4), dp(30), dp(4), dp(0))
         col.addView(h)
         catViews.add(h)
+        if (sub.isNotEmpty()) {
+            val d = TextView(this)
+            d.text = sub
+            d.textSize = 12f
+            d.alpha = 0.55f
+            d.setPadding(dp(4), dp(0), dp(4), dp(0))
+            col.addView(d)
+            catViews.add(d)
+        }
     }
 
     // ---- Search: while something is typed, every group is built and only the matching rows stay visible.
@@ -232,12 +241,23 @@ class SettingsActivity : Activity() {
         noResults?.visibility = if (any) View.GONE else View.VISIBLE
     }
 
-    private fun section(name: String, body: () -> Unit) {
+    private val allSections = LinkedHashSet<String>()
+
+    private fun section(name: String, sub: String = "", body: () -> Unit) {
+        allSections.add(name)
         val open = query.isNotBlank() || name in openSections
         val h = TextView(this)
-        h.text = (if (open) "▾  " else "▸  ") + name
+        val head = (if (open) "▾  " else "▸  ") + name
+        val sb = android.text.SpannableStringBuilder(head)
+        if (sub.isNotEmpty()) {
+            sb.append("\n").append(sub)
+            val st = head.length + 1
+            sb.setSpan(android.text.style.RelativeSizeSpan(0.7f), st, sb.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            sb.setSpan(android.text.style.ForegroundColorSpan(0x99808080.toInt()), st, sb.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        }
+        sb.setSpan(android.text.style.StyleSpan(Typeface.BOLD), 0, head.length, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+        h.text = sb
         h.textSize = 17f
-        h.setTypeface(null, Typeface.BOLD)
         h.setPadding(dp(14), dp(14), dp(14), dp(14))
         h.background = rounded(0x1F808080, 12)
         h.setOnClickListener {
@@ -263,7 +283,7 @@ class SettingsActivity : Activity() {
         } catch (e: Exception) {
         }
 
-        grps.clear(); topViews.clear(); catViews.clear()
+        grps.clear(); topViews.clear(); catViews.clear(); allSections.clear()
         col.addView(searchBox, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
         noResults = TextView(this).apply {
             text = "No settings match that."
@@ -272,7 +292,20 @@ class SettingsActivity : Activity() {
         }
         col.addView(noResults)
         val topStart = col.childCount
-        col.addView(hint("Tap a group to open or close it. Groups: Look, Widget and panel, Messages, Tools, System."))
+        col.addView(hint("Tap a section to open or close it. Sections are grouped under LOOK, WIDGET AND PANEL, MESSAGES, TOOLS, SYSTEM and HELP. Use the search box to jump straight to any setting."))
+        val openRow = LinearLayout(this)
+        openRow.orientation = LinearLayout.HORIZONTAL
+        val openAll = Button(this)
+        openAll.isAllCaps = false
+        openAll.text = "Open all sections"
+        openAll.setOnClickListener { openSections.addAll(allSections); rebuild() }
+        val closeAll = Button(this)
+        closeAll.isAllCaps = false
+        closeAll.text = "Close all sections"
+        closeAll.setOnClickListener { openSections.clear(); rebuild() }
+        openRow.addView(openAll, LinearLayout.LayoutParams(0, WRAP, 1f))
+        openRow.addView(closeAll, LinearLayout.LayoutParams(0, WRAP, 1f))
+        col.addView(openRow)
         val chkAll = Button(this)
         chkAll.isAllCaps = false
         chkAll.text = "Check everything"
@@ -298,8 +331,8 @@ class SettingsActivity : Activity() {
 
         for (i in topStart until col.childCount) topViews.add(col.getChildAt(i))
 
-        category("LOOK")
-        section("Themes & accent colour") {
+        category("🎨  LOOK", "Colours, fonts, text sizes, shapes and borders")
+        section("Themes & accent colour", "Ready-made looks, accent colour, auto day / night") {
         // ---- Themes
         col.addView(title("Themes", 16f, 12))
         col.addView(themeRow())
@@ -337,7 +370,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Backgrounds & pictures") {
+        section("Backgrounds & pictures", "Panel and widget backgrounds, photos, fast-dial strip") {
         // ---- Control panel background
         col.addView(title("Control panel background", 16f, 16))
         col.addView(panelPreview())
@@ -368,13 +401,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Text, fonts & colours") {
-        // ---- Message time stamp
-        col.addView(title("Message time stamp", 16f, 20))
-        col.addView(hint("The [time] in front of each message line. Smart: today shows only the time, yesterday shows Yesterday, older shows the date. It uses the same font, size and colour as the message text below."))
-        col.addView(choiceRow(listOf("0" to "Smart", "1" to "Date + time", "2" to "Time only", "3" to "None"), Prefs.stampStyle(this).toString(), false) {
-            Prefs.setStampStyle(this, it.toInt()); applyLook(); rebuild()
-        })
+        section("Fonts & overall text size", "Font, weight, italic, letter case, one size for all text") {
         // ---- Fonts
         col.addView(title("Font", 16f, 20))
         col.addView(hint("Applies to the widget, the panel and the Where to? box."))
@@ -398,27 +425,24 @@ class SettingsActivity : Activity() {
         Look.applyTree(sample, this)
         fontPreview = sample
         col.addView(sample)
+        }
 
+        section("Text size per part", "Its own size for every text of the panel and the widget") {
         col.addView(title("Text size per part of the panel", 14f, 12))
-        col.addView(hint("On top of the overall text size above. 100% = as designed."))
+        col.addView(hint("On top of the overall text size (Fonts & overall text size). 100% = as designed."))
         for ((g, label) in Prefs.PANEL_GROUPS) {
             col.addView(seekRange(label, Prefs.grpSize(this, g), 60, 220, "%") { Prefs.setGrpSize(this, g, it) })
         }
 
+
         col.addView(title("Text size per part of the widget", 14f, 12))
-        col.addView(hint("Every text on the home-screen widget has its own size, on top of the overall text size above. 100% = as designed. The Updated line has its own slider under Widget wording."))
+        col.addView(hint("Every text on the home-screen widget has its own size, on top of the overall text size (Fonts & overall text size). 100% = as designed. The Updated line has its own slider under Widget wording."))
         for ((k, label) in Prefs.WIDGET_SIZE_PARTS) {
             col.addView(seekRange(label, Prefs.partSize(this, k), 50, 300, "%") { Prefs.setPartSize(this, k, it); applyLook() })
         }
+        }
 
-        // ---- Wording of the widget
-        col.addView(title("Widget wording", 16f, 20))
-        col.addView(hint("Change the text shown when there are no messages, and the word before the weather update time. Empty + Save = original wording. Colours: see Text colour per part below."))
-        col.addView(toggleRaw("Show the \"Nothing new\" message in the widget", Prefs.showEmptyText(this)) { Prefs.setShowEmptyText(this, it); applyLook() })
-        col.addView(textPref("Empty message text", Prefs.emptyText(this)) { Prefs.setEmptyText(this, it) })
-        col.addView(textPref("Update word (before the time)", Prefs.updatedLabel(this)) { Prefs.setUpdatedLabel(this, it) })
-        col.addView(seekRange("Size of the Updated line", Prefs.updSize(this), 50, 250, "%") { Prefs.setUpdSize(this, it); applyLook() })
-
+        section("Text colours", "One colour for all text, or a colour for each part") {
         // ---- Colours of text and shapes
         col.addView(title("Text colour (widget)", 16f, 20))
         col.addView(swatchRow(textColors, Prefs.textColor(this)) { Prefs.setTextColor(this, it); applyLook(); rebuild() })
@@ -432,7 +456,25 @@ class SettingsActivity : Activity() {
         }
         }
 
-        section("Buttons: + Note, Clear all, Settings") {
+        section("Wording & time stamp", "Empty message, Updated word, message time style") {
+        // ---- Wording of the widget
+        col.addView(title("Widget wording", 16f, 20))
+        col.addView(hint("Change the text shown when there are no messages, and the word before the weather update time. Empty + Save = original wording. Colours: see Text colour per part below."))
+        col.addView(toggleRaw("Show the \"Nothing new\" message in the widget", Prefs.showEmptyText(this)) { Prefs.setShowEmptyText(this, it); applyLook() })
+        col.addView(textPref("Empty message text", Prefs.emptyText(this)) { Prefs.setEmptyText(this, it) })
+        col.addView(textPref("Update word (before the time)", Prefs.updatedLabel(this)) { Prefs.setUpdatedLabel(this, it) })
+        col.addView(seekRange("Size of the Updated line", Prefs.updSize(this), 50, 250, "%") { Prefs.setUpdSize(this, it); applyLook() })
+
+
+        // ---- Message time stamp
+        col.addView(title("Message time stamp", 16f, 20))
+        col.addView(hint("The [time] in front of each message line. Smart: today shows only the time, yesterday shows Yesterday, older shows the date. It uses the same font, size and colour as the message text below."))
+        col.addView(choiceRow(listOf("0" to "Smart", "1" to "Date + time", "2" to "Time only", "3" to "None"), Prefs.stampStyle(this).toString(), false) {
+            Prefs.setStampStyle(this, it.toInt()); applyLook(); rebuild()
+        })
+        }
+
+        section("Buttons: + Note, Clear all, Settings", "Colour of the three buttons") {
             col.addView(hint("One colour per button, used on the home-screen widget and in the panel together. Auto = follows the theme and the icon colour. Tap a row to pick."))
             for ((k, label) in listOf("note" to "+ Note", "clear" to "Clear all / Read all", "gear" to "Settings icon")) {
                 val cur = Prefs.partColor(this, k).let { if (it != 0) it else Prefs.grpColor(this, if (k == "note") "hdr" else k) }
@@ -442,10 +484,10 @@ class SettingsActivity : Activity() {
                     applyLook(); rebuild()
                 })
             }
-            col.addView(hint("Text size of these buttons in the panel: Text, fonts & colours > Text size per part of the panel."))
+            col.addView(hint("Text size of these buttons in the panel: Text size per part > Text size per part of the panel."))
         }
 
-        section("Shapes & borders") {
+        section("Shapes & borders", "Circle shape and size, icons, borders") {
         // ---- Sizes and shape
         col.addView(title("Sizes & shape", 16f, 20))
         col.addView(choiceRow(Look.SHAPES, Prefs.shape(this).toString(), false) {
@@ -486,10 +528,9 @@ class SettingsActivity : Activity() {
 
         }
 
-        category("WIDGET AND PANEL")
-        section("Widget: clock, weather & layout") {
+        category("🧩  WIDGET AND PANEL", "What is on the widget, where it sits, fast dial and shortcuts")
+        section("Arrange the widget", "Drag items, order of the circles, hide or show them") {
         // ---- Arrange the widget
-        col.addView(title("Arrange the widget", 16f, 20))
         val dragBtn = Button(this)
         dragBtn.text = "Arrange & resize by dragging…"
         dragBtn.setOnClickListener { startActivity(Intent(this, ArrangeActivity::class.java)) }
@@ -514,8 +555,9 @@ class SettingsActivity : Activity() {
         col.addView(toggleRaw("Maps search box at the start (left)", Prefs.pillPos(this) == 0) { Prefs.setPillPos(this, if (it) 0 else 3); applyLook(); rebuild() })
         col.addView(toggle("Fast-dial circles", "dial"))
 
-        // ---- Clock, date, weather
-        col.addView(title("Clock, date & weather", 16f, 20))
+        }
+
+        section("Clock & date", "12 / 24 hour and the date style") {
         col.addView(hint("Clock"))
         col.addView(choiceRow(listOf("0" to "Phone setting", "1" to "12-hour", "2" to "24-hour"), Prefs.clockFmt(this).toString(), false) {
             Prefs.setClockFmt(this, it.toInt()); applyLook(); rebuild()
@@ -524,6 +566,9 @@ class SettingsActivity : Activity() {
         col.addView(choiceRow(Prefs.DATE_FORMATS.mapIndexed { i, p -> i.toString() to p.second }, Prefs.dateFmt(this).toString(), false) {
             Prefs.setDateFmt(this, it.toInt()); applyLook(); rebuild()
         })
+        }
+
+        section("Weather", "City, source, temperature and the Updated line") {
         col.addView(hint("Weather city: ${Weather.city(this)}"))
         col.addView(cityRow())
         col.addView(choiceRow(listOf("c" to "°C", "f" to "°F"), Weather.unit(this), false) {
@@ -579,6 +624,7 @@ class SettingsActivity : Activity() {
         }
         col.addView(cmp)
         col.addView(seekRange("Temperature adjust", Weather.offset(this), -6, 6, "°") { Weather.setOffset(this, it); applyLook() })
+        col.addView(title("Updated line (under the refresh icon)", 14f, 12))
         col.addView(toggleRaw("Show \"Updated\" time in the widget", Weather.showUpdated(this)) { Weather.setShowUpdated(this, it); TilesWidget.rebuildAll(applicationContext); applyLook(); rebuild() })
         col.addView(toggleRaw("Updated line: show the time (Updated 12:50 AM)", Weather.showUpdTime(this)) { Weather.setShowUpdTime(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
         col.addView(toggleRaw("Updated line: show the source (Open-Meteo / Phone weather app)", Weather.showUpdSource(this)) { Weather.setShowUpdSource(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
@@ -586,7 +632,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Show / hide parts") {
+        section("Show / hide parts", "Switch any part of the widget on or off") {
         col.addView(hint("Switch off anything you do not want to see. Nothing is deleted: switch it on again any time. You can always open Look & colors from the Notif Tiles app itself."))
         col.addView(title("Widget top row and boxes", 16f, 12))
         col.addView(toggle("Clock circle", "clock"))
@@ -608,7 +654,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Fast dial") {
+        section("Fast dial", "Contacts, calling and the + circles") {
         // ---- Fast dial contacts
         col.addView(title("Fast-dial contacts", 16f, 20))
         col.addView(toggleRaw("Ask before calling (Call / Change / Remove)", Prefs.dialAsk(this)) { Prefs.setDialAsk(this, it) })
@@ -651,7 +697,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Shortcuts row (under fast dial)") {
+        section("Shortcuts row (under fast dial)", "Apps and screens opened from circles under the fast dial") {
         col.addView(hint("A second row of circles under the fast dial. Each circle can open an app, one screen (activity) inside an app, or a shortcut an app offers (like a direct WhatsApp chat). Tap the Add circle on the widget, or use Pick here. Circle size, colour, shape and names follow the fast-dial settings."))
         col.addView(toggleRaw("Show the shortcuts row", Prefs.quickOn(this)) { Prefs.setQuickOn(this, it); applyLook() })
         col.addView(toggleRaw("Show the + (Add) circle in the shortcuts row", Prefs.quickAdd(this)) { Prefs.setQuickAdd(this, it); applyLook() })
@@ -686,8 +732,8 @@ class SettingsActivity : Activity() {
         }
         }
 
-        category("MESSAGES")
-        section("Pages, shortcuts & grouping") {
+        category("💬  MESSAGES", "How notifications are grouped, paged, counted and silenced")
+        section("Pages, shortcuts & grouping", "Scrolling or pages, grouping and order of the tiles") {
         col.addView(title("Scrolling", 16f, 12))
         col.addView(hint("Scroll = the list moves up and down (as before). My pages = pages you add yourself, each with its own apps and shortcuts, even when there are no messages. Pages = a few tiles at a time: ‹ › buttons under the widget; in the panel you can also swipe left or right. (A home-screen widget cannot be swiped sideways, that is an Android limit.)"))
         col.addView(choiceRow(listOf("0" to "Scroll up / down", "1" to "Pages", "2" to "My pages"), Prefs.scrollMode(this).toString(), false) {
@@ -735,7 +781,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Apps: pin, mute, colour") {
+        section("Apps: pin, mute, colour", "Pin, mute and colour each app") {
         col.addView(hint("Pinned apps are listed first. Muted apps are hidden from the widget, the panel and the counts. A colour changes that app's tiles."))
         val pkgs = Prefs.enabled(this).sortedBy { Feed.label(this, it).lowercase() }
         if (pkgs.isEmpty()) col.addView(hint("No apps chosen yet. Choose them on the main screen first."))
@@ -763,7 +809,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Counts & clearing") {
+        section("Counts & clearing", "When the count drops and what Clear all does") {
         // ---- Counts
         col.addView(title("Counts", 16f, 20))
         col.addView(toggleRaw("Count drops after I open the app, mark read or tap the photo", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
@@ -778,7 +824,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Quiet hours & snooze") {
+        section("Quiet hours & snooze", "Silence the widget for a while or at night") {
         col.addView(title("Snooze", 16f, 20))
         col.addView(hint(Extras.quietText(this)?.let { "$it. The widget stays empty until then; the panel still lists your messages." }
             ?: "While snoozed the widget and its count stay empty. Your messages stay in the panel and in the phone's notification shade."))
@@ -801,8 +847,8 @@ class SettingsActivity : Activity() {
 
         }
 
-        category("TOOLS")
-        section("Notes") {
+        category("🛠  TOOLS", "Notes, voice recorder and Where to?")
+        section("Notes", "The + Note button and your notes app") {
         // ---- Notes app
         col.addView(title("Notes", 16f, 20))
         col.addView(hint("Where \"+ Note\" saves what you type."))
@@ -826,7 +872,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Voice recorder") {
+        section("Voice recorder", "The mic button and the helper") {
         // ---- Voice recorder (mic next to + Note)
         col.addView(title("Voice recorder", 16f, 20))
         col.addView(hint("The blue mic at the start of the widget header starts recording. With the Accessibility helper ON it uses your phone's recorder; with the helper OFF it records inside this app (switch below). While recording, the widget mic turns into a red stop square and the phone buzzes: tap it again to stop and save. Recordings are saved as m4a in Internal storage > Recordings > NotifTiles."))
@@ -893,7 +939,7 @@ class SettingsActivity : Activity() {
 
         }
 
-        section("Where to? (maps & location)") {
+        section("Where to? (maps & location)", "Maps search, navigation and Location switching") {
         // ---- "Where to?" search
         col.addView(title("\"Where to?\" search", 16f, 20))
         col.addView(hint("Travel mode used when you search"))
@@ -955,8 +1001,8 @@ class SettingsActivity : Activity() {
 
         }
 
-        category("SYSTEM")
-        section("Backup & restore") {
+        category("💾  SYSTEM", "Backup, restore and reset")
+        section("Backup & restore", "Save or load all your settings") {
             col.addView(hint("Saves all your Look & colors choices, fast-dial contacts, notes and background pictures into one file, so a reinstall does not lose them."))
             val ex = Button(this)
             ex.text = "Export settings to a file"
@@ -997,8 +1043,8 @@ class SettingsActivity : Activity() {
         lp.topMargin = dp(24)
         col.addView(reset, lp)
 
-        category("HELP")
-        section("User manual (read me)") { Manual.addTo(this, col) }
+        category("📖  HELP", "The full user manual")
+        section("User manual (read me)", "How to use everything in Notif Tiles") { Manual.addTo(this, col) }
 
         updatePreviews()
     }
