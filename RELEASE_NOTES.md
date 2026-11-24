@@ -1,5 +1,8 @@
 # Release notes
 
+## 1.1.8
+- **Swipe-through tiles are now display-only.** In 1.1.5-1.1.7 the fixed tiles could still be tapped, and a view that takes taps also takes the touch, so a swipe starting on a tile still did nothing in Nova. They now take no taps, so swiping down over them reaches the launcher. Open the panel with your launcher gesture or by tapping the Inbox title or count. Off: the list scrolls and tiles open as before.
+
 ## 1.1.7
 - **Same size for a whole row** (Arrange & resize > Every item): each group (Top row, Fast-dial circles, Shortcuts row circles, Inbox row) has a tick box "Same size for every item in this row". Ticking it sets the whole row to the size of its first item, and from then on moving the Size, Shape width or Shape height slider of any item in that row moves all the others too, so sizes can't get mismatched. Untick it to size items one by one again. Reset clears the ticks.
 

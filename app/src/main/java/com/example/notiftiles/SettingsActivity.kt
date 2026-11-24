@@ -775,7 +775,7 @@ class SettingsActivity : Activity() {
         col.addView(toggleRaw("Swipe-through: swiping down over the tiles reaches your launcher", Prefs.swipeThrough(this)) {
             Prefs.setSwipeThrough(this, it); TilesWidget.rebuildAll(applicationContext); applyLook()
         })
-        col.addView(hint("On: the widget's tiles are fixed instead of a scrolling list, so a swipe that starts on them is not taken by the widget and your launcher (for example Nova's swipe down) still gets it. The widget then shows the first 8 tiles (or your \"Most tiles on the widget\" number, up to 12); use Pages to reach the rest, or open the panel. Tapping a tile works as before. Off: the list scrolls as before."))
+        col.addView(hint("On: the widget's tiles are fixed instead of a scrolling list, so a swipe that starts on them is not taken by the widget and your launcher (for example Nova's swipe down) still gets it. The widget then shows the first 8 tiles (or your \"Most tiles on the widget\" number, up to 12); use Pages to reach the rest, or open the panel. The tiles then only display: they take no taps (a view that takes taps also takes the swipe), so open the panel with your launcher gesture or by tapping the Inbox title or count. Off: the list scrolls and tiles open as before."))
 
         col.addView(title("Group messages", 16f, 20))
         col.addView(hint("One tile per chat (as before), or one tile per app that shows all its chats together. Tapping a grouped tile opens its newest chat."))

@@ -469,7 +469,7 @@ class TilesWidget : AppWidgetProvider() {
             }
         }
 
-        /** Swipe-through mode: the tiles as fixed views, two per row; tapping one opens it in the panel like before. */
+        /** Swipe-through mode: the tiles as fixed, display-only views, two per row. They take no taps, so a swipe that starts on one reaches the launcher. */
         private fun fixedTiles(rv: RemoteViews, ctx: Context) {
             rv.removeAllViews(R.id.tilelist)
             val most = Prefs.maxTiles(ctx).let { if (it > 0) it else 8 }.coerceAtMost(12)
@@ -479,14 +479,6 @@ class TilesWidget : AppWidgetProvider() {
                 emptyList()
             }
             rv.setViewVisibility(R.id.empty, if (list.isEmpty()) View.VISIBLE else View.GONE)
-            for ((i, p) in list.withIndex()) {
-                val intent = Intent(ctx, PanelActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                intent.putExtras(p.second)
-                p.first.setOnClickPendingIntent(
-                    R.id.tile_root,
-                    PendingIntent.getActivity(ctx, 300 + i, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-                )
-            }
             for (pair in list.chunked(2)) {
                 val row = RemoteViews(ctx.packageName, R.layout.widget_row)
                 row.addView(R.id.row_a, pair[0].first)
