@@ -51,9 +51,20 @@ class PanelActivity : Activity() {
     }
 
     private fun tileBg(bg: Int, fg: Int, r: Int): GradientDrawable {
-        val d = rounded(bg, r)
+        // Message tile extras: own corner roundness, own fill colour / solidity, solid / dashed / dotted border
+        val fill = Prefs.tileFill(this).let { if (it != 0) it else bg }
+        val fa = Prefs.tileFillAlpha(this)
+        val fillC = if (fa < 100) Feed.alpha(fill, (0xFF * fa / 100).coerceIn(0, 0xFF)) else fill
+        val rad = Prefs.tileRadius(this).let { if (it >= 0) it else r }
+        val d = rounded(fillC, rad)
         if (Prefs.borderTiles(this) && Prefs.borderWidthOf(this, "tiles") > 0) {
-            d.setStroke(dp(Prefs.borderWidthOf(this, "tiles")).coerceAtLeast(1), Look.borderColorOf(this, "tiles", Feed.alpha(fg, 0x99)))
+            val w = dp(Prefs.borderWidthOf(this, "tiles")).coerceAtLeast(1)
+            val col = Look.borderColorOf(this, "tiles", Feed.alpha(fg, 0x99))
+            when (Prefs.tileBorderStyle(this)) {
+                1 -> d.setStroke(w, col, w * 4f, w * 3f)
+                2 -> d.setStroke(w, col, w.toFloat(), w * 2f)
+                else -> d.setStroke(w, col)
+            }
         }
         return d
     }
@@ -109,7 +120,7 @@ class PanelActivity : Activity() {
         header.addView(back)
 
         val title = TextView(this)
-        title.text = "Inbox"
+        title.text = Look.inboxLabel(this)
         title.textSize = 20f
         title.setTag(R.id.nt_grp, "head")
         title.setTypeface(null, Typeface.BOLD)
@@ -169,6 +180,12 @@ class PanelActivity : Activity() {
         gear.setImageResource(R.drawable.ic_gear)
         val gsz = dp((22 * Prefs.grpSize(this, "gear") / 100f).toInt().coerceAtLeast(10))
         gear.setColorFilter(Prefs.grpColor(this, "gear").let { if (it != 0) it else if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub })
+        Prefs.emojiOf(this, "gear").let { eg ->
+            if (eg.isNotEmpty()) Look.emojiBitmap(this, eg, gsz / resources.displayMetrics.density)?.let {
+                gear.setImageBitmap(it)
+                gear.clearColorFilter()
+            }
+        }
         gear.setPadding(dp(4), dp(2), dp(2), dp(2))
         gear.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))

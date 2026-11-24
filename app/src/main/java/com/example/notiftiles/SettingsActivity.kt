@@ -581,6 +581,21 @@ class SettingsActivity : Activity() {
             })
         }
 
+        // ---- Message tiles (panel): roundness, fill colour, solidity, border style
+        col.addView(title("Message tiles in the panel", 16f, 20))
+        col.addView(hint("Extra looks for the message cards. Left alone, every tile looks exactly as before."))
+        col.addView(seekRange("Corner roundness (0 = square, 16 = as designed)", Prefs.tileRadius(this).let { if (it >= 0) it else 16 }, 0, 30, " dp") { Prefs.setTileRadius(this, it) })
+        col.addView(seekRange("Fill solidity (100 = as designed)", Prefs.tileFillAlpha(this), 20, 100, " %") { Prefs.setTileFillAlpha(this, it) })
+        col.addView(hint("Tile colour (first one = each app's own colour)"))
+        col.addView(swatchRow(bgColors, Prefs.tileFill(this)) { Prefs.setTileFill(this, it); rebuild() })
+        col.addView(hint("Border style"))
+        col.addView(smallBtn("Message tiles back to as designed") {
+            Prefs.setTileRadius(this, -1); Prefs.setTileFill(this, 0); Prefs.setTileFillAlpha(this, 100); Prefs.setTileBorderStyle(this, 0); rebuild()
+        })
+        col.addView(smallBtn("Border style: " + listOf("Solid", "Dashed", "Dotted")[Prefs.tileBorderStyle(this).coerceIn(0, 2)] + "  (tap to change)") {
+            Prefs.setTileBorderStyle(this, (Prefs.tileBorderStyle(this) + 1) % 3); rebuild()
+        })
+
         }
 
         category("🧩  WIDGET AND PANEL", "What is on the widget, where it sits, fast dial and shortcuts")

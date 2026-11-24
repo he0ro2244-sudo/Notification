@@ -19,7 +19,9 @@ object EmojiPicker {
         Slot("mic", "Mic (voice recorder)", "mic icon", Look.EMOJI_MIC),
         Slot("reset", "Reset / refresh", "↻ icon", Look.EMOJI_RESET),
         Slot("clear", "Clear all", "none", Look.EMOJI_CLEAR),
-        Slot("edit", "Pencil", "✎", Look.EMOJI_EDIT)
+        Slot("edit", "Pencil", "✎", Look.EMOJI_EDIT),
+        Slot("gear", "Settings (gear)", "gear icon", Look.EMOJI_GEAR),
+        Slot("inbox", "Inbox title", "none", Look.EMOJI_INBOX)
     )
 
     /** One-line summary of what is chosen now, for Settings. */

@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.20
+Version 1.1.21
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -196,3 +196,10 @@ Does the same as Pencil > Reset: puts the widget back to the standard layout and
 - **Where to? or Exit navigation does nothing**: check the Accessibility helper is ON, then use the Self-check in Where to? settings.
 - **Recorder only opens the recorder app**: turn the helper ON, or use "Helper OFF: record inside this app".
 - **Everything is messy**: Pencil > Reset (you can undo it).
+
+
+## Emoji icons, Settings and Inbox (1.1.21)
+Settings > LOOK > *Choose emoji icons...* (or pencil > *Emoji icons*) lists seven places: Notes, Mic, Reset, Clear all, Pencil, Settings (gear) and the Inbox title. Tap a place, then tap an emoji or type / paste your own and press *Use my emoji*. *Normal icon* puts the standard icon back. The red stop icon still shows while recording.
+
+## Message tiles in the panel (1.1.21)
+Settings > LOOK > Shapes & borders > *Message tiles in the panel*: corner roundness, tile colour, fill solidity and border style (Solid, Dashed, Dotted). Border thickness and colour are under *Borders > Message tiles*. *Message tiles back to as designed* undoes all of these.

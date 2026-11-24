@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.1.21
+- **Emoji for Settings and Inbox.** *Choose emoji icons...* (Settings > LOOK, and the pencil menu > *Emoji icons*) now has two more places: **Settings (gear)** on the widget and in the panel, and the **Inbox title** (shows e.g. "📥 Inbox" on the widget and the panel). *Normal icon* goes back, as before.
+- **More emoji to choose from** in every place (Notes, Mic, Reset, Clear all, Pencil: 15 more each), plus full lists for the gear and Inbox. You can still type or paste any emoji of your own.
+- **Message tiles in the panel: new looks** (Settings > LOOK > Shapes & borders > *Message tiles in the panel*): corner roundness, your own tile colour (or each app's own colour), fill solidity, and border style Solid / Dashed / Dotted (thickness and colour stay in *Borders > Message tiles*). *Message tiles back to as designed* clears them. Undo / Redo / History cover these too.
+- Nothing existing was changed: with these left alone everything looks exactly as in 1.1.20. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.20
 - **Emoji icons for Notes, Mic, Reset, Clear all and the Pencil.** Settings > LOOK > Themes & accent colour > *Choose emoji icons...* and the pencil menu > *Emoji icons* let you put an emoji in place of the normal icon or word: Notes shows e.g. "📝 Note" instead of "+ Note", the mic and the refresh (reset) button become emoji pictures, Clear all gets an emoji in front, and the pencil itself can be changed. Pick from a list or type / paste any emoji of your own; *Normal icon* goes back. The red stop icon still shows while recording. The panel's + Note and Clear all follow too.
 - **More themes (14 new):** Lavender, Mint, Coffee, Neon, Candy, Slate, Crimson, Gold, Sky, Sand, Cyber, Aurora, Cherry and Graphite. Some (Candy, Gold, Cherry) also set their own emoji icons. The old themes keep their places, so a saved Auto day / night choice still points to the same theme.

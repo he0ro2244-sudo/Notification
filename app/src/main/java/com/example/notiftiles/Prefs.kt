@@ -1103,9 +1103,19 @@ object Prefs {
     /** 0 = as typed, 1 = UPPERCASE, 2 = lowercase, 3 = Each Word Capital (widget text only) */
     fun textCase(c: Context): Int = sp(c).getInt("look_case", 0).coerceIn(0, 3)
     fun setTextCase(c: Context, v: Int) = sp(c).edit().putInt("look_case", v).apply()
-    // Emoji in place of the built-in icons / words ("" = the normal one). Keys: note, mic, reset, clear, edit
+    // Emoji in place of the built-in icons / words ("" = the normal one). Keys: note, mic, reset, clear, edit, gear, inbox
     fun emojiOf(c: Context, k: String): String = sp(c).getString("look_emoji_$k", "") ?: ""
     fun setEmojiOf(c: Context, k: String, v: String) = sp(c).edit().putString("look_emoji_$k", v.trim().take(8)).apply()
+    // Message tiles in the panel: corner roundness (-1 = as designed), border style (0 solid, 1 dashed, 2 dotted),
+    // own fill colour (0 = each app's colour) and how solid the fill is (100 = as designed)
+    fun tileRadius(c: Context): Int = sp(c).getInt("look_tile_radius", -1)
+    fun setTileRadius(c: Context, v: Int) = sp(c).edit().putInt("look_tile_radius", v).apply()
+    fun tileBorderStyle(c: Context): Int = sp(c).getInt("look_tile_bstyle", 0)
+    fun setTileBorderStyle(c: Context, v: Int) = sp(c).edit().putInt("look_tile_bstyle", v).apply()
+    fun tileFill(c: Context): Int = sp(c).getInt("look_tile_fill", 0)
+    fun setTileFill(c: Context, v: Int) = sp(c).edit().putInt("look_tile_fill", v).apply()
+    fun tileFillAlpha(c: Context): Int = sp(c).getInt("look_tile_falpha", 100)
+    fun setTileFillAlpha(c: Context, v: Int) = sp(c).edit().putInt("look_tile_falpha", v).apply()
     fun icons3d(c: Context): Boolean = sp(c).getBoolean("look_3d", false)
     fun setIcons3d(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_3d", v).apply()
 

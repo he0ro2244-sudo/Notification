@@ -75,13 +75,19 @@ object Look {
     fun scale(ctx: Context): Float = Prefs.fontScale(ctx) / 100f
 
     // Emoji that can replace the built-in icons / words (see EmojiPicker)
-    val EMOJI_NOTE = listOf("📝", "🗒️", "📒", "📓", "📔", "📋", "📌", "📍", "✍️", "🖊️", "💡", "⭐", "❤️", "🔖", "➕")
-    val EMOJI_MIC = listOf("🎙️", "🎤", "🎧", "🔴", "⏺️", "📢", "🔊", "🗣️", "🎵", "📻", "🎚️", "📣", "🎶", "🎼", "🎬")
-    val EMOJI_RESET = listOf("🔄", "🔁", "♻️", "🧹", "✨", "🗑️", "💫", "⚡", "🌀", "🔃", "🧽", "🪄", "🌈", "🔥", "💥")
-    val EMOJI_CLEAR = listOf("🧹", "🗑️", "✅", "✔️", "🧼", "🪄", "✨", "❌", "🧽", "💨", "🚮", "📭", "🫧", "🗂️", "📥")
-    val EMOJI_EDIT = listOf("✏️", "🖍️", "🖊️", "🖌️", "🎨", "🛠️", "⚙️", "🔧", "✨", "🪄", "📐", "🧩", "🎛️", "🔮", "🧪")
+    val EMOJI_NOTE = listOf("📝", "🗒️", "📒", "📓", "📔", "📋", "📌", "📍", "✍️", "🖊️", "💡", "⭐", "❤️", "🔖", "➕", "🧾", "📜", "📃", "📄", "🗓️", "🏷️", "🌟", "💬", "📎", "🎯", "🔔", "🧠", "🖋️", "📑", "🗃️")
+    val EMOJI_MIC = listOf("🎙️", "🎤", "🎧", "🔴", "⏺️", "📢", "🔊", "🗣️", "🎵", "📻", "🎚️", "📣", "🎶", "🎼", "🎬", "🎹", "🥁", "🎸", "📼", "🔉", "🔈", "📡", "🎞️", "👂", "🛑", "▶️", "💭", "🫧", "🪩", "🔔")
+    val EMOJI_RESET = listOf("🔄", "🔁", "♻️", "🧹", "✨", "🗑️", "💫", "⚡", "🌀", "🔃", "🧽", "🪄", "🌈", "🔥", "💥", "🔂", "⏳", "🕐", "🌟", "💎", "🍀", "🌊", "🎈", "🎉", "🧿", "🔁", "⬆️", "🔝", "🆕", "🚀")
+    val EMOJI_CLEAR = listOf("🧹", "🗑️", "✅", "✔️", "🧼", "🪄", "✨", "❌", "🧽", "💨", "🚮", "📭", "🫧", "🗂️", "📥", "🔥", "💣", "🌪️", "🧻", "🚿", "🛁", "🪣", "🌬️", "🙈", "🚫", "⛔", "☑️", "🏁", "🎯", "🆑")
+    val EMOJI_EDIT = listOf("✏️", "🖍️", "🖊️", "🖌️", "🎨", "🛠️", "⚙️", "🔧", "✨", "🪄", "📐", "🧩", "🎛️", "🔮", "🧪", "🪛", "🔨", "🧰", "🪚", "📏", "🖋️", "🧵", "🎭", "🎪", "💎", "🌸", "🦄", "🐱", "🐼", "🍭")
+
+    val EMOJI_GEAR = listOf("⚙️", "🔧", "🛠️", "🎛️", "🎚️", "🧰", "🔩", "⛭", "🪛", "🧭", "🔑", "🗝️", "📐", "🧪", "🔬", "💡", "🧩", "☰", "⋮", "☸️", "🛡️", "🎡", "🌐", "🏠", "👤")
+    val EMOJI_INBOX = listOf("📥", "📬", "📨", "📩", "✉️", "💌", "📧", "📮", "🔔", "💬", "🗨️", "📱", "🗂️", "📫", "🕊️", "🦜", "📡", "🧲", "🪄", "⭐", "❤️", "🌈", "🌟", "🍀", "🔥")
 
     fun withEmoji(emoji: String, text: String): String = if (emoji.isEmpty()) text else "$emoji $text"
+
+    /** "Inbox", or "<emoji> Inbox" when an emoji is chosen. */
+    fun inboxLabel(ctx: Context): String = withEmoji(Prefs.emojiOf(ctx, "inbox"), "Inbox")
 
     /** "+ Note", or "<emoji> Note" when an emoji is chosen. */
     fun noteLabel(ctx: Context): String = Prefs.emojiOf(ctx, "note").let { if (it.isEmpty()) "+ Note" else "$it Note" }

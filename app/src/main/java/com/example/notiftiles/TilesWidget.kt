@@ -552,7 +552,7 @@ class TilesWidget : AppWidgetProvider() {
             val main = if (ov != 0) ov else if (lightText) 0xFFF2F2F5.toInt() else if (darkText) 0xFF1B1B1F.toInt() else ctx.getColor(R.color.nt_text)
             val sub = if (ov != 0) Feed.alpha(ov, 0xB3) else if (lightText) 0xFFB4B4BC.toInt() else if (darkText) 0xFF55555C.toInt() else ctx.getColor(R.color.nt_sub)
             val hsc = bs(ctx, "head")
-            txt(rv, ctx, R.id.hdr_title, "Inbox", 16f * hsc * isc(ctx, "w_title") * psc(ctx, "title"), true)
+            txt(rv, ctx, R.id.hdr_title, Look.inboxLabel(ctx), 16f * hsc * isc(ctx, "w_title") * psc(ctx, "title"), true)
             rv.setTextColor(R.id.hdr_title, Prefs.partColor(ctx, "title").let { if (it != 0) it else main })
             txt(rv, ctx, R.id.wnote, Look.noteLabel(ctx), 13f * hsc * isc(ctx, "w_note") * psc(ctx, "note"), true)
             txt(rv, ctx, R.id.wclear, Look.withEmoji(Prefs.emojiOf(ctx, "clear"), if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all"), 13f * hsc * isc(ctx, "w_clear") * psc(ctx, "clear"), false)
@@ -813,6 +813,13 @@ class TilesWidget : AppWidgetProvider() {
                 Look.emojiBitmap(ctx, em, Prefs.micSize(ctx).toFloat() * bs(ctx, "head") * isc(ctx, "w_mic"))?.let {
                     rv.setImageViewBitmap(R.id.wmic, it)
                     rv.setInt(R.id.wmic, "setColorFilter", 0)
+                }
+            }
+            val eg = Prefs.emojiOf(ctx, "gear")
+            if (eg.isNotEmpty()) {
+                Look.emojiBitmap(ctx, eg, Prefs.gearSize(ctx).toFloat() * bs(ctx, "head") * isc(ctx, "w_gear"))?.let {
+                    rv.setImageViewBitmap(R.id.wset, it)
+                    rv.setInt(R.id.wset, "setColorFilter", 0)
                 }
             }
             val er = Prefs.emojiOf(ctx, "reset")
