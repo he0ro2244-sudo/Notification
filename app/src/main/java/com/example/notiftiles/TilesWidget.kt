@@ -490,6 +490,7 @@ class TilesWidget : AppWidgetProvider() {
             // (if the top line is hidden in Arrange, the whole tile takes the tap, otherwise it could not be opened at all)
             val all = Prefs.swipeTapAll(ctx) || !(Prefs.showItem(ctx, "t_app") || Prefs.showItem(ctx, "t_cnt"))
             val dm = ctx.resources.displayMetrics.density
+            ActionLog.add(ctx, "swipe-through: drew " + list.size + " tiles, tap on " + (if (all) "the whole tile" else "the top line"))
             for ((i, p) in list.withIndex()) {
                 val go = Intent(ctx, PanelActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     .putExtras(p.second).setData(Uri.parse("nt://tile/$i"))

@@ -65,6 +65,7 @@ class PanelActivity : Activity() {
         cBg = Prefs.panelBgColor(this)
         cText = if (dark) 0xFFECECEF.toInt() else 0xFF1B1B1F.toInt()
         cSub = if (dark) 0xFFA8A8B0.toInt() else 0xFF5E5E66.toInt()
+        ActionLog.add(this, "panel opened by a tap: " + (intent?.getStringExtra("key") ?: intent?.getStringExtra("launch") ?: "no message"))
         intent?.getStringExtra("launch")?.let { launchApp(it); finish(); return }
         expanded = intent?.getStringExtra("key")
         if (expanded == "note:new" && openNotesDirect()) expanded = null
@@ -189,6 +190,7 @@ class PanelActivity : Activity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        ActionLog.add(this, "panel opened by a tap: " + (intent.getStringExtra("key") ?: intent.getStringExtra("launch") ?: "no message"))
         intent.getStringExtra("launch")?.let { launchApp(it); return }
         finishViewing()
         expanded = intent.getStringExtra("key")
