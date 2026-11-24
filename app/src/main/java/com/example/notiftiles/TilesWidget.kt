@@ -499,6 +499,7 @@ class TilesWidget : AppWidgetProvider() {
                     p.first.setOnClickPendingIntent(R.id.tile_root, pi)
                 } else {
                     p.first.setOnClickPendingIntent(R.id.tile_head, pi)
+                    if (Prefs.swipeTapName(ctx)) p.first.setOnClickPendingIntent(R.id.title, pi)
                     // a taller top line is an easier thing to hit
                     p.first.setViewPadding(R.id.tile_head, 0, (6 * dm).toInt(), 0, (8 * dm).toInt())
                 }

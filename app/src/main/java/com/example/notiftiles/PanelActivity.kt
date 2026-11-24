@@ -268,7 +268,7 @@ class PanelActivity : Activity() {
     override fun onResume() {
         super.onResume()
         Access.rebindIfNeeded(this)
-        NotifListener.onChange = { runOnUiThread { if (!hasDraft()) refresh() } }
+        NotifListener.onChange = { runOnUiThread { if (!hasDraft() && screenSig() != lastSig) refresh() } }
         refresh()
     }
 
@@ -321,9 +321,22 @@ class PanelActivity : Activity() {
         }
     }
 
+    // What the panel shows, in short: lets a notification update that changes nothing visible skip the redraw (no flicker)
+    private var lastSig = ""
+    private fun screenSig(): String = try {
+        val svc = NotifListener.instance
+        val items = if (svc == null) emptyList() else Feed.items(this, true)
+        expanded + "|" + Prefs.notes(this).size + "|" + items.joinToString(";") {
+            it.key + "," + it.postTime + "," + (it.notification.extras.getCharSequence("android.text")?.toString()?.hashCode() ?: 0) + "," + it.notification.number
+        }
+    } catch (e: Exception) {
+        System.nanoTime().toString()
+    }
+
     private fun refresh() {
         refreshInner()
         Look.applyTree(list, this)
+        lastSig = screenSig()
     }
 
     private fun refreshInner() {

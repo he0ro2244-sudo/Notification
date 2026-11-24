@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.23
+- **Swipe-through: tap the name line too.** With Swipe-through on, only the top line of a tile (app name and count) opened it. New switch under Swipe-through, **Tap the name line too**: the sender / chat name under the app name opens the message as well, while the message text below still passes swipes to your launcher. (*Tap anywhere on a tile* still opens from the whole tile.)
+- **Less flicker in the panel.** The panel redrew itself on every notification update, even when nothing visible had changed, which made an opened message flicker. It now redraws only when the messages, notes or the opened message actually changed.
+- Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.22
 - **Snapchat (and other empty alerts): the opened message is no longer blank.** When an app gives no text and no picture (Snapchat only sends a short alert, or a "someone is typing" alert was already replaced), the card now says so and a tap opens the app, instead of showing an empty card.
 - **Back button:** the phone's Back button now goes from an opened message back to the tiles first, and a second Back closes the panel.

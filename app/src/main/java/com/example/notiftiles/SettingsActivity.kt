@@ -828,6 +828,9 @@ class SettingsActivity : Activity() {
             col.addView(toggleRaw("Tap anywhere on a tile to open it (a swipe that starts on a tile then stays with the widget)", Prefs.swipeTapAll(this)) {
                 Prefs.setSwipeTapAll(this, it); TilesWidget.rebuildAll(applicationContext); applyLook()
             })
+            col.addView(toggleRaw("Tap the name line too (sender / chat name under the app name opens it; the rest still passes swipes)", Prefs.swipeTapName(this)) {
+                Prefs.setSwipeTapName(this, it); TilesWidget.rebuildAll(applicationContext); applyLook()
+            })
         }
 
         col.addView(title("Group messages", 16f, 20))
