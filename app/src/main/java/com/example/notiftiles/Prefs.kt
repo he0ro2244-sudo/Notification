@@ -933,6 +933,9 @@ object Prefs {
     fun page(c: Context, key: String): Int = sp(c).getInt("scr_page_$key", 0).coerceAtLeast(0)
     fun setPage(c: Context, key: String, v: Int) = sp(c).edit().putInt("scr_page_$key", v).apply()
     /** Endless: pages wrap around, and the widget list repeats when you reach its end. */
+    /** Swipe-through: the widget's tiles are fixed (not a scrolling list), so up / down swipes over them reach the launcher. */
+    fun swipeThrough(c: Context): Boolean = sp(c).getBoolean("scr_thru", false)
+    fun setSwipeThrough(c: Context, v: Boolean) = sp(c).edit().putBoolean("scr_thru", v).apply()
     fun loop(c: Context): Boolean = sp(c).getBoolean("scr_loop", false)
     fun setLoop(c: Context, v: Boolean) = sp(c).edit().putBoolean("scr_loop", v).apply()
     /** 0 = one tile per chat (as before), 1 = one tile per app (all its chats together) */

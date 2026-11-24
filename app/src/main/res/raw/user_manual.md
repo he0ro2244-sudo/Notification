@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.4
+Version 1.1.5
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -124,6 +124,7 @@ A second row of circles. Each one opens an app, one screen (activity) inside an 
 ### Pages, shortcuts & grouping
 - **Scrolling**: Scroll (list moves up and down), My pages (pages you create), or Pages (a few tiles at a time with the arrow buttons under the widget). A home-screen widget cannot be swiped sideways, that is an Android limit. In the panel you can swipe.
 - **Endless**: pages wrap around and the widget list repeats.
+- **Swipe-through**: the widget's tiles are fixed instead of a scrolling list, so swiping down over them still reaches your launcher (for example Nova's swipe down). Shows the first 8 tiles (or your "Most tiles" number, up to 12); use Pages for the rest. Tapping a tile works as before.
 - **Group messages**: one tile per chat, or one tile per app.
 - **Order of the tiles**: move apps up or down. Pinned apps stay first.
 - **My pages**: add pages with their own apps and shortcuts. In the panel, long-press a tile to move its app to another page.

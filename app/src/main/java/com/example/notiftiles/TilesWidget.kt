@@ -225,7 +225,16 @@ class TilesWidget : AppWidgetProvider() {
             svc.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
             svc.data = Uri.parse(svc.toUri(Intent.URI_INTENT_SCHEME))
             rv.setRemoteAdapter(R.id.grid, svc)
-            rv.setEmptyView(R.id.grid, R.id.empty)
+            if (Prefs.swipeThrough(ctx)) {
+                // Swipe-through: the list stays empty (it would take up / down swipes away from the launcher) and the
+                // tiles are drawn as fixed views in "tilelist" by fixedTiles(); the "Nothing new" text is handled there.
+                rv.setEmptyView(R.id.grid, R.id.nodata)
+                rv.setViewVisibility(R.id.tilelist, View.VISIBLE)
+            } else {
+                rv.setEmptyView(R.id.grid, R.id.empty)
+                rv.removeAllViews(R.id.tilelist)
+                rv.setViewVisibility(R.id.tilelist, View.GONE)
+            }
 
             val open = Intent(ctx, PanelActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             rv.setOnClickPendingIntent(
@@ -460,8 +469,35 @@ class TilesWidget : AppWidgetProvider() {
             }
         }
 
+        /** Swipe-through mode: the tiles as fixed views, two per row; tapping one opens it in the panel like before. */
+        private fun fixedTiles(rv: RemoteViews, ctx: Context) {
+            rv.removeAllViews(R.id.tilelist)
+            val most = Prefs.maxTiles(ctx).let { if (it > 0) it else 8 }.coerceAtMost(12)
+            val list = try {
+                TilesFactory(ctx).fixedTiles(most)
+            } catch (e: Exception) {
+                emptyList()
+            }
+            rv.setViewVisibility(R.id.empty, if (list.isEmpty()) View.VISIBLE else View.GONE)
+            for ((i, p) in list.withIndex()) {
+                val intent = Intent(ctx, PanelActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                intent.putExtras(p.second)
+                p.first.setOnClickPendingIntent(
+                    R.id.tile_root,
+                    PendingIntent.getActivity(ctx, 300 + i, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                )
+            }
+            for (pair in list.chunked(2)) {
+                val row = RemoteViews(ctx.packageName, R.layout.widget_row)
+                row.addView(R.id.row_a, pair[0].first)
+                if (pair.size > 1) row.addView(R.id.row_b, pair[1].first)
+                rv.addView(R.id.tilelist, row)
+            }
+        }
+
         private fun setDynamic(rv: RemoteViews, ctx: Context) {
             setCount(rv, ctx)
+            if (Prefs.swipeThrough(ctx)) fixedTiles(rv, ctx)
             setWeather(rv, ctx)
             applyLayout(rv, ctx)
 
@@ -832,7 +868,27 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
     // Endless scrolling: the list repeats when you reach its end (only with 3 or more tiles, and not in pages mode)
     private fun endless(): Boolean = Prefs.loop(ctx) && Prefs.scrollMode(ctx) == 0 && tiles.size >= 3
 
-    override fun getCount(): Int = if (endless()) tiles.size * 30 else tiles.size + shortcuts.size
+    override fun getCount(): Int =
+        if (Prefs.swipeThrough(ctx)) 0 else if (endless()) tiles.size * 30 else tiles.size + shortcuts.size
+
+    /** Swipe-through mode: the first [max] tiles as ready views, each with what a tap should pass to the panel. */
+    fun fixedTiles(max: Int): List<Pair<RemoteViews, Intent>> {
+        onDataSetChanged()
+        val n = minOf(if (endless()) tiles.size else tiles.size + shortcuts.size, max)
+        val out = ArrayList<Pair<RemoteViews, Intent>>()
+        for (i in 0 until n) {
+            val v = getViewAt(i) ?: continue
+            val extra = Intent()
+            if (i >= tiles.size) {
+                val pkg = shortcuts.getOrNull(i - tiles.size) ?: continue
+                extra.putExtra("launch", pkg)
+            } else {
+                extra.putExtra("key", tiles[i].sbn.key)
+            }
+            out.add(Pair(v, extra))
+        }
+        return out
+    }
 
     // My pages: an app shortcut tile (tap opens the app).
     private fun shortcutView(pkg: String): RemoteViews {
