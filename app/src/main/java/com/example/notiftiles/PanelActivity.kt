@@ -176,6 +176,31 @@ class PanelActivity : Activity() {
         }
         header.addView(clear)
 
+        // Extra header buttons (hidden until switched on in Settings > Show / hide parts)
+        fun extraBtn(key: String, show: String, glyph: String, emojiKey: String, onTap: () -> Unit) {
+            val b = TextView(this)
+            b.text = Prefs.emojiOf(this, emojiKey).ifEmpty { glyph }
+            b.textSize = 18f
+            b.setTag(R.id.nt_grp, "hdr")
+            b.setTextColor(if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub)
+            b.setPadding(dp(8), dp(4), dp(8), dp(4))
+            b.visibility = if (Prefs.showItem(this, show)) View.VISIBLE else View.GONE
+            b.setOnClickListener { onTap() }
+            header.addView(b)
+        }
+        extraBtn("mic", "p_mic", "🎤", "mic") {
+            startActivity(Intent(this, RecordActivity::class.java))
+            finish()
+        }
+        extraBtn("edit", "p_edit", "✎", "edit") {
+            startActivity(Intent(this, EditMenuActivity::class.java))
+            finish()
+        }
+        extraBtn("refresh", "p_refresh", "↻", "reset") {
+            sendBroadcast(Intent(this, TilesWidget::class.java).setAction(TilesWidget.ACTION_REFRESH_ALL))
+            refresh()
+        }
+
         val gear = ImageView(this)
         gear.setImageResource(R.drawable.ic_gear)
         val gsz = dp((22 * Prefs.grpSize(this, "gear") / 100f).toInt().coerceAtLeast(10))
@@ -360,7 +385,7 @@ class PanelActivity : Activity() {
                         ?.let { s -> expandedCard(s, items.count { x -> x.packageName == s.packageName }) }
             }
             if (view != null) {
-                back.visibility = View.VISIBLE
+                back.visibility = if (Prefs.showItem(this, "p_back")) View.VISIBLE else View.GONE
                 list.addView(view)
                 return
             }

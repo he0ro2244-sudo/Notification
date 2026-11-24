@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.25
+- **New items in the bottom popup (panel) header**, each with its own show / hide switch in Settings > WIDGET AND PANEL > Show / hide parts > *Widget header, tiles and panel*: **‹ Back** (shown as before; switch it off to hide it), **Mic** (opens the recorder), **Pencil** (opens the pencil menu) and **Refresh** (refreshes counts and weather). Mic, Pencil and Refresh start **hidden**, so nothing changes until you switch them on. They use the emoji you chose for Mic, Pencil and Reset, if any.
+- Correction to 1.1.24's notes: the panel's Inbox title, count, + Note, Clear all and settings icon switches are in that same Show / hide parts list, not in Arrange > Every item.
+- Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.24
 - **Back button is back to closing the panel.** In 1.1.22 Back inside an opened message went to the tile list first. Now Back closes the panel again, as before. If you like the 1.1.22 way, Settings > MESSAGES > Pages, shortcuts & grouping > *Back button in an opened message goes to the tiles first* turns it on.
 - **Hide the panel's settings icon:** new item *Panel: settings icon* in Arrange & resize > Every item (and Settings > Arrange the widget). The Inbox title, count badge, + Note and Clear all already have their own show / hide switches there.

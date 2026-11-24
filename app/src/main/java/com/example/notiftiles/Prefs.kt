@@ -1092,12 +1092,18 @@ object Prefs {
         "p_note" to "Panel: + Note",
         "p_clear" to "Panel: Clear all / Read all",
         "p_gear" to "Panel: settings icon",
+        "p_back" to "Panel: ‹ Back (in an opened message)",
+        "p_mic" to "Panel: mic (new, off until you switch it on)",
+        "p_edit" to "Panel: pencil (new, off until you switch it on)",
+        "p_refresh" to "Panel: refresh (new, off until you switch it on)",
         "p_icon" to "Panel tiles: app icon",
         "p_cnt" to "Panel tiles: count badge",
         "p_title_t" to "Panel tiles: message title",
         "p_text" to "Panel tiles: message text"
     )
-    fun showItem(c: Context, k: String): Boolean = sp(c).getBoolean("lay_item_$k", true)
+    // Items added later start hidden, so nothing changes until they are switched on
+    private val OFF_BY_DEFAULT = setOf("p_mic", "p_edit", "p_refresh")
+    fun showItem(c: Context, k: String): Boolean = sp(c).getBoolean("lay_item_$k", k !in OFF_BY_DEFAULT)
     fun setShowItem(c: Context, k: String, v: Boolean) = sp(c).edit().putBoolean("lay_item_$k", v).apply()
 
     // ---- Font format: letter case of the widget text, and 3D icons ----

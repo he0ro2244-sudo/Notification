@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.24
+Version 1.1.25
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -206,4 +206,4 @@ Settings > LOOK > Shapes & borders > *Message tiles in the panel*: corner roundn
 
 
 ## Showing or hiding things in the panel (1.1.24)
-Settings > WIDGET AND PANEL > Arrange the widget (or pencil > Arrange & resize) > *Every item*: each part of the panel header (Inbox title, count badge, + Note, Clear all, settings icon) and of the panel tiles (app icon, count, title, text) has its own show / hide switch, size and colour. The phone's Back button closes the panel; Settings > MESSAGES can make it go to the tiles first.
+Settings > WIDGET AND PANEL > Show / hide parts > *Widget header, tiles and panel*: each part of the bottom popup header (Back, Inbox title, count badge, mic, + Note, Clear all, pencil, refresh, settings icon) and of the panel tiles (app icon, count, title, text) has its own switch. Mic, pencil and refresh start hidden. Sizes and colours are in Text size per part / Text colours. The phone's Back button closes the panel; Settings > MESSAGES can make it go to the tiles first.
