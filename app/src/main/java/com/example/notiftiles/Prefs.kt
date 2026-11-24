@@ -1054,6 +1054,9 @@ object Prefs {
     /** Swipe-through: the widget's tiles are fixed (not a scrolling list), so up / down swipes over them reach the launcher. */
     fun swipeThrough(c: Context): Boolean = sp(c).getBoolean("scr_thru", false)
     fun setSwipeThrough(c: Context, v: Boolean) = sp(c).edit().putBoolean("scr_thru", v).apply()
+    /** Swipe-through: false = only the top line of a tile (app name and count) opens it, the rest passes swipes to the launcher; true = the whole tile opens it (a swipe starting on a tile is then taken by the widget). */
+    fun swipeTapAll(c: Context): Boolean = sp(c).getBoolean("scr_tap_all", false)
+    fun setSwipeTapAll(c: Context, v: Boolean) = sp(c).edit().putBoolean("scr_tap_all", v).apply()
     fun loop(c: Context): Boolean = sp(c).getBoolean("scr_loop", false)
     fun setLoop(c: Context, v: Boolean) = sp(c).edit().putBoolean("scr_loop", v).apply()
     /** 0 = one tile per chat (as before), 1 = one tile per app (all its chats together) */

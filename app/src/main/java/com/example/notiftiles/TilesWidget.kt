@@ -485,6 +485,23 @@ class TilesWidget : AppWidgetProvider() {
                 emptyList()
             }
             rv.setViewVisibility(R.id.empty, if (list.isEmpty()) View.VISIBLE else View.GONE)
+            // Taps: only the top line of a tile (app name + count) takes the tap, so a swipe that starts on the rest of the tile still reaches
+            // the launcher. With "tap anywhere" on, the whole tile takes it. Each tile gets its own PendingIntent (own data + request code).
+            // (if the top line is hidden in Arrange, the whole tile takes the tap, otherwise it could not be opened at all)
+            val all = Prefs.swipeTapAll(ctx) || !(Prefs.showItem(ctx, "t_app") || Prefs.showItem(ctx, "t_cnt"))
+            val dm = ctx.resources.displayMetrics.density
+            for ((i, p) in list.withIndex()) {
+                val go = Intent(ctx, PanelActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    .putExtras(p.second).setData(Uri.parse("nt://tile/$i"))
+                val pi = PendingIntent.getActivity(ctx, 200 + i, go, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+                if (all) {
+                    p.first.setOnClickPendingIntent(R.id.tile_root, pi)
+                } else {
+                    p.first.setOnClickPendingIntent(R.id.tile_head, pi)
+                    // a taller top line is an easier thing to hit
+                    p.first.setViewPadding(R.id.tile_head, 0, (6 * dm).toInt(), 0, (8 * dm).toInt())
+                }
+            }
             for (pair in list.chunked(2)) {
                 val row = RemoteViews(ctx.packageName, R.layout.widget_row)
                 row.addView(R.id.row_a, pair[0].first)
