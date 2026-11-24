@@ -29,6 +29,10 @@ class ArrangeActivity : Activity() {
     private lateinit var scroll: ScrollView
     private lateinit var col: LinearLayout
     private lateinit var live: LivePreview
+    // Which undo list this screen writes to: Settings' (opened from Settings) or the pencil's (the default)
+    private val scope: String get() = intent.getStringExtra("scope") ?: Prefs.SCOPE_PENCIL
+    private lateinit var tracker: ChangeTracker
+    private lateinit var undoBtn: Button
 
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
 
@@ -40,16 +44,23 @@ class ArrangeActivity : Activity() {
         col.setPadding(dp(16), dp(16), dp(16), dp(32))
         scroll.addView(col)
         live = LivePreview(this)
-        setContentView(live.wrap(scroll))
+        val screen = live.wrap(scroll)
+        tracker = ChangeTracker(this, scope) { if (::undoBtn.isInitialized) undoBtn.text = UndoBar.label(this, scope) }
+        undoBtn = UndoBar.make(this, scope, tracker) { rebuild() }
+        UndoBar.pin(screen, undoBtn)
+        setContentView(screen)
         build()
     }
 
     override fun onResume() {
         super.onResume()
         live.start()
+        tracker.start()
+        undoBtn.text = UndoBar.label(this, scope)
     }
 
     override fun onPause() {
+        tracker.stop()
         live.stop()
         super.onPause()
     }
@@ -84,7 +95,7 @@ class ArrangeActivity : Activity() {
         col.addView(hint("Hold the ☰ handle of a row and drag it up or down. The widget on your home screen follows at once. Switches hide a part, sliders make a part bigger or smaller (100% = as before)."))
         val moveBtn = Button(this)
         moveBtn.text = "Move items (drag every item to any place)…"
-        moveBtn.setOnClickListener { startActivity(Intent(this, MoveActivity::class.java)) }
+        moveBtn.setOnClickListener { startActivity(Intent(this, MoveActivity::class.java).putExtra("scope", scope)) }
         col.addView(moveBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { bottomMargin = dp(8) })
 
         val free = Prefs.freeOn(this)

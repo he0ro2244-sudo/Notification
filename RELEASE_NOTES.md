@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.1.9
+- **Fix: Pencil > Reset left the widget piled up.** The pencil's Reset only refreshed the texts, so the old moved places stayed on screen (clock, weather, date and Inbox on top of each other) while the saved values were already back to standard. It now redraws the whole widget exactly like Settings > Reset everything to automatic (both use the same reset).
+- **Undo works one step at a time, separately for the pencil and for Settings.** Settings has an **Undo last change (N)** button pinned under the preview; the pencil has the same in its menu and under the preview on Move and Arrange & resize. Each keeps its own list (up to 25 steps) and never touches the other's. A Reset or a loaded layout is one step like any other change; a Reset that changes nothing is not a step, so it can no longer overwrite the copy you wanted to go back to.
+- **Undo now covers everything you change**, not only the look: contacts, shortcuts, notes, filters, weather place and switches too (also what you change in screens opened from Settings). Not covered: what the app fills in itself (weather readings, page numbers, snooze timers, recent searches), saved layouts and background pictures.
+- **Swipe-through:** with it on, the hidden scrolling list is now removed from the widget completely, because even an empty list can take a swipe from the launcher.
+- Undo after a Reset no longer leaves a stale "Undo last move" behind.
+
 ## 1.1.8
 - **Swipe-through tiles are now display-only.** In 1.1.5-1.1.7 the fixed tiles could still be tapped, and a view that takes taps also takes the touch, so a swipe starting on a tile still did nothing in Nova. They now take no taps, so swiping down over them reaches the launcher. Open the panel with your launcher gesture or by tapping the Inbox title or count. Off: the list scrolls and tiles open as before.
 

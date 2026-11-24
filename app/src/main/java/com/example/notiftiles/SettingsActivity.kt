@@ -63,10 +63,18 @@ class SettingsActivity : Activity() {
         col.setPadding(dp(16), dp(16), dp(16), dp(32))
         scroll.addView(col)
         live = LivePreview(this)
-        setContentView(live.wrap(scroll))
+        val screen = live.wrap(scroll)
+        tracker = ChangeTracker(this, Prefs.SCOPE_SETTINGS) { if (::undoBtn.isInitialized) undoBtn.text = UndoBar.label(this, Prefs.SCOPE_SETTINGS) }
+        undoBtn = UndoBar.make(this, Prefs.SCOPE_SETTINGS, tracker) { applyLook(); rebuild() }
+        UndoBar.pin(screen, undoBtn)
+        setContentView(screen)
         build()
         applyFilter()
     }
+
+    // Settings' own undo list (the pencil screens keep a separate one): every change made here can be taken back one step at a time
+    private lateinit var tracker: ChangeTracker
+    private lateinit var undoBtn: Button
 
     // Opened from the widget's gear: Back returns straight to the home screen (the widget), not to a screen behind it.
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -87,12 +95,25 @@ class SettingsActivity : Activity() {
     override fun onResume() {
         super.onResume()
         live.start()
+        childOpen = false
+        tracker.start()
+        undoBtn.text = UndoBar.label(this, Prefs.SCOPE_SETTINGS)
     }
 
     override fun onPause() {
+        // Opening a screen from Settings (contacts, shortcuts, notes, Arrange...) keeps tracking, so what is changed there is also one undo step
+        if (!childOpen) tracker.stop()
         live.stop()
         super.onPause()
     }
+
+    private var childOpen = false
+
+    override fun startActivityForResult(intent: Intent, requestCode: Int, options: Bundle?) {
+        childOpen = true
+        super.startActivityForResult(intent, requestCode, options)
+    }
+
 
     // Leaving Settings (Home, recents) closes every section, so it always opens tidy next time.
     override fun onUserLeaveHint() {
@@ -101,6 +122,7 @@ class SettingsActivity : Activity() {
     }
 
     override fun onDestroy() {
+        tracker.stop()
         openSections.clear()
         super.onDestroy()
     }
@@ -555,7 +577,7 @@ class SettingsActivity : Activity() {
         // ---- Arrange the widget
         val dragBtn = Button(this)
         dragBtn.text = "Arrange & resize by dragging…"
-        dragBtn.setOnClickListener { startActivity(Intent(this, ArrangeActivity::class.java)) }
+        dragBtn.setOnClickListener { startActivity(Intent(this, ArrangeActivity::class.java).putExtra("scope", Prefs.SCOPE_SETTINGS)) }
         col.addView(dragBtn)
         col.addView(seekRange("Space between the widget rows", Prefs.rowGap(this), 0, 30, " dp") { Prefs.setRowGap(this, it); applyLook() })
         col.addView(hint("Top row, fast dial, shortcuts row and Inbox row. 6 dp = as designed. When items are placed freely, use Move > Tidy up: pack items closer instead."))
@@ -1097,19 +1119,21 @@ class SettingsActivity : Activity() {
             col.addView(im)
         }
 
-        // Same reset as Pencil > Reset: look, colours, fonts, sizes, shapes AND moved places, so nothing is left overlapping.
+        // Same reset as Pencil > Reset (same function, same full redraw), but it is kept in Settings' own undo list.
         val reset = Button(this)
         reset.text = "Reset everything to automatic"
         reset.isAllCaps = false
         reset.setOnClickListener {
             AlertDialog.Builder(this)
-                .setMessage("Reset the widget to the standard layout and remove ALL themes, colours, fonts, sizes, shapes and moved places? Your apps, contacts, shortcuts, notes and message filters are kept. This is the same as Pencil > Reset, and you can undo it here (Undo last reset or load).")
+                .setMessage("Reset the widget to the standard layout and remove ALL themes, colours, fonts, sizes, shapes and moved places? Your apps, contacts, shortcuts, notes and message filters are kept. This is the same as Pencil > Reset, and you can undo it with Undo last change.")
                 .setPositiveButton("Reset all") { _, _ ->
-                    Prefs.resetAllLook(this)
+                    tracker.flush()
+                    Prefs.resetAllLook(this, Prefs.SCOPE_SETTINGS)
+                    tracker.resync()
                     TilesWidget.rebuildAll(applicationContext)
                     applyLook()
                     rebuild()
-                    Toast.makeText(this, "Everything is back to default. You can undo it below.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "Everything is back to default. Undo last change (at the top) brings it back.", Toast.LENGTH_LONG).show()
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
@@ -1117,21 +1141,7 @@ class SettingsActivity : Activity() {
         val lp = LinearLayout.LayoutParams(MATCH, WRAP)
         lp.topMargin = dp(24)
         col.addView(reset, lp)
-        col.addView(hint("Does the same as Pencil > Reset: back to the standard widget (top row, fast dial, shortcuts row, Inbox row). It removes themes, colours, fonts, sizes, shapes and moved places. Your apps, contacts, shortcuts, notes and message filters are kept. Custom background pictures are removed and are not brought back by Undo."))
-        if (Prefs.hasUndo(this)) {
-            val undo = Button(this)
-            undo.text = "Undo last reset or load"
-            undo.isAllCaps = false
-            undo.setOnClickListener {
-                val ok = Prefs.undoLook(this)
-                TilesWidget.rebuildAll(applicationContext)
-                applyLook()
-                rebuild()
-                Toast.makeText(this, if (ok) "Brought back" else "Nothing to undo", Toast.LENGTH_SHORT).show()
-            }
-            col.addView(undo, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
-            col.addView(hint("Brings back the look and places you had before the last Reset or loaded layout (one step)."))
-        }
+        col.addView(hint("Does the same as Pencil > Reset: back to the standard widget (top row, fast dial, shortcuts row, Inbox row). It removes themes, colours, fonts, sizes, shapes and moved places. Your apps, contacts, shortcuts, notes and message filters are kept. Custom background pictures are removed and are not brought back by Undo. Settings has its own Undo (button under the preview): it takes back every change made here, one step at a time, including a Reset. The pencil has a separate one."))
 
         category("📖  HELP", "The full user manual")
         section("User manual (read me)", "How to use everything in Notif Tiles") { Manual.addTo(this, col) }

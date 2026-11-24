@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.8
+Version 1.1.9
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -30,7 +30,7 @@ Press and hold any item and drag it anywhere. It stays exactly where you drop it
 - **Tidy up: align items in each row** puts the items of a row on one line.
 - **Tidy up: align and space evenly** also spaces them equally. It spreads the row between its first and last item, so one item far away leaves big gaps.
 - **Tidy up: pack items closer** puts the items of a row next to each other with the **Gap** you choose (0-40 dp). Turn on **Centre each packed row** to centre the row in the widget. Use this when "space evenly" leaves too much room.
-- **Undo last move or tidy-up** puts the items back to how they were before the last drag or tidy-up (one step).
+- **Undo last change** takes back the last move, tidy-up or resize, one step at a time. The count shows how many steps can be taken back.
 - Drag the bar **Messages start here** to choose where the message tiles begin.
 - **Back to the old rows layout** forgets all places and returns to the normal rows.
 - Places are saved for your widget width and stretch sideways if you resize the widget.
@@ -51,7 +51,7 @@ Save the widget's look and places under a name (for example "Work"), load it lat
 Puts the widget back to the standard layout. It removes all themes, colours, fonts, sizes and moved places. Your apps, contacts, shortcuts and notes are kept.
 
 ### Undo
-Appears after a Reset or a loaded layout and brings back what you had before. Custom background pictures are not brought back.
+**Undo last change** (in the pencil menu and under the preview on Move and Arrange & resize) takes back what you did with the pencil, one step at a time: a move, a size, a colour, a Reset or a loaded layout. Settings has its own, separate Undo, so the two never mix. Custom background pictures are not brought back.
 
 ## 4. The settings screen (gear)
 Open it with the gear on the widget or from the Notif Tiles app (Look & colors). Settings is split into six groups: LOOK, WIDGET AND PANEL, MESSAGES, TOOLS, SYSTEM and HELP. Each group holds sections; tap a section name to open or close it. Every section starts closed and shows a one-line description. **Open all sections** and **Close all sections** are under the search box. A **live preview** of the widget stays at the top of Settings and of Arrange & resize and redraws itself when you change something; tap its grey bar to switch Off / Small / Medium / Full (tiles are not drawn in the preview). **Open one section at a time** closes the others when you open one. Settings closes all sections when you leave it with Home or recents. The search box at the top shows only the rows that match what you type. "Check everything" tests that the app is set up correctly, and "Button log" shows the last button actions.
@@ -174,7 +174,7 @@ Some features need the helper: the recorder red button, opening Maps search, and
 **Export settings to a file** saves every Look & colors choice, contacts, notes and background pictures as one file. **Import settings from a file** loads it again. Keep a copy before big changes. Saved layouts are part of the backup.
 
 ### Reset everything to automatic
-Does the same as Pencil > Reset: puts the widget back to the standard layout and removes all themes, colours, fonts, sizes, shapes and moved places. Your apps, contacts, shortcuts, notes and message filters are kept. Below it, **Undo last reset or load** brings back what you had before (one step). Custom background pictures are removed and not brought back.
+Does the same as Pencil > Reset: puts the widget back to the standard layout and removes all themes, colours, fonts, sizes, shapes and moved places. Your apps, contacts, shortcuts, notes and message filters are kept. Settings has its own **Undo last change** button under the preview: it takes back every change made in Settings (and in Arrange & resize opened from Settings), one step at a time, including a Reset. The pencil's Undo is separate. Custom background pictures are removed and not brought back.
 
 ## 11. Tips
 - Hidden items are shown again in Arrange & resize first, then they can be moved.

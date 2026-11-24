@@ -33,6 +33,9 @@ class MoveActivity : Activity() {
     private var root: View? = null
     private var widthDp = 250
     private var heightDp = 300
+    private val scope: String get() = intent.getStringExtra("scope") ?: Prefs.SCOPE_PENCIL
+    private lateinit var tracker: ChangeTracker
+    private var undoBtn: Button? = null
     private var optW = 0f // the widget width (dp) the home screen reports; the places are saved for it
 
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
@@ -41,6 +44,7 @@ class MoveActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        tracker = ChangeTracker(this, scope) { undoBtn?.text = UndoBar.label(this, scope) }
         val col = LinearLayout(this)
         col.orientation = LinearLayout.VERTICAL
         col.setPadding(dp(16), dp(16), dp(16), dp(32))
@@ -111,20 +115,10 @@ class MoveActivity : Activity() {
         packBtn.setOnClickListener { tidy(2) }
         col.addView(packBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(4) })
 
-        val undoBtn = Button(this)
-        undoBtn.text = "Undo last move or tidy-up"
-        undoBtn.isAllCaps = false
-        undoBtn.setOnClickListener {
-            if (Prefs.hasFreePrev(this)) {
-                Prefs.undoFree(this)
-                TilesWidget.rebuildAll(applicationContext)
-                holder.post { render() }
-                showNote("Put back to how it was before the last move or tidy-up.")
-            } else {
-                showNote("Nothing to undo yet.")
-            }
-        }
-        col.addView(undoBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
+        // Same undo as in Arrange & resize: every move, tidy-up or change takes back one step at a time (the list of whoever opened Move)
+        val ub = UndoBar.make(this, scope, tracker) { holder.post { render() }; showNote("Put back to how it was before the last change.") }
+        undoBtn = ub
+        col.addView(ub, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
 
         val back = Button(this)
         back.text = "Back to the old rows layout"
@@ -139,7 +133,7 @@ class MoveActivity : Activity() {
         val arr = Button(this)
         arr.text = "Arrange & resize (sizes, colours, show / hide)…"
         arr.isAllCaps = false
-        arr.setOnClickListener { startActivity(android.content.Intent(this, ArrangeActivity::class.java)) }
+        arr.setOnClickListener { startActivity(android.content.Intent(this, ArrangeActivity::class.java).putExtra("scope", scope)) }
         col.addView(arr, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
 
         val done = Button(this)
@@ -158,8 +152,15 @@ class MoveActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        tracker.start()
+        undoBtn?.text = UndoBar.label(this, scope)
         if (firstResume) { firstResume = false; return }
         render()
+    }
+
+    override fun onPause() {
+        tracker.stop()
+        super.onPause()
     }
 
     private fun showNote(text: String) {

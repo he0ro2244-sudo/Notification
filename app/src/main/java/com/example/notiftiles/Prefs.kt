@@ -24,6 +24,8 @@ object Prefs {
     )
 
     private fun sp(c: Context) = c.getSharedPreferences("nt", Context.MODE_PRIVATE)
+    /** The settings file itself, for listeners (see ChangeTracker). */
+    fun store(c: Context) = sp(c)
 
     fun enabled(c: Context): Set<String> =
         HashSet(sp(c).getStringSet("enabled", emptySet()) ?: emptySet())
@@ -156,25 +158,37 @@ object Prefs {
     }
 
     /** Everything that changes how the widget looks and where things sit goes back to the standard widget: themes, colours, fonts, shapes, sizes (Size / Width / Height),
-     *  switches, order, merge, free places. Your apps, contacts, shortcuts, notes, weather place and Where to? favourites are kept. */
-    fun resetAllLook(c: Context) {
-        saveUndo(c)
+     *  switches, order, merge, free places. Your apps, contacts, shortcuts, notes, weather place and Where to? favourites are kept.
+     *  [scope] says whose undo history gets the "before" copy: the pencil's or Settings' (each has its own). */
+    fun resetAllLook(c: Context, scope: String) {
+        val before = fullJson(c)
         resetLook(c)
         val e = sp(c).edit()
         e.remove("free_on").remove("free_pos").remove("free_ref_w").remove("free_grid_top").remove("free_snap")
+        e.remove("free_prev_has").remove("free_prev_on").remove("free_prev_pos").remove("free_prev_ref")
         // The standard widget: top row (clock, weather, date, Where to?), fast-dial circles, shortcuts row, Inbox row
         // (title, mic, + Note, Clear all, pencil, gear), refresh icon and weather line. Pencil stays on so Reset can be reached.
         e.putBoolean("quick_on", true).putBoolean("lay_editbtn", true)
         e.apply()
+        // A reset that changed nothing (already standard) is not a step, so it can never push the real "before" out of the history
+        if (fullJson(c) != before) pushSnapshot(c, scope, before)
     }
 
     // ---- Undo and saved layouts: a copy of every look / layout setting (custom background pictures are not part of it) ----
-    private fun isLookKey(k: String) = k.startsWith("look_") || k.startsWith("lay_") || k.startsWith("free_") || k == "quick_on"
+    const val SCOPE_PENCIL = "pencil"
+    const val SCOPE_SETTINGS = "settings"
+    private const val HIST_MAX = 25
 
-    private fun snapshotJson(c: Context): String {
+    /** Keys that make up "the look": tracked for undo, copied into saved layouts. The one-step Move undo copy is not part of it. */
+    fun isLookKey(k: String) = (k.startsWith("look_") || k.startsWith("lay_") || k.startsWith("free_") || k == "quick_on") && !k.startsWith("free_prev_")
+
+    /** The same settings always give the same text (keys sorted), so two copies can be compared. */
+    fun snapshotJson(c: Context): String {
         val o = org.json.JSONObject()
-        for ((k, v) in sp(c).all) {
+        for (ent in sp(c).all.entries.sortedBy { it.key }) {
+            val k = ent.key
             if (!isLookKey(k)) continue
+            val v = ent.value
             val e = org.json.JSONObject()
             when (v) {
                 is Boolean -> e.put("t", "b").put("v", v)
@@ -193,6 +207,7 @@ object Prefs {
         val o = org.json.JSONObject(json)
         val e = sp(c).edit()
         for (k in sp(c).all.keys) if (isLookKey(k)) e.remove(k)
+        e.remove("free_prev_has") // the one-step Move undo would point at places that no longer exist
         val iter = o.keys()
         while (iter.hasNext()) {
             val k = iter.next()
@@ -212,13 +227,111 @@ object Prefs {
         false
     }
 
-    fun saveUndo(c: Context) = sp(c).edit().putString("undo_look", snapshotJson(c)).apply()
-    fun hasUndo(c: Context): Boolean = !(sp(c).getString("undo_look", "") ?: "").isEmpty()
-    fun undoLook(c: Context): Boolean {
-        val j = sp(c).getString("undo_look", "") ?: ""
-        if (j.isEmpty()) return false
-        val ok = restoreJson(c, j)
-        if (ok) sp(c).edit().remove("undo_look").apply()
+    // ---- Full copy for undo: every setting the person can change (look, layout, contacts, shortcuts, notes, filters, weather place, ...).
+    // Left out: what the app fills in by itself (weather readings, page counters, snooze timers, recent searches), the undo lists and saved layouts.
+    private val NOT_TRACKED = setOf(
+        "w_try", "w_has", "w_temp", "w_code", "w_day", "w_time", "w_appcode", "w_apptemp", "w_apptime", "w_upd_note", "w_upd_src", "w_upd_time",
+        "w_gaptime", "weather_code", "handled", "chat_snz", "sn_until", "seen", "battery_asked", "undo_look", "loc_seen", "loc_since",
+        "dest_recent", "ui_preview", "log"
+    )
+
+    fun isTrackedKey(k: String): Boolean =
+        k !in NOT_TRACKED && !k.startsWith("hist_") && !k.startsWith("preset_") && !k.startsWith("scr_page_") && !k.startsWith("free_prev_")
+
+    fun fullJson(c: Context): String {
+        val o = org.json.JSONObject()
+        for (ent in sp(c).all.entries.sortedBy { it.key }) {
+            val k = ent.key
+            if (!isTrackedKey(k)) continue
+            val v = ent.value
+            val e = org.json.JSONObject()
+            when (v) {
+                is Boolean -> e.put("t", "b").put("v", v)
+                is Int -> e.put("t", "i").put("v", v)
+                is Long -> e.put("t", "l").put("v", v)
+                is Float -> e.put("t", "f").put("v", v.toDouble())
+                is String -> e.put("t", "s").put("v", v)
+                is Set<*> -> e.put("t", "ss").put("v", org.json.JSONArray(v.map { it.toString() }.sorted()))
+                else -> continue
+            }
+            o.put(k, e)
+        }
+        return o.toString()
+    }
+
+    private fun restoreFull(c: Context, json: String): Boolean = try {
+        val o = org.json.JSONObject(json)
+        val e = sp(c).edit()
+        for (k in sp(c).all.keys) if (isTrackedKey(k)) e.remove(k)
+        e.remove("free_prev_has")
+        val iter = o.keys()
+        while (iter.hasNext()) {
+            val k = iter.next()
+            if (!isTrackedKey(k)) continue
+            val x = o.getJSONObject(k)
+            when (x.getString("t")) {
+                "b" -> e.putBoolean(k, x.getBoolean("v"))
+                "i" -> e.putInt(k, x.getInt("v"))
+                "l" -> e.putLong(k, x.getLong("v"))
+                "f" -> e.putFloat(k, x.getDouble("v").toFloat())
+                "s" -> e.putString(k, x.getString("v"))
+                "ss" -> {
+                    val a = x.getJSONArray("v")
+                    val set = HashSet<String>()
+                    for (i in 0 until a.length()) set.add(a.getString(i))
+                    e.putStringSet(k, set)
+                }
+            }
+        }
+        e.apply()
+        true
+    } catch (ex: Exception) {
+        false
+    }
+
+    // Undo history: one list of "before" copies per scope (the pencil screens and Settings each keep their own), newest last.
+    private fun histGet(c: Context, scope: String): MutableList<String> {
+        val raw = sp(c).getString("hist_$scope", "") ?: ""
+        if (raw.isEmpty()) return ArrayList()
+        return try {
+            val a = org.json.JSONArray(raw)
+            val l = ArrayList<String>()
+            for (i in 0 until a.length()) l.add(a.getString(i))
+            l
+        } catch (e: Exception) {
+            ArrayList()
+        }
+    }
+
+    private fun histPut(c: Context, scope: String, l: List<String>) {
+        if (l.isEmpty()) {
+            sp(c).edit().remove("hist_$scope").apply()
+        } else {
+            val a = org.json.JSONArray()
+            for (x in l) a.put(x)
+            sp(c).edit().putString("hist_$scope", a.toString()).apply()
+        }
+    }
+
+    /** Adds a "before" copy as one undo step (the same copy twice in a row is ignored). */
+    fun pushSnapshot(c: Context, scope: String, snap: String) {
+        val l = histGet(c, scope)
+        if (l.isNotEmpty() && l[l.size - 1] == snap) return
+        l.add(snap)
+        while (l.size > HIST_MAX) l.removeAt(0)
+        histPut(c, scope, l)
+    }
+
+    fun undoSteps(c: Context, scope: String): Int = histGet(c, scope).size
+    fun hasUndo(c: Context, scope: String): Boolean = undoSteps(c, scope) > 0
+
+    /** Puts the widget back to how it was before the last step of this scope (one step at a time). */
+    fun undoLook(c: Context, scope: String): Boolean {
+        val l = histGet(c, scope)
+        if (l.isEmpty()) return false
+        val last = l.removeAt(l.size - 1)
+        val ok = restoreFull(c, last)
+        if (ok) histPut(c, scope, l)
         return ok
     }
 
@@ -230,11 +343,13 @@ object Prefs {
         sp(c).edit().putString("preset_$n", snapshotJson(c)).apply()
         return true
     }
-    fun loadPreset(c: Context, name: String): Boolean {
+    fun loadPreset(c: Context, name: String, scope: String): Boolean {
         val j = sp(c).getString("preset_$name", "") ?: ""
         if (j.isEmpty()) return false
-        saveUndo(c)
-        return restoreJson(c, j)
+        val before = fullJson(c)
+        val ok = restoreJson(c, j)
+        if (ok && fullJson(c) != before) pushSnapshot(c, scope, before)
+        return ok
     }
     fun deletePreset(c: Context, name: String) = sp(c).edit().remove("preset_$name").apply()
 

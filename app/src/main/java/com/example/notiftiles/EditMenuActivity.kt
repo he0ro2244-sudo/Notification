@@ -51,17 +51,18 @@ class EditMenuActivity : Activity() {
             AlertDialog.Builder(this)
                 .setMessage("Reset the widget to the standard layout (top row, fast-dial, shortcuts row, Inbox row) and remove ALL themes, colours, fonts, sizes and moved places? Your apps, contacts, shortcuts and notes are kept. You can undo this from this menu.")
                 .setPositiveButton("Reset all") { _, _ ->
-                    Prefs.resetAllLook(this)
-                    TilesWidget.refresh(applicationContext)
+                    Prefs.resetAllLook(this, Prefs.SCOPE_PENCIL)
+                    // Full redraw, the same as Settings does. refresh() only updates the texts, so the old moved places stayed on screen and piled up.
+                    TilesWidget.rebuildAll(applicationContext)
                     android.widget.Toast.makeText(this, "Everything is back to default", android.widget.Toast.LENGTH_SHORT).show()
                     recreate()
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
         })
-        if (Prefs.hasUndo(this)) {
-            col.addView(choice("Undo last reset or load", "Bring back the look and places you had before the last Reset or loaded layout. Custom background pictures are not brought back.") {
-                val ok = Prefs.undoLook(this)
+        if (Prefs.hasUndo(this, Prefs.SCOPE_PENCIL)) {
+            col.addView(choice("Undo last change (${Prefs.undoSteps(this, Prefs.SCOPE_PENCIL)})", "Takes back the last thing done with the pencil (a move, a resize, a colour, a Reset or a loaded layout), one step at a time. Settings has its own separate Undo. Custom background pictures are not brought back.") {
+                val ok = Prefs.undoLook(this, Prefs.SCOPE_PENCIL)
                 TilesWidget.rebuildAll(applicationContext)
                 android.widget.Toast.makeText(this, if (ok) "Brought back" else "Nothing to undo", android.widget.Toast.LENGTH_SHORT).show()
                 recreate()
@@ -102,7 +103,7 @@ class EditMenuActivity : Activity() {
             .setTitle(name)
             .setMessage("Load this layout? It replaces the current look and places (you can undo it from this menu).")
             .setPositiveButton("Load") { _, _ ->
-                val ok = Prefs.loadPreset(this, name)
+                val ok = Prefs.loadPreset(this, name, Prefs.SCOPE_PENCIL)
                 TilesWidget.rebuildAll(applicationContext)
                 android.widget.Toast.makeText(this, if (ok) "Loaded" else "Could not load it", android.widget.Toast.LENGTH_SHORT).show()
                 recreate()

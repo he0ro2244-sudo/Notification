@@ -224,7 +224,13 @@ class TilesWidget : AppWidgetProvider() {
             val svc = Intent(ctx, TilesService::class.java)
             svc.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, id)
             svc.data = Uri.parse(svc.toUri(Intent.URI_INTENT_SCHEME))
-            rv.setRemoteAdapter(R.id.grid, svc)
+            if (Prefs.swipeThrough(ctx)) {
+                // No scrolling list at all in this mode: even an empty list can take an up / down swipe away from the launcher
+                rv.setViewVisibility(R.id.grid, View.GONE)
+            } else {
+                rv.setViewVisibility(R.id.grid, View.VISIBLE)
+                rv.setRemoteAdapter(R.id.grid, svc)
+            }
             if (Prefs.swipeThrough(ctx)) {
                 // Swipe-through: the list stays empty (it would take up / down swipes away from the launcher) and the
                 // tiles are drawn as fixed views in "tilelist" by fixedTiles(); the "Nothing new" text is handled there.
