@@ -613,7 +613,7 @@ class SettingsActivity : Activity() {
         col.addView(title("Fast-dial contacts", 16f, 20))
         col.addView(toggleRaw("Ask before calling (Call / Change / Remove)", Prefs.dialAsk(this)) { Prefs.setDialAsk(this, it) })
         col.addView(toggleRaw("Show the + (Add) circles for empty fast-dial places", Prefs.dialAdd(this)) { Prefs.setDialAdd(this, it); applyLook() })
-        col.addView(hint("Put a wrong person on a circle? Change or clear it here. With "Ask before calling" on, tapping a circle on the widget also offers Change and Remove."))
+        col.addView(hint("Put a wrong person on a circle? Change or clear it here. With \"Ask before calling\" on, tapping a circle on the widget also offers Change and Remove."))
         for (i in 0 until Prefs.DIAL_SLOTS) {
             val nm = Prefs.dialName(this, i)
             val num = Prefs.dialNumber(this, i)
