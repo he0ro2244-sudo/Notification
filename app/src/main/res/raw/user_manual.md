@@ -102,8 +102,10 @@ Switch off anything you do not want to see. Nothing is deleted, switch it on aga
 ### Fast dial
 Choose up to 5 contacts. Each circle has its own background and text colour. With **Ask before calling** on, tapping a circle offers Call, Change and Remove. Use Change or Clear here to fix a wrong person.
 
+The **+ (Add) circles** of empty places can be hidden with **Show the + (Add) circles for empty fast-dial places**. Add and change contacts from this section when they are hidden.
+
 ### Shortcuts row
-A second row of circles. Each one opens an app, one screen (activity) inside an app, or a shortcut an app offers. Tap the Add circle on the widget or use Pick in settings. Size, colour, shape and names follow the fast-dial settings.
+A second row of circles. Each one opens an app, one screen (activity) inside an app, or a shortcut an app offers. Tap the Add circle on the widget or use Pick in settings. Size, colour, shape and names follow the fast-dial settings. **Show the + (Add) circle in the shortcuts row** hides the Add circle; use Pick in this section to add shortcuts then.
 
 ## 7. MESSAGES
 ### Pages, shortcuts & grouping

@@ -620,13 +620,15 @@ class TilesWidget : AppWidgetProvider() {
                 val dn = Prefs.partColor(ctx, "dialnames")
                 rv.setTextColor(DIAL_NAME[i], if (ownText != 0) ownText else if (dn != 0) dn else sub)
                 rv.setViewVisibility(DIAL_NAME[i], if (showNames) View.VISIBLE else View.GONE)
+                val hideAdd = !has && !Prefs.dialAdd(ctx)
+                if (!free) rv.setViewVisibility(DIAL_BOX[i], if (hideAdd) View.GONE else View.VISIBLE)
                 if (free) {
                     // Each circle is on its own now: the strip colour (if one is set) becomes a plate behind each circle
                     val pdbg = Prefs.dialBg(ctx)
                     val plate = if (pdbg != 0) ((Prefs.dialBgAlpha(ctx) * 255 / 100) shl 24) or (pdbg and 0xFFFFFF) else 0
                     rv.setInt(DIAL_BOX[i], "setBackgroundResource", R.drawable.nt_dial_bg)
                     rv.setColorStateList(DIAL_BOX[i], "setBackgroundTintList", ColorStateList.valueOf(plate))
-                    rv.setViewVisibility(DIAL_BOX[i], if (Prefs.show(ctx, "dial")) View.VISIBLE else View.GONE)
+                    rv.setViewVisibility(DIAL_BOX[i], if (Prefs.show(ctx, "dial") && !hideAdd) View.VISIBLE else View.GONE)
                 }
             }
             // ---- Shortcuts row under the fast dial (off until switched on; filled slots + one "Add")
@@ -645,7 +647,7 @@ class TilesWidget : AppWidgetProvider() {
                     val qh = qs * hst(ctx, "q$i")
                     val qm = minOf(qw, qh)
                     val has = q != null
-                    val show = has || !addShown
+                    val show = has || (!addShown && Prefs.quickAdd(ctx))
                     if (!has) addShown = true
                     rv.setViewVisibility(Q_BOX[i], if (show) View.VISIBLE else if (free) View.GONE else View.INVISIBLE)
                     if (free) {

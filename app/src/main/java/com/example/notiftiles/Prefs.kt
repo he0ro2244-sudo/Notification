@@ -657,6 +657,12 @@ object Prefs {
     fun setStampStyle(c: Context, v: Int) = sp(c).edit().putInt("msg_stamp", v).apply()
 
     // ---- Layout extras ----
+    /** The "+ Add" circle: empty fast-dial circles and the shortcuts row's Add circle can be hidden (add contacts and shortcuts from Settings instead). */
+    fun dialAdd(c: Context): Boolean = sp(c).getBoolean("lay_dial_add", true)
+    fun setDialAdd(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_dial_add", v).apply()
+    fun quickAdd(c: Context): Boolean = sp(c).getBoolean("lay_quick_add", true)
+    fun setQuickAdd(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_quick_add", v).apply()
+
     fun dialNames(c: Context): Boolean = sp(c).getBoolean("lay_dialnames", true)
     fun setDialNames(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_dialnames", v).apply()
     /** 0 = follow phone, 1 = 12-hour, 2 = 24-hour */

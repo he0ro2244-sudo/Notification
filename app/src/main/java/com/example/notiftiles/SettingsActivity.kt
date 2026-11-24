@@ -612,7 +612,8 @@ class SettingsActivity : Activity() {
         // ---- Fast dial contacts
         col.addView(title("Fast-dial contacts", 16f, 20))
         col.addView(toggleRaw("Ask before calling (Call / Change / Remove)", Prefs.dialAsk(this)) { Prefs.setDialAsk(this, it) })
-        col.addView(hint("Put a wrong person on a circle? Change or clear it here. With the switch above on, tapping a circle on the widget also offers Change and Remove."))
+        col.addView(toggleRaw("Show the + (Add) circles for empty fast-dial places", Prefs.dialAdd(this)) { Prefs.setDialAdd(this, it); applyLook() })
+        col.addView(hint("Put a wrong person on a circle? Change or clear it here. With "Ask before calling" on, tapping a circle on the widget also offers Change and Remove."))
         for (i in 0 until Prefs.DIAL_SLOTS) {
             val nm = Prefs.dialName(this, i)
             val num = Prefs.dialNumber(this, i)
@@ -653,6 +654,7 @@ class SettingsActivity : Activity() {
         section("Shortcuts row (under fast dial)") {
         col.addView(hint("A second row of circles under the fast dial. Each circle can open an app, one screen (activity) inside an app, or a shortcut an app offers (like a direct WhatsApp chat). Tap the Add circle on the widget, or use Pick here. Circle size, colour, shape and names follow the fast-dial settings."))
         col.addView(toggleRaw("Show the shortcuts row", Prefs.quickOn(this)) { Prefs.setQuickOn(this, it); applyLook() })
+        col.addView(toggleRaw("Show the + (Add) circle in the shortcuts row", Prefs.quickAdd(this)) { Prefs.setQuickAdd(this, it); applyLook() })
         for (i in 0 until Prefs.QUICK_SLOTS) {
             val q = Prefs.quick(this, i)
             val row = LinearLayout(this)
