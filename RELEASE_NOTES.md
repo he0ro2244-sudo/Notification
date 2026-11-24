@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.1.4
+- **Settings > Reset everything to automatic now does the same as Pencil > Reset.** Before, it left moved places (the free layout) in place while resetting sizes, which could pile the clock, weather, date and Inbox on top of each other. Now it also clears moved places and restores the standard layout.
+- **Undo in Settings**: after a reset or loaded layout, an "Undo last reset or load" button appears under the reset button (the same undo as in the pencil menu). The reset asks for confirmation first and explains what it removes and what it keeps.
+
 ## 1.1.3
 - **Mute one chat**: new **Mute chat** button in the open message card hides just that chat (not the whole app) from the widget and the panel. Unmute it in Settings > MESSAGES > Filters & limits > Muted chats. Nothing is deleted from your phone.
 - **Reply templates**: quick replies such as "On my way" shown above the reply box. Tap one to fill the box, then Send. Edit them in Settings > MESSAGES > Filters & limits > Reply templates.

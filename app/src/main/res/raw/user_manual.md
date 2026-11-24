@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.3
+Version 1.1.4
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -172,7 +172,7 @@ Some features need the helper: the recorder red button, opening Maps search, and
 **Export settings to a file** saves every Look & colors choice, contacts, notes and background pictures as one file. **Import settings from a file** loads it again. Keep a copy before big changes. Saved layouts are part of the backup.
 
 ### Reset everything to automatic
-Puts all colours, fonts and sizes back to automatic.
+Does the same as Pencil > Reset: puts the widget back to the standard layout and removes all themes, colours, fonts, sizes, shapes and moved places. Your apps, contacts, shortcuts, notes and message filters are kept. Below it, **Undo last reset or load** brings back what you had before (one step). Custom background pictures are removed and not brought back.
 
 ## 11. Tips
 - Hidden items are shown again in Arrange & resize first, then they can be moved.

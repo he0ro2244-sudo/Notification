@@ -1093,17 +1093,41 @@ class SettingsActivity : Activity() {
             col.addView(im)
         }
 
+        // Same reset as Pencil > Reset: look, colours, fonts, sizes, shapes AND moved places, so nothing is left overlapping.
         val reset = Button(this)
         reset.text = "Reset everything to automatic"
         reset.isAllCaps = false
         reset.setOnClickListener {
-            Prefs.resetLook(this)
-            applyLook()
-            rebuild()
+            AlertDialog.Builder(this)
+                .setMessage("Reset the widget to the standard layout and remove ALL themes, colours, fonts, sizes, shapes and moved places? Your apps, contacts, shortcuts, notes and message filters are kept. This is the same as Pencil > Reset, and you can undo it here (Undo last reset or load).")
+                .setPositiveButton("Reset all") { _, _ ->
+                    Prefs.resetAllLook(this)
+                    TilesWidget.rebuildAll(applicationContext)
+                    applyLook()
+                    rebuild()
+                    Toast.makeText(this, "Everything is back to default. You can undo it below.", Toast.LENGTH_LONG).show()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
         val lp = LinearLayout.LayoutParams(MATCH, WRAP)
         lp.topMargin = dp(24)
         col.addView(reset, lp)
+        col.addView(hint("Does the same as Pencil > Reset: back to the standard widget (top row, fast dial, shortcuts row, Inbox row). It removes themes, colours, fonts, sizes, shapes and moved places. Your apps, contacts, shortcuts, notes and message filters are kept. Custom background pictures are removed and are not brought back by Undo."))
+        if (Prefs.hasUndo(this)) {
+            val undo = Button(this)
+            undo.text = "Undo last reset or load"
+            undo.isAllCaps = false
+            undo.setOnClickListener {
+                val ok = Prefs.undoLook(this)
+                TilesWidget.rebuildAll(applicationContext)
+                applyLook()
+                rebuild()
+                Toast.makeText(this, if (ok) "Brought back" else "Nothing to undo", Toast.LENGTH_SHORT).show()
+            }
+            col.addView(undo, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
+            col.addView(hint("Brings back the look and places you had before the last Reset or loaded layout (one step)."))
+        }
 
         category("📖  HELP", "The full user manual")
         section("User manual (read me)", "How to use everything in Notif Tiles") { Manual.addTo(this, col) }
