@@ -1,5 +1,8 @@
 # Release notes
 
+## 1.1.7
+- **Same size for a whole row** (Arrange & resize > Every item): each group (Top row, Fast-dial circles, Shortcuts row circles, Inbox row) has a tick box "Same size for every item in this row". Ticking it sets the whole row to the size of its first item, and from then on moving the Size, Shape width or Shape height slider of any item in that row moves all the others too, so sizes can't get mismatched. Untick it to size items one by one again. Reset clears the ticks.
+
 ## 1.1.6
 - **Fix: blank white widget in 1.1.5.** A widget layout may only use certain view types, and 1.1.5 added a plain View that Android refuses to draw, so the whole widget came out empty. It now uses an allowed one. Swipe-through is unchanged.
 

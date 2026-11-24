@@ -344,6 +344,9 @@ object Prefs {
     fun setBlockOrder(c: Context, l: List<String>) = sp(c).edit().putString("lay_blocks", l.joinToString(",")).apply()
 
     /** Size of one single item (w_title, w_note, w_clear, w_mic, w_gear) in percent, on top of its section's size. */
+    /** "Keep every item of this row the same size": while on, changing the size / width / height of one item sets all items of the row. */
+    fun matchRow(c: Context, group: String): Boolean = sp(c).getBoolean("lay_match_$group", false)
+    fun setMatchRow(c: Context, group: String, v: Boolean) = sp(c).edit().putBoolean("lay_match_$group", v).apply()
     fun itemScale(c: Context, key: String): Int = sp(c).getInt("lay_iscale_$key", 100).coerceIn(50, 250)
     fun setItemScale(c: Context, key: String, v: Int) = sp(c).edit().putInt("lay_iscale_$key", v.coerceIn(50, 250)).apply()
 
@@ -367,7 +370,7 @@ object Prefs {
     fun resetArrange(c: Context) {
         val e = sp(c).edit()
         for (k in listOf("lay_blocks", "lay_order", "lay_pill_pos", "lay_pill_first", "lay_merge", "lay_merge_h", "lay_merge_gap", "lay_where_w", "lay_editbtn", "lay_row_top", "lay_row_head")) e.remove(k)
-        for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_") || k.startsWith("lay_wscale_") || k.startsWith("lay_hscale_")) e.remove(k)
+        for (k in sp(c).all.keys) if (k.startsWith("lay_iscale_") || k.startsWith("lay_wscale_") || k.startsWith("lay_hscale_") || k.startsWith("lay_match_")) e.remove(k)
         for (k in BLOCKS) e.remove("lay_scale_$k")
         e.remove("free_on").remove("free_pos").remove("free_ref_w").remove("free_grid_top")
         e.apply()

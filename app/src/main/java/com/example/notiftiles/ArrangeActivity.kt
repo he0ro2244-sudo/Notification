@@ -137,8 +137,40 @@ class ArrangeActivity : Activity() {
             hdr("w_note", "+ Note", "note"), hdr("w_clear", "Clear all", "clear"), hdr("w_gear", "Settings gear", "gear"),
             Spec("w_edit", "Pencil ✎ (opens this screen)", { Prefs.editBtn(this) }, { v -> Prefs.setEditBtn(this, v) }, "edit"),
             Spec("w_refresh", "Refresh icon", { Prefs.refreshShow(this) }, { v -> Prefs.setRefreshShow(this, v) }, "refresh")))
+        fun isBoxKey(k: String) = k in setOf("w_clock", "w_weather", "w_date", "w_merge") || k.startsWith("d") || k.startsWith("q")
         for ((groupName, list) in specs) {
             col.addView(title(groupName, 14f, 12))
+            val gKey = groupName.replace(Regex("[^A-Za-z0-9]"), "_")
+            val matching = list.size > 1 && Prefs.matchRow(this, gKey)
+            // kind: 0 = size, 1 = shape width, 2 = shape height. While "same size" is on, the change goes to every item of the row.
+            fun spread(kind: Int, v: Int) {
+                if (!Prefs.matchRow(this, gKey)) return
+                for (o in list) {
+                    when (kind) {
+                        0 -> Prefs.setItemScale(this, o.key, v)
+                        1 -> if (isBoxKey(o.key)) Prefs.setItemW(this, o.key, v)
+                        else -> if (isBoxKey(o.key) || o.key == "w_where") Prefs.setItemH(this, o.key, v)
+                    }
+                }
+            }
+            val after: (() -> Unit)? = if (matching) ({ rebuild() }) else null
+            if (list.size > 1) {
+                val cb = android.widget.CheckBox(this)
+                cb.text = "Same size for every item in this row (matches \"" + list[0].label + "\")"
+                cb.isChecked = matching
+                cb.setOnCheckedChangeListener { _, v ->
+                    Prefs.setMatchRow(this, gKey, v)
+                    if (v) {
+                        // Match the whole row to its first item now, so the sliders below agree at once.
+                        val first = list[0].key
+                        spread(0, Prefs.itemScale(this, first))
+                        if (isBoxKey(first)) { spread(1, Prefs.itemW(this, first)); spread(2, Prefs.itemH(this, first)) }
+                        redraw()
+                    }
+                    rebuild()
+                }
+                col.addView(cb)
+            }
             for (sp in list) {
                 val box = LinearLayout(this)
                 box.orientation = LinearLayout.VERTICAL
@@ -169,11 +201,11 @@ class ArrangeActivity : Activity() {
                 }
                 if (sp.on != null && sp.setOn != null) rowTop.addView(smallSwitch(sp.on.invoke()) { sp.setOn.invoke(it); redraw() })
                 box.addView(rowTop)
-                box.addView(sizeBar(Prefs.itemScale(this, sp.key), 50, 250) { Prefs.setItemScale(this, sp.key, it) })
+                box.addView(sizeBar(Prefs.itemScale(this, sp.key), 50, 250, "Size", after) { Prefs.setItemScale(this, sp.key, it); spread(0, it) })
                 val isBox = sp.key in setOf("w_clock", "w_weather", "w_date", "w_merge") || sp.key.startsWith("d") || sp.key.startsWith("q")
-                if (isBox) box.addView(sizeBar(Prefs.itemW(this, sp.key), 50, 250, "Shape width only (text size stays)") { Prefs.setItemW(this, sp.key, it) })
+                if (isBox) box.addView(sizeBar(Prefs.itemW(this, sp.key), 50, 250, "Shape width only (text size stays)", after) { Prefs.setItemW(this, sp.key, it); spread(1, it) })
                 if (sp.key == "w_where") box.addView(if (free) freeWhereWidthBar() else whereWidthBar())
-                if (isBox || sp.key == "w_where") box.addView(sizeBar(Prefs.itemH(this, sp.key), 50, 250, "Shape height only (text size stays)") { Prefs.setItemH(this, sp.key, it) })
+                if (isBox || sp.key == "w_where") box.addView(sizeBar(Prefs.itemH(this, sp.key), 50, 250, "Shape height only (text size stays)", after) { Prefs.setItemH(this, sp.key, it); spread(2, it) })
                 col.addView(box)
             }
         }
@@ -352,7 +384,7 @@ class ArrangeActivity : Activity() {
         return box
     }
 
-    private fun sizeBar(value: Int, min: Int = 50, max: Int = 200, label: String = "Size", set: (Int) -> Unit): View {
+    private fun sizeBar(value: Int, min: Int = 50, max: Int = 200, label: String = "Size", onDone: (() -> Unit)? = null, set: (Int) -> Unit): View {
         val box = LinearLayout(this)
         box.orientation = LinearLayout.VERTICAL
         val t = TextView(this)
@@ -369,7 +401,7 @@ class ArrangeActivity : Activity() {
                 if (fromUser) set(p + min)
             }
             override fun onStartTrackingTouch(s: SeekBar) {}
-            override fun onStopTrackingTouch(s: SeekBar) { redraw() }
+            override fun onStopTrackingTouch(s: SeekBar) { redraw(); onDone?.invoke() }
         })
         box.addView(sb)
         return box
