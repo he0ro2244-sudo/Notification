@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.1.22
+- **Snapchat (and other empty alerts): the opened message is no longer blank.** When an app gives no text and no picture (Snapchat only sends a short alert, or a "someone is typing" alert was already replaced), the card now says so and a tap opens the app, instead of showing an empty card.
+- **Back button:** the phone's Back button now goes from an opened message back to the tiles first, and a second Back closes the panel.
+- **Panel tile taps are written to the action log** ("tile tapped: ..."), to help find why tiles may stop responding on some phones.
+- Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.21
 - **Emoji for Settings and Inbox.** *Choose emoji icons...* (Settings > LOOK, and the pencil menu > *Emoji icons*) now has two more places: **Settings (gear)** on the widget and in the panel, and the **Inbox title** (shows e.g. "📥 Inbox" on the widget and the panel). *Normal icon* goes back, as before.
 - **More emoji to choose from** in every place (Notes, Mic, Reset, Clear all, Pencil: 15 more each), plus full lists for the gear and Inbox. You can still type or paste any emoji of your own.

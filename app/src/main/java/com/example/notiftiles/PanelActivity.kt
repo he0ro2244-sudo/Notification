@@ -253,6 +253,18 @@ class PanelActivity : Activity() {
         return false
     }
 
+    // The phone's Back button first goes from an opened message back to the tiles, then closes the panel
+    @Suppress("DEPRECATION")
+    override fun onBackPressed() {
+        if (expanded != null) {
+            finishViewing()
+            expanded = null
+            refresh()
+        } else {
+            super.onBackPressed()
+        }
+    }
+
     override fun onResume() {
         super.onResume()
         Access.rebindIfNeeded(this)
@@ -578,6 +590,7 @@ class PanelActivity : Activity() {
 
         if (Arrange.customOn(this)) card.setOnLongClickListener { movePicker(sbn.packageName); true }
         card.setOnClickListener {
+            ActionLog.add(this, "tile tapped: " + Feed.label(this, sbn.packageName))
             expanded = sbn.key
             refresh()
         }
@@ -833,6 +846,26 @@ class PanelActivity : Activity() {
         val hasPhotoWord = Feed.photoHint(this, sbn)
         Thread {
             val md = if (sbn.packageName == "com.snapchat.android") null else Feed.media(this, sbn, 1024)
+            val isSnapCard = sbn.packageName == "com.snapchat.android"
+            if (md == null && !hasPhotoWord && (isSnapCard || (tt.isEmpty() && tx.isEmpty()))) {
+                // The app gave no text and no picture (for example Snapchat, which only sends a short alert, or a
+                // "someone is typing" alert that was already replaced): say so instead of showing an empty card.
+                runOnUiThread {
+                    val ph = TextView(this)
+                    ph.text = if (isSnapCard) "👻  Snapchat doesn't share the snap or chat here · tap to open Snapchat"
+                    else "💬  The app gave no text for this message · tap to open it"
+                    ph.textSize = 14f
+                    ph.gravity = Gravity.CENTER
+                    ph.setTextColor(fg)
+                    ph.setPadding(dp(12), dp(20), dp(12), dp(20))
+                    ph.setOnClickListener { open(sbn) }
+                    ph.setOnLongClickListener { showDump(sbn); true }
+                    mediaBox.removeAllViews()
+                    mediaBox.addView(ph, FrameLayout.LayoutParams(MATCH, WRAP))
+                    mediaBox.background = rounded(0x22808080, 12)
+                    mediaBox.visibility = View.VISIBLE
+                }
+            }
             if (md == null && hasPhotoWord) {
                 // Instagram / Snapchat do not hand the photo to other apps: say so clearly and open the app on tap.
                 runOnUiThread {
