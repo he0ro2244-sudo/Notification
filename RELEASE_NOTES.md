@@ -1,5 +1,8 @@
 # Release notes
 
+## 1.1.6
+- **Fix: blank white widget in 1.1.5.** A widget layout may only use certain view types, and 1.1.5 added a plain View that Android refuses to draw, so the whole widget came out empty. It now uses an allowed one. Swipe-through is unchanged.
+
 ## 1.1.5
 - **Swipe-through** (Settings > MESSAGES > Pages, shortcuts & grouping): the widget's tiles are drawn as fixed views instead of a scrolling list, so a swipe that starts on them is no longer taken by the widget and your launcher (for example Nova's swipe down) still gets it. Shows the first 8 tiles (or "Most tiles on the widget", up to 12); Pages reach the rest. Tapping a tile works as before. Off by default; with it off nothing changes.
 
