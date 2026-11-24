@@ -56,7 +56,7 @@ object Extras {
         val svc = NotifListener.instance
         for (n in Feed.items(c, true)) {
             Feed.markDone(c, n, Feed.handledStamp(n))
-            if (Prefs.dismissHandled(c) && n.isClearable) svc?.cancelNotification(n.key)
+            if (Prefs.dismissHandled(c) && n.isClearable) Feed.cancelKeys(svc, listOf(n.key))
         }
     }
 

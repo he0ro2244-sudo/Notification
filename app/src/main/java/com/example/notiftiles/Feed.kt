@@ -502,4 +502,27 @@ object Feed {
             else -> pinFirst.thenByDescending { it.postTime }
         }
     }
+
+    /**
+     * Removes these notifications from the phone's shade. Apps like Gmail also post a group "summary" (the "2 new messages" bar):
+     * the panel hides it, so removing only the messages left that bar behind. When the last message of a group goes, its summary goes too.
+     */
+    fun cancelKeys(svc: android.service.notification.NotificationListenerService?, keys: List<String>) {
+        if (svc == null || keys.isEmpty()) return
+        val ks = keys.toSet()
+        val all = ArrayList<String>(ks)
+        try {
+            val active = svc.activeNotifications?.toList() ?: emptyList()
+            val groups = active.filter { it.key in ks }.map { it.groupKey }.distinct()
+            for (g in groups) {
+                val same = active.filter { it.groupKey == g }
+                val left = same.filter { (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) == 0 && it.key !in ks }
+                if (left.isEmpty()) {
+                    for (sm in same) if ((sm.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0 && sm.isClearable) all.add(sm.key)
+                }
+            }
+        } catch (e: Exception) {
+        }
+        try { svc.cancelNotifications(all.distinct().toTypedArray()) } catch (e: Exception) { }
+    }
 }

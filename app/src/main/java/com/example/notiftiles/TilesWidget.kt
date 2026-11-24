@@ -25,7 +25,7 @@ class TilesWidget : AppWidgetProvider() {
                 val svc = NotifListener.instance
                 if (svc != null) {
                     val keys = Feed.items(context).filter { it.isClearable }.map { it.key }.toTypedArray()
-                    if (keys.isNotEmpty()) svc.cancelNotifications(keys)
+                    if (keys.isNotEmpty()) Feed.cancelKeys(svc, keys.toList())
                 }
             }
             refresh(context)

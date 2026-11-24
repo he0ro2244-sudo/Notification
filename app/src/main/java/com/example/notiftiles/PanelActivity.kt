@@ -273,10 +273,10 @@ class PanelActivity : Activity() {
         if (!Prefs.dismissHandled(this) || !sbn.isClearable) return
         val key = sbn.key
         if (delayMs <= 0L) {
-            NotifListener.instance?.cancelNotification(key)
+            Feed.cancelKeys(NotifListener.instance, listOf(key))
         } else {
             android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                NotifListener.instance?.cancelNotification(key)
+                Feed.cancelKeys(NotifListener.instance, listOf(key))
             }, delayMs)
         }
     }
@@ -753,11 +753,11 @@ class PanelActivity : Activity() {
                 for (o in all) Feed.markDismissed(this, o, Feed.handledStamp(o))
                 val keys = (all.map { it.key } + sbn.key).distinct().toTypedArray()
                 ActionLog.add(this, "x on " + Feed.label(this, sbn.packageName) + ": all " + keys.size + " chats of this app hidden like a swipe, nothing marked read, panel closed")
-                NotifListener.instance?.cancelNotifications(keys)
+                Feed.cancelKeys(NotifListener.instance, keys.toList())
             } else {
             Feed.markDismissed(this, sbn, Feed.handledStamp(sbn))
             ActionLog.add(this, "x on " + Feed.label(this, sbn.packageName) + ": hidden like a swipe, nothing marked read, panel closed")
-            NotifListener.instance?.cancelNotification(sbn.key)
+            Feed.cancelKeys(NotifListener.instance, listOf(sbn.key))
             }
             viewing = null
             expanded = null
@@ -1125,7 +1125,7 @@ class PanelActivity : Activity() {
                 if (n != null && n.isClearable && Prefs.dismissHandled(app) &&
                     Feed.newestTs(n) <= Feed.handledUntil(app, n)
                 ) {
-                    svc.cancelNotification(key)
+                    Feed.cancelKeys(svc, listOf(key))
                 }
                 TilesWidget.refresh(app)
             }, d)
@@ -1242,7 +1242,7 @@ class PanelActivity : Activity() {
                 ActionLog.add(this, "Open " + Feed.label(this, sbn.packageName) + " (" + ActionLog.kind(pi) + "): " + (if (opened) "sent" else "FAILED, the chat link expired"))
                 if (!opened) toast("Couldn't open")
                 if ((sbn.notification.flags and Notification.FLAG_AUTO_CANCEL) != 0) {
-                    NotifListener.instance?.cancelNotification(sbn.key)
+                    Feed.cancelKeys(NotifListener.instance, listOf(sbn.key))
                 }
             } else {
                 packageManager.getLaunchIntentForPackage(sbn.packageName)?.let { startActivity(it) }
@@ -1257,13 +1257,13 @@ class PanelActivity : Activity() {
         val keys = Feed.items(this, true).filter { it.packageName == pkg && it.isClearable }
             .map { it.key }.toTypedArray()
         expanded = null
-        if (keys.isNotEmpty()) svc.cancelNotifications(keys)
+        if (keys.isNotEmpty()) Feed.cancelKeys(svc, keys.toList())
     }
 
     private fun clearAll() {
         val svc = NotifListener.instance ?: return
         val keys = Feed.items(this, true).filter { it.isClearable }.map { it.key }.toTypedArray()
-        if (keys.isNotEmpty()) svc.cancelNotifications(keys)
+        if (keys.isNotEmpty()) Feed.cancelKeys(svc, keys.toList())
     }
 
     private var lastToast: Toast? = null
