@@ -171,7 +171,7 @@ object Prefs {
         e.putBoolean("quick_on", true).putBoolean("lay_editbtn", true)
         e.apply()
         // A reset that changed nothing (already standard) is not a step, so it can never push the real "before" out of the history
-        if (fullJson(c) != before) pushSnapshot(c, scope, before)
+        if (fullJson(c) != before) pushSnapshot(c, scope, before, "Reset everything to standard")
     }
 
     // ---- Undo and saved layouts: a copy of every look / layout setting (custom background pictures are not part of it) ----
@@ -236,7 +236,7 @@ object Prefs {
     )
 
     fun isTrackedKey(k: String): Boolean =
-        k !in NOT_TRACKED && !k.startsWith("hist_") && !k.startsWith("preset_") && !k.startsWith("scr_page_") && !k.startsWith("free_prev_")
+        k !in NOT_TRACKED && !k.startsWith("hist_") && !k.startsWith("h2_") && !k.startsWith("r2_") && !k.startsWith("preset_") && !k.startsWith("scr_page_") && !k.startsWith("free_prev_")
 
     fun fullJson(c: Context): String {
         val o = org.json.JSONObject()
@@ -289,50 +289,136 @@ object Prefs {
         false
     }
 
-    // Undo history: one list of "before" copies per scope (the pencil screens and Settings each keep their own), newest last.
-    private fun histGet(c: Context, scope: String): MutableList<String> {
-        val raw = sp(c).getString("hist_$scope", "") ?: ""
+    // ---- Undo / redo history. One list per scope (the pencil screens and Settings each keep their own), newest last.
+    // Every step keeps: when, a short description of what changed, and a full copy of the settings (s).
+    // In the undo list s = how things were BEFORE the step. In the redo list s = how things were AFTER the step.
+    class HistEntry(val t: Long, val l: String, val s: String)
+
+    private fun listGet(c: Context, key: String): MutableList<HistEntry> {
+        val raw = sp(c).getString(key, "") ?: ""
         if (raw.isEmpty()) return ArrayList()
         return try {
             val a = org.json.JSONArray(raw)
-            val l = ArrayList<String>()
-            for (i in 0 until a.length()) l.add(a.getString(i))
+            val l = ArrayList<HistEntry>()
+            for (i in 0 until a.length()) {
+                val o = a.getJSONObject(i)
+                l.add(HistEntry(o.getLong("t"), o.getString("l"), o.getString("s")))
+            }
             l
         } catch (e: Exception) {
             ArrayList()
         }
     }
 
-    private fun histPut(c: Context, scope: String, l: List<String>) {
+    private fun listPut(c: Context, key: String, l: List<HistEntry>) {
         if (l.isEmpty()) {
-            sp(c).edit().remove("hist_$scope").apply()
+            sp(c).edit().remove(key).apply()
         } else {
             val a = org.json.JSONArray()
-            for (x in l) a.put(x)
-            sp(c).edit().putString("hist_$scope", a.toString()).apply()
+            for (x in l) a.put(org.json.JSONObject().put("t", x.t).put("l", x.l).put("s", x.s))
+            sp(c).edit().putString(key, a.toString()).apply()
         }
     }
 
-    /** Adds a "before" copy as one undo step (the same copy twice in a row is ignored). */
-    fun pushSnapshot(c: Context, scope: String, snap: String) {
-        val l = histGet(c, scope)
-        if (l.isNotEmpty() && l[l.size - 1] == snap) return
-        l.add(snap)
+    private fun uKey(scope: String) = "h2_$scope"
+    private fun rKey(scope: String) = "r2_$scope"
+
+    /** Adds a step (a new change always clears the redo list). [before] is the copy from just before the change. */
+    fun pushSnapshot(c: Context, scope: String, before: String, label: String) {
+        val l = listGet(c, uKey(scope))
+        if (l.isNotEmpty() && l[l.size - 1].s == before) return
+        l.add(HistEntry(System.currentTimeMillis(), label, before))
         while (l.size > HIST_MAX) l.removeAt(0)
-        histPut(c, scope, l)
+        listPut(c, uKey(scope), l)
+        listPut(c, rKey(scope), emptyList())
     }
 
-    fun undoSteps(c: Context, scope: String): Int = histGet(c, scope).size
+    fun undoSteps(c: Context, scope: String): Int = listGet(c, uKey(scope)).size
+    fun redoSteps(c: Context, scope: String): Int = listGet(c, rKey(scope)).size
     fun hasUndo(c: Context, scope: String): Boolean = undoSteps(c, scope) > 0
 
-    /** Puts the widget back to how it was before the last step of this scope (one step at a time). */
-    fun undoLook(c: Context, scope: String): Boolean {
-        val l = histGet(c, scope)
-        if (l.isEmpty()) return false
-        val last = l.removeAt(l.size - 1)
-        val ok = restoreFull(c, last)
-        if (ok) histPut(c, scope, l)
-        return ok
+    /** Newest first. */
+    fun undoList(c: Context, scope: String): List<HistEntry> = listGet(c, uKey(scope)).reversed()
+
+    /** Next one to redo first. */
+    fun redoList(c: Context, scope: String): List<HistEntry> = listGet(c, rKey(scope)).reversed()
+
+    /** Takes back the last [n] steps (default 1). The steps move to the redo list. */
+    fun undoLook(c: Context, scope: String, n: Int = 1): Boolean {
+        val l = listGet(c, uKey(scope))
+        if (l.isEmpty() || n < 1) return false
+        val count = minOf(n, l.size)
+        val idx = l.size - count
+        val current = fullJson(c)
+        val redo = listGet(c, rKey(scope))
+        // state after step j = the "before" copy of step j+1 (the newest step: how things are now)
+        for (j in l.size - 1 downTo idx) {
+            val after = if (j == l.size - 1) current else l[j + 1].s
+            redo.add(HistEntry(l[j].t, l[j].l, after))
+        }
+        if (!restoreFull(c, l[idx].s)) return false
+        listPut(c, uKey(scope), l.subList(0, idx))
+        listPut(c, rKey(scope), redo)
+        return true
+    }
+
+    /** Puts back the next [n] steps that were taken back. */
+    fun redoLook(c: Context, scope: String, n: Int = 1): Boolean {
+        val redo = listGet(c, rKey(scope))
+        if (redo.isEmpty() || n < 1) return false
+        val count = minOf(n, redo.size)
+        val hist = listGet(c, uKey(scope))
+        var cur = fullJson(c)
+        var last = ""
+        for (k in 0 until count) {
+            val e = redo.removeAt(redo.size - 1)
+            hist.add(HistEntry(e.t, e.l, cur))
+            cur = e.s
+            last = e.s
+        }
+        if (!restoreFull(c, last)) return false
+        while (hist.size > HIST_MAX) hist.removeAt(0)
+        listPut(c, uKey(scope), hist)
+        listPut(c, rKey(scope), redo)
+        return true
+    }
+
+    /** A short description of what differs between two copies, e.g. "Look: font size, text color". */
+    fun describe(before: String, after: String): String {
+        return try {
+            val b = org.json.JSONObject(before)
+            val a = org.json.JSONObject(after)
+            val keys = java.util.TreeSet<String>()
+            val ib = b.keys(); while (ib.hasNext()) keys.add(ib.next())
+            val ia = a.keys(); while (ia.hasNext()) keys.add(ia.next())
+            val changed = keys.filter { b.optJSONObject(it)?.toString() != a.optJSONObject(it)?.toString() }
+            if (changed.isEmpty()) return "Change"
+            fun group(k: String): String = when (k.substringBefore('_')) {
+                "look" -> "Look"
+                "lay" -> "Layout"
+                "free" -> "Moved places"
+                "quick" -> "Shortcuts"
+                "dial" -> "Fast dial"
+                "w" -> "Weather"
+                "scr" -> "Pages & screen"
+                "cnt" -> "Counting"
+                "sn" -> "Snooze"
+                "msg" -> "Messages"
+                "note", "notes" -> "Notes"
+                else -> "Settings"
+            }
+            fun pretty(k: String): String = (if (k.contains('_')) k.substringAfter('_') else k).replace('_', ' ')
+            val groups = changed.map { group(it) }.distinct()
+            if (groups.size == 1) {
+                val names = changed.map { pretty(it) }
+                val shown = names.take(3).joinToString(", ")
+                groups[0] + ": " + shown + (if (names.size > 3) " (+" + (names.size - 3) + " more)" else "")
+            } else {
+                groups.joinToString(", ") + " (" + changed.size + " settings)"
+            }
+        } catch (e: Exception) {
+            "Change"
+        }
     }
 
     fun presetNames(c: Context): List<String> =
@@ -348,7 +434,7 @@ object Prefs {
         if (j.isEmpty()) return false
         val before = fullJson(c)
         val ok = restoreJson(c, j)
-        if (ok && fullJson(c) != before) pushSnapshot(c, scope, before)
+        if (ok && fullJson(c) != before) pushSnapshot(c, scope, before, "Loaded layout " + name)
         return ok
     }
     fun deletePreset(c: Context, name: String) = sp(c).edit().remove("preset_$name").apply()
@@ -1017,6 +1103,9 @@ object Prefs {
     /** 0 = as typed, 1 = UPPERCASE, 2 = lowercase, 3 = Each Word Capital (widget text only) */
     fun textCase(c: Context): Int = sp(c).getInt("look_case", 0).coerceIn(0, 3)
     fun setTextCase(c: Context, v: Int) = sp(c).edit().putInt("look_case", v).apply()
+    // Emoji in place of the built-in icons / words ("" = the normal one). Keys: note, mic, reset, clear, edit
+    fun emojiOf(c: Context, k: String): String = sp(c).getString("look_emoji_$k", "") ?: ""
+    fun setEmojiOf(c: Context, k: String, v: String) = sp(c).edit().putString("look_emoji_$k", v.trim().take(8)).apply()
     fun icons3d(c: Context): Boolean = sp(c).getBoolean("look_3d", false)
     fun setIcons3d(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_3d", v).apply()
 

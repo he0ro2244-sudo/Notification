@@ -74,6 +74,35 @@ object Look {
 
     fun scale(ctx: Context): Float = Prefs.fontScale(ctx) / 100f
 
+    // Emoji that can replace the built-in icons / words (see EmojiPicker)
+    val EMOJI_NOTE = listOf("📝", "🗒️", "📒", "📓", "📔", "📋", "📌", "📍", "✍️", "🖊️", "💡", "⭐", "❤️", "🔖", "➕")
+    val EMOJI_MIC = listOf("🎙️", "🎤", "🎧", "🔴", "⏺️", "📢", "🔊", "🗣️", "🎵", "📻", "🎚️", "📣", "🎶", "🎼", "🎬")
+    val EMOJI_RESET = listOf("🔄", "🔁", "♻️", "🧹", "✨", "🗑️", "💫", "⚡", "🌀", "🔃", "🧽", "🪄", "🌈", "🔥", "💥")
+    val EMOJI_CLEAR = listOf("🧹", "🗑️", "✅", "✔️", "🧼", "🪄", "✨", "❌", "🧽", "💨", "🚮", "📭", "🫧", "🗂️", "📥")
+    val EMOJI_EDIT = listOf("✏️", "🖍️", "🖊️", "🖌️", "🎨", "🛠️", "⚙️", "🔧", "✨", "🪄", "📐", "🧩", "🎛️", "🔮", "🧪")
+
+    fun withEmoji(emoji: String, text: String): String = if (emoji.isEmpty()) text else "$emoji $text"
+
+    /** "+ Note", or "<emoji> Note" when an emoji is chosen. */
+    fun noteLabel(ctx: Context): String = Prefs.emojiOf(ctx, "note").let { if (it.isEmpty()) "+ Note" else "$it Note" }
+
+    /** An emoji drawn into a square picture, for the widget's image buttons (mic, refresh). */
+    fun emojiBitmap(ctx: Context, emoji: String, dpSize: Float): Bitmap? {
+        if (emoji.isEmpty()) return null
+        return try {
+            val px = (dpSize * ctx.resources.displayMetrics.density).toInt().coerceIn(32, 192)
+            val bmp = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+            val p = Paint(Paint.ANTI_ALIAS_FLAG)
+            p.textSize = px * 0.78f
+            p.textAlign = Paint.Align.CENTER
+            val fm = p.fontMetrics
+            Canvas(bmp).drawText(emoji, px / 2f, px / 2f - (fm.ascent + fm.descent) / 2f, p)
+            bmp
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     private fun boldFor(ctx: Context, designed: Boolean): Boolean = when (Prefs.boldMode(ctx)) {
         1 -> true
         2 -> false

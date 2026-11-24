@@ -40,19 +40,25 @@ class SettingsActivity : Activity() {
 
     private val bgColors = intArrayOf(
         0, c(0xFF000000), c(0xFF1C1C20), c(0xFFFFFFFF), c(0xFFF2F2F5), c(0xFF1E3A8A),
-        c(0xFF0F766E), c(0xFF166534), c(0xFF7C3AED), c(0xFFB91C1C), c(0xFFEA580C), c(0xFFDB2777)
+        c(0xFF0F766E), c(0xFF166534), c(0xFF7C3AED), c(0xFFB91C1C), c(0xFFEA580C), c(0xFFDB2777),
+        c(0xFF0B1020), c(0xFF0F3D4C), c(0xFF14301F), c(0xFF3B1D2A), c(0xFF2B1D16),
+        c(0xFFFCE7F3), c(0xFFE0F2FE), c(0xFFF5EBDD), c(0xFFEDE9FE), c(0xFFD1FAE5)
     )
     private val borderColors = intArrayOf(
         0, c(0xFFFFFFFF), c(0xFF000000), c(0xFF3B82F6), c(0xFF22D3EE), c(0xFF4ADE80),
-        c(0xFFFACC15), c(0xFFFB923C), c(0xFFEF4444), c(0xFFDB2777), c(0xFFA78BFA)
+        c(0xFFFACC15), c(0xFFFB923C), c(0xFFEF4444), c(0xFFDB2777), c(0xFFA78BFA),
+        c(0xFFFFD700), c(0xFF00F5D4), c(0xFFFF2BD6), c(0xFF84CC16), c(0xFF6366F1), c(0xFF40E0D0)
     )
     private val scrimColors = intArrayOf(
-        c(0xFF000000), c(0xFF1C1C20), c(0xFF1E3A8A), c(0xFF7C3AED), c(0xFF0F766E), c(0xFF3E2723)
+        c(0xFF000000), c(0xFF1C1C20), c(0xFF1E3A8A), c(0xFF7C3AED), c(0xFF0F766E), c(0xFF3E2723),
+        c(0xFF0B1020), c(0xFF14301F), c(0xFF3B1D2A)
     )
 
     private val accents = intArrayOf(
         c(0xFF3B82F6), c(0xFF22D3EE), c(0xFF4ADE80), c(0xFFFACC15),
-        c(0xFFFB923C), c(0xFFEF4444), c(0xFFDB2777), c(0xFFA78BFA)
+        c(0xFFFB923C), c(0xFFEF4444), c(0xFFDB2777), c(0xFFA78BFA),
+        c(0xFFFF2BD6), c(0xFF00F5D4), c(0xFFFF7F50), c(0xFF40E0D0),
+        c(0xFF84CC16), c(0xFF6366F1), c(0xFFFFD700), c(0xFFFFFFFF)
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -64,9 +70,9 @@ class SettingsActivity : Activity() {
         scroll.addView(col)
         live = LivePreview(this)
         val screen = live.wrap(scroll)
-        tracker = ChangeTracker(this, Prefs.SCOPE_SETTINGS) { if (::undoBtn.isInitialized) undoBtn.text = UndoBar.label(this, Prefs.SCOPE_SETTINGS) }
-        undoBtn = UndoBar.make(this, Prefs.SCOPE_SETTINGS, tracker) { applyLook(); rebuild() }
-        UndoBar.pin(screen, undoBtn)
+        tracker = ChangeTracker(this, Prefs.SCOPE_SETTINGS) { if (::undoBar.isInitialized) undoBar.refresh() }
+        undoBar = UndoBar(this, Prefs.SCOPE_SETTINGS, tracker) { applyLook(); rebuild() }
+        UndoBar.pin(screen, undoBar)
         setContentView(screen)
         build()
         applyFilter()
@@ -74,7 +80,7 @@ class SettingsActivity : Activity() {
 
     // Settings' own undo list (the pencil screens keep a separate one): every change made here can be taken back one step at a time
     private lateinit var tracker: ChangeTracker
-    private lateinit var undoBtn: Button
+    private lateinit var undoBar: UndoBar
 
     // Opened from the widget's gear: Back returns straight to the home screen (the widget), not to a screen behind it.
     @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
@@ -97,7 +103,7 @@ class SettingsActivity : Activity() {
         live.start()
         childOpen = false
         tracker.start()
-        undoBtn.text = UndoBar.label(this, Prefs.SCOPE_SETTINGS)
+        undoBar.refresh()
     }
 
     override fun onPause() {
@@ -387,6 +393,11 @@ class SettingsActivity : Activity() {
         col.addView(title("Icons & Clear all colour (mic, settings, refresh)", 16f, 20))
         col.addView(hint("Themes set this too. Auto = the normal grey. A colour picked for one part under Text colour per part still wins."))
         col.addView(swatchRow(intArrayOf(0) + accents, Prefs.iconColor(this)) { Prefs.setIconColor(this, it); applyLook(); rebuild() })
+
+        // ---- Emoji icons
+        col.addView(title("Emoji icons (notes, mic, reset, Clear all, pencil)", 16f, 20))
+        col.addView(hint("Put an emoji in place of the normal icon or word. Now: " + EmojiPicker.summary(this) + "  (note, mic, reset, clear, pencil). Some themes bring their own emoji."))
+        col.addView(smallBtn("Choose emoji icons...") { EmojiPicker.show(this) { applyLook(); rebuild() } })
 
         // ---- Automatic day / night theme
         col.addView(title("Auto theme (day / night)", 16f, 20))
@@ -1255,7 +1266,8 @@ class SettingsActivity : Activity() {
 
     private val textColors = intArrayOf(
         0, c(0xFF000000), c(0xFFFFFFFF), c(0xFF1B1B1F), c(0xFFF2F2F5),
-        c(0xFFFACC15), c(0xFF22D3EE), c(0xFF4ADE80), c(0xFFFB923C), c(0xFFF472B6)
+        c(0xFFFACC15), c(0xFF22D3EE), c(0xFF4ADE80), c(0xFFFB923C), c(0xFFF472B6),
+        c(0xFFFF2BD6), c(0xFF00F5D4), c(0xFFA78BFA), c(0xFFFFD700), c(0xFFFF7F50), c(0xFF84CC16)
     )
 
     private val KINDS = listOf("widget", "dial", "panel")
@@ -1521,10 +1533,29 @@ class SettingsActivity : Activity() {
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         hs.addView(row)
+        val rnd = Button(this)
+        rnd.text = "🎲 Random"
+        rnd.isAllCaps = false
+        rnd.setOnClickListener {
+            Themes.apply(this, Themes.LIST.drop(1).random())
+            applyLook()
+            rebuild()
+        }
+        row.addView(rnd)
         for (t in Themes.LIST) {
             val b = Button(this)
             b.text = t.name
             b.isAllCaps = false
+            if (t.panel != 0) {
+                // each theme button shows the theme's own colours
+                val bgc = t.panel or 0xFF000000.toInt()
+                val g = GradientDrawable()
+                g.cornerRadius = dp(10).toFloat()
+                g.setColor(bgc)
+                g.setStroke(dp(2), t.accent or 0xFF000000.toInt())
+                b.background = g
+                b.setTextColor(Look.contrast(bgc))
+            }
             b.setOnClickListener {
                 Themes.apply(this, t)
                 applyLook()

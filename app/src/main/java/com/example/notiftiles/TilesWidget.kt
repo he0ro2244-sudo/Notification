@@ -554,8 +554,8 @@ class TilesWidget : AppWidgetProvider() {
             val hsc = bs(ctx, "head")
             txt(rv, ctx, R.id.hdr_title, "Inbox", 16f * hsc * isc(ctx, "w_title") * psc(ctx, "title"), true)
             rv.setTextColor(R.id.hdr_title, Prefs.partColor(ctx, "title").let { if (it != 0) it else main })
-            txt(rv, ctx, R.id.wnote, "+ Note", 13f * hsc * isc(ctx, "w_note") * psc(ctx, "note"), true)
-            txt(rv, ctx, R.id.wclear, if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all", 13f * hsc * isc(ctx, "w_clear") * psc(ctx, "clear"), false)
+            txt(rv, ctx, R.id.wnote, Look.noteLabel(ctx), 13f * hsc * isc(ctx, "w_note") * psc(ctx, "note"), true)
+            txt(rv, ctx, R.id.wclear, Look.withEmoji(Prefs.emojiOf(ctx, "clear"), if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all"), 13f * hsc * isc(ctx, "w_clear") * psc(ctx, "clear"), false)
             val ic = Prefs.iconColor(ctx)
             rv.setTextColor(R.id.wclear, Prefs.partColor(ctx, "clear").let { if (it != 0) it else if (ic != 0) ic else sub })
             rv.setInt(R.id.wset, "setColorFilter", Prefs.partColor(ctx, "gear").let { if (it != 0) it else if (ic != 0) ic else sub })
@@ -765,6 +765,7 @@ class TilesWidget : AppWidgetProvider() {
             rv.setViewVisibility(R.id.wclear, vis(Prefs.showItem(ctx, "w_clear"), View.GONE))
             rv.setViewVisibility(R.id.wset, vis(Prefs.showItem(ctx, "w_gear"), View.GONE))
             rv.setViewVisibility(R.id.wedit, if (Prefs.editBtn(ctx)) View.VISIBLE else View.GONE)
+            rv.setTextViewText(R.id.wedit, Prefs.emojiOf(ctx, "edit").ifEmpty { "✎" })
             rv.setTextViewTextSize(R.id.wedit, TypedValue.COMPLEX_UNIT_SP, 16f * bs(ctx, "head") * isc(ctx, "w_edit"))
             rv.setTextColor(R.id.wedit, Prefs.partColor(ctx, "edit").let { if (it != 0) it else if (Prefs.iconColor(ctx) != 0) Prefs.iconColor(ctx) else sub })
             rv.setOnClickPendingIntent(
@@ -801,6 +802,25 @@ class TilesWidget : AppWidgetProvider() {
             } else {
                 rv.setImageViewResource(R.id.wset, R.drawable.ic_gear)
                 rv.setImageViewResource(R.id.wrefresh, R.drawable.ic_refresh)
+            }
+            applyEmoji(rv, ctx)
+        }
+
+        // Emoji instead of the built-in mic / refresh icons (the red stop icon stays while recording)
+        private fun applyEmoji(rv: RemoteViews, ctx: Context) {
+            val em = Prefs.emojiOf(ctx, "mic")
+            if (em.isNotEmpty() && !RecordService.running()) {
+                Look.emojiBitmap(ctx, em, Prefs.micSize(ctx).toFloat() * bs(ctx, "head") * isc(ctx, "w_mic"))?.let {
+                    rv.setImageViewBitmap(R.id.wmic, it)
+                    rv.setInt(R.id.wmic, "setColorFilter", 0)
+                }
+            }
+            val er = Prefs.emojiOf(ctx, "reset")
+            if (er.isNotEmpty()) {
+                Look.emojiBitmap(ctx, er, Prefs.refreshSize(ctx).toFloat() * isc(ctx, "w_refresh"))?.let {
+                    rv.setImageViewBitmap(R.id.wrefresh, it)
+                    rv.setInt(R.id.wrefresh, "setColorFilter", 0)
+                }
             }
         }
 

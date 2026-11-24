@@ -133,7 +133,7 @@ class PanelActivity : Activity() {
 
 
         val addNote = TextView(this)
-        addNote.text = "+ Note"
+        addNote.text = Look.noteLabel(this)
         addNote.textSize = 14f
         addNote.setTag(R.id.nt_grp, "hdr")
         addNote.setTypeface(null, Typeface.BOLD)
@@ -148,7 +148,7 @@ class PanelActivity : Activity() {
         header.addView(addNote)
 
         val clear = TextView(this)
-        clear.text = if (Prefs.clearMode(this) == 1) "Read all" else "Clear all"
+        clear.text = Look.withEmoji(Prefs.emojiOf(this, "clear"), if (Prefs.clearMode(this) == 1) "Read all" else "Clear all")
         clear.textSize = 14f
         clear.setTag(R.id.nt_grp, "clear")
         clear.setTextColor(if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub)

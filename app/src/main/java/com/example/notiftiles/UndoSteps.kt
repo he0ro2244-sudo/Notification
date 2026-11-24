@@ -62,7 +62,7 @@ class ChangeTracker(context: Context, private val scope: String, private val onC
         pendingBefore = null
         val now = Prefs.fullJson(ctx)
         if (now != before) {
-            Prefs.pushSnapshot(ctx, scope, before)
+            Prefs.pushSnapshot(ctx, scope, before, Prefs.describe(before, now))
             onChange()
         }
         shadow = now
@@ -81,37 +81,105 @@ class ChangeTracker(context: Context, private val scope: String, private val onC
         shadow = Prefs.fullJson(ctx)
     }
 
-    /** Takes back one step. Returns false when there is nothing to take back. */
-    fun undo(): Boolean {
+    /** Takes back the last [n] steps. Returns false when there is nothing to take back. */
+    fun undo(n: Int = 1): Boolean {
         flush()
-        val ok = Prefs.undoLook(ctx, scope)
+        val ok = Prefs.undoLook(ctx, scope, n)
+        resync()
+        if (ok) TilesWidget.rebuildAll(ctx)
+        return ok
+    }
+
+    /** Puts back the next [n] steps that were taken back. */
+    fun redo(n: Int = 1): Boolean {
+        flush()
+        val ok = Prefs.redoLook(ctx, scope, n)
         resync()
         if (ok) TilesWidget.rebuildAll(ctx)
         return ok
     }
 }
 
-/** The "Undo" button shown on Settings, Arrange & resize and Move. Its text shows how many steps can be taken back. */
-object UndoBar {
-    fun label(c: Context, scope: String): String {
-        val n = Prefs.undoSteps(c, scope)
-        return if (n > 0) "↶  Undo last change  ($n)" else "↶  Undo last change  (nothing to undo)"
-    }
+/**
+ * The Undo / Redo / History buttons shown on Settings, Arrange & resize and Move.
+ * History is a list of what was done (newest first, with the time): tap a line to go back to just before it,
+ * or tap a line above "now" to go forward again.
+ */
+class UndoBar(private val c: android.app.Activity, private val scope: String, private val tracker: ChangeTracker, private val after: () -> Unit) {
+    val view = LinearLayout(c)
+    private val undoB = Button(c)
+    private val redoB = Button(c)
+    private val histB = Button(c)
 
-    fun make(c: Context, scope: String, tracker: ChangeTracker, after: () -> Unit): Button {
-        val b = Button(c)
-        b.isAllCaps = false
-        b.text = label(c, scope)
-        b.setOnClickListener {
-            val ok = tracker.undo()
-            android.widget.Toast.makeText(c, if (ok) "Brought back" else "Nothing to undo", android.widget.Toast.LENGTH_SHORT).show()
-            after()
+    init {
+        view.orientation = LinearLayout.HORIZONTAL
+        for (b in listOf(undoB, redoB, histB)) {
+            b.isAllCaps = false
+            b.setSingleLine(true)
+            view.addView(b, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         }
-        return b
+        histB.text = "☰ History"
+        undoB.setOnClickListener { done(tracker.undo(1), "Undone") }
+        redoB.setOnClickListener { done(tracker.redo(1), "Redone") }
+        histB.setOnClickListener { showHistory() }
+        refresh()
     }
 
-    /** Pins [bar] under the live preview and above the scrolling content ([root] is what LivePreview.wrap returned). */
-    fun pin(root: android.view.View, bar: Button) {
-        (root as LinearLayout).addView(bar, 2, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    fun refresh() {
+        val u = Prefs.undoSteps(c, scope)
+        val r = Prefs.redoSteps(c, scope)
+        undoB.text = "↶ Undo ($u)"
+        redoB.text = "↷ Redo ($r)"
+        undoB.isEnabled = u > 0
+        redoB.isEnabled = r > 0
+    }
+
+    private fun done(ok: Boolean, msg: String) {
+        android.widget.Toast.makeText(c, if (ok) msg else "Nothing to do", android.widget.Toast.LENGTH_SHORT).show()
+        refresh()
+        after()
+    }
+
+    private fun showHistory() {
+        tracker.flush()
+        val fmt = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
+        val redo = Prefs.redoList(c, scope)
+        val undo = Prefs.undoList(c, scope)
+        val lines = ArrayList<String>()
+        val acts = ArrayList<() -> Boolean>()
+        // Redo entries: farthest in the future first, so the list reads top (later) to bottom (earlier) like the undo part
+        for (i in redo.indices.reversed()) {
+            val e = redo[i]
+            lines.add("↷  " + e.l + "  (" + fmt.format(java.util.Date(e.t)) + ")")
+            val n = i + 1
+            acts.add { tracker.redo(n) }
+        }
+        lines.add("—— now ——")
+        acts.add { false }
+        for (i in undo.indices) {
+            val e = undo[i]
+            lines.add("↶  " + e.l + "  (" + fmt.format(java.util.Date(e.t)) + ")")
+            val n = i + 1
+            acts.add { tracker.undo(n) }
+        }
+        if (undo.isEmpty() && redo.isEmpty()) {
+            android.widget.Toast.makeText(c, "Nothing done yet", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        android.app.AlertDialog.Builder(c)
+            .setTitle("Tap a line: undo back to just before it (↶) or redo up to it (↷)")
+            .setItems(lines.toTypedArray()) { _, which ->
+                if (lines[which].startsWith("——")) return@setItems
+                done(acts[which](), "Done")
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    companion object {
+        /** Pins [bar] under the live preview and above the scrolling content ([root] is what LivePreview.wrap returned). */
+        fun pin(root: android.view.View, bar: UndoBar) {
+            (root as LinearLayout).addView(bar.view, 2, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
     }
 }

@@ -35,7 +35,7 @@ class MoveActivity : Activity() {
     private var heightDp = 300
     private val scope: String get() = intent.getStringExtra("scope") ?: Prefs.SCOPE_PENCIL
     private lateinit var tracker: ChangeTracker
-    private var undoBtn: Button? = null
+    private var undoBar: UndoBar? = null
     private var optW = 0f // the widget width (dp) the home screen reports; the places are saved for it
 
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
@@ -44,7 +44,7 @@ class MoveActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        tracker = ChangeTracker(this, scope) { undoBtn?.text = UndoBar.label(this, scope) }
+        tracker = ChangeTracker(this, scope) { undoBar?.refresh() }
         val col = LinearLayout(this)
         col.orientation = LinearLayout.VERTICAL
         col.setPadding(dp(16), dp(16), dp(16), dp(32))
@@ -116,9 +116,9 @@ class MoveActivity : Activity() {
         col.addView(packBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(4) })
 
         // Same undo as in Arrange & resize: every move, tidy-up or change takes back one step at a time (the list of whoever opened Move)
-        val ub = UndoBar.make(this, scope, tracker) { holder.post { render() }; showNote("Put back to how it was before the last change.") }
-        undoBtn = ub
-        col.addView(ub, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
+        val ub = UndoBar(this, scope, tracker) { holder.post { render() } }
+        undoBar = ub
+        col.addView(ub.view, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
 
         val back = Button(this)
         back.text = "Back to the old rows layout"
@@ -153,7 +153,7 @@ class MoveActivity : Activity() {
     override fun onResume() {
         super.onResume()
         tracker.start()
-        undoBtn?.text = UndoBar.label(this, scope)
+        undoBar?.refresh()
         if (firstResume) { firstResume = false; return }
         render()
     }

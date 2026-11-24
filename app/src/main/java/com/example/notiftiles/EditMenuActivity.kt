@@ -26,7 +26,7 @@ class EditMenuActivity : Activity() {
         col.setPadding(dp(16), dp(24), dp(16), dp(24))
 
         val title = TextView(this)
-        title.text = "Pencil ✎"
+        title.text = "Pencil " + Prefs.emojiOf(this, "edit").ifEmpty { "✎" }
         title.textSize = 20f
         title.setTypeface(title.typeface, Typeface.BOLD)
         col.addView(title)
@@ -47,7 +47,13 @@ class EditMenuActivity : Activity() {
         col.addView(choice("Saved layouts", "Save the widget as it looks now under a name, and load it again later.") {
             showLayouts()
         })
-        col.addView(choice("Reset", "Back to the standard widget: top row, fast-dial circles, shortcuts row and Inbox row in their normal places, no changes to colours, fonts, sizes or shapes. Your apps, contacts, shortcuts and notes are kept.") {
+        col.addView(choice("Themes", "Pick a ready-made look: colours, icons, font, shape and borders. Undo is below.") {
+            showThemes()
+        })
+        col.addView(choice("Emoji icons", "Put an emoji on the Notes, Mic, Reset, Clear all and Pencil buttons.") {
+            EmojiPicker.show(this) { recreate() }
+        })
+        col.addView(choice(Look.withEmoji(Prefs.emojiOf(this, "reset"), "Reset"), "Back to the standard widget: top row, fast-dial circles, shortcuts row and Inbox row in their normal places, no changes to colours, fonts, sizes or shapes. Your apps, contacts, shortcuts and notes are kept.") {
             AlertDialog.Builder(this)
                 .setMessage("Reset the widget to the standard layout (top row, fast-dial, shortcuts row, Inbox row) and remove ALL themes, colours, fonts, sizes and moved places? Your apps, contacts, shortcuts and notes are kept. You can undo this from this menu.")
                 .setPositiveButton("Reset all") { _, _ ->
@@ -60,15 +66,31 @@ class EditMenuActivity : Activity() {
                 .setNegativeButton("Cancel", null)
                 .show()
         })
-        if (Prefs.hasUndo(this, Prefs.SCOPE_PENCIL)) {
-            col.addView(choice("Undo last change (${Prefs.undoSteps(this, Prefs.SCOPE_PENCIL)})", "Takes back the last thing done with the pencil (a move, a resize, a colour, a Reset or a loaded layout), one step at a time. Settings has its own separate Undo. Custom background pictures are not brought back.") {
-                val ok = Prefs.undoLook(this, Prefs.SCOPE_PENCIL)
-                TilesWidget.rebuildAll(applicationContext)
-                android.widget.Toast.makeText(this, if (ok) "Brought back" else "Nothing to undo", android.widget.Toast.LENGTH_SHORT).show()
-                recreate()
-            })
-        }
+        // Undo / Redo / History for what is done with the pencil (Settings keeps its own separate list)
+        val bar = UndoBar(this, Prefs.SCOPE_PENCIL, ChangeTracker(this, Prefs.SCOPE_PENCIL)) { recreate() }
+        col.addView(bar.view, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
         setContentView(col)
+    }
+
+    private fun showThemes() {
+        val names = Themes.LIST.map { it.name }.toTypedArray()
+        AlertDialog.Builder(this)
+            .setTitle("Themes")
+            .setItems(names) { _, i ->
+                Themes.apply(this, Themes.LIST[i])
+                TilesWidget.rebuildAll(applicationContext)
+                android.widget.Toast.makeText(this, names[i], android.widget.Toast.LENGTH_SHORT).show()
+                recreate()
+            }
+            .setNeutralButton("Random") { _, _ ->
+                val t = Themes.LIST.drop(1).random()
+                Themes.apply(this, t)
+                TilesWidget.rebuildAll(applicationContext)
+                android.widget.Toast.makeText(this, t.name, android.widget.Toast.LENGTH_SHORT).show()
+                recreate()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showLayouts() {

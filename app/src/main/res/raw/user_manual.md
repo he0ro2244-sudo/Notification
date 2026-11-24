@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.9
+Version 1.1.20
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -43,6 +43,12 @@ Press and hold any item and drag it anywhere. It stays exactly where you drop it
 - **Where to? box width**: far left means it fills the row, otherwise a fixed width.
 - **Merge into one shape**: pick two or more of clock, weather and date to show them together, one under the other or side by side ("Side by side" switch).
 - **Space between the parts**: a slider (0-30 dp) under Merge into one shape. More space makes each part bigger, so it is easier to tap the clock, weather or date on its own.
+
+### Themes
+Pick a ready-made look (colours, icons, font, shape, borders) straight from the pencil, or tap Random. There are 22 themes. Undo is in the same menu.
+
+### Emoji icons
+Put an emoji on the Notes, Mic, Reset (refresh), Clear all and Pencil buttons. Choose one from the list or type your own. *Normal icon* goes back to the built-in one. The same screen is in Settings > LOOK > Themes & accent colour.
 
 ### Saved layouts
 Save the widget's look and places under a name (for example "Work"), load it later, or delete it. Loading replaces the current look and places.

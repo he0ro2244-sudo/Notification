@@ -32,7 +32,7 @@ class ArrangeActivity : Activity() {
     // Which undo list this screen writes to: Settings' (opened from Settings) or the pencil's (the default)
     private val scope: String get() = intent.getStringExtra("scope") ?: Prefs.SCOPE_PENCIL
     private lateinit var tracker: ChangeTracker
-    private lateinit var undoBtn: Button
+    private lateinit var undoBar: UndoBar
 
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
 
@@ -45,9 +45,9 @@ class ArrangeActivity : Activity() {
         scroll.addView(col)
         live = LivePreview(this)
         val screen = live.wrap(scroll)
-        tracker = ChangeTracker(this, scope) { if (::undoBtn.isInitialized) undoBtn.text = UndoBar.label(this, scope) }
-        undoBtn = UndoBar.make(this, scope, tracker) { rebuild() }
-        UndoBar.pin(screen, undoBtn)
+        tracker = ChangeTracker(this, scope) { if (::undoBar.isInitialized) undoBar.refresh() }
+        undoBar = UndoBar(this, scope, tracker) { rebuild() }
+        UndoBar.pin(screen, undoBar)
         setContentView(screen)
         build()
     }
@@ -56,7 +56,7 @@ class ArrangeActivity : Activity() {
         super.onResume()
         live.start()
         tracker.start()
-        undoBtn.text = UndoBar.label(this, scope)
+        undoBar.refresh()
     }
 
     override fun onPause() {
