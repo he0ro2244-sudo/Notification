@@ -30,6 +30,7 @@ class SettingsActivity : Activity() {
 
     private lateinit var scroll: ScrollView
     private lateinit var col: LinearLayout
+    private lateinit var live: LivePreview
     private var scrimView: View? = null
     private var sheetView: View? = null
     private var widgetView: View? = null
@@ -57,16 +58,12 @@ class SettingsActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         scroll = ScrollView(this)
-        scroll.setOnApplyWindowInsetsListener { v, insets ->
-            val b = insets.getInsets(WindowInsets.Type.systemBars())
-            v.setPadding(0, b.top, 0, b.bottom)
-            insets
-        }
         col = LinearLayout(this)
         col.orientation = LinearLayout.VERTICAL
         col.setPadding(dp(16), dp(16), dp(16), dp(32))
         scroll.addView(col)
-        setContentView(scroll)
+        live = LivePreview(this)
+        setContentView(live.wrap(scroll))
         build()
         applyFilter()
     }
@@ -85,6 +82,27 @@ class SettingsActivity : Activity() {
         } else {
             super.onBackPressed()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        live.start()
+    }
+
+    override fun onPause() {
+        live.stop()
+        super.onPause()
+    }
+
+    // Leaving Settings (Home, recents) closes every section, so it always opens tidy next time.
+    override fun onUserLeaveHint() {
+        openSections.clear()
+        super.onUserLeaveHint()
+    }
+
+    override fun onDestroy() {
+        openSections.clear()
+        super.onDestroy()
     }
 
     override fun onRestart() {
@@ -262,7 +280,10 @@ class SettingsActivity : Activity() {
         h.background = rounded(0x1F808080, 12)
         h.setOnClickListener {
             if (query.isNotBlank()) return@setOnClickListener
-            if (open) openSections.remove(name) else openSections.add(name)
+            if (open) openSections.remove(name) else {
+                if (Prefs.oneSection(this)) openSections.clear()
+                openSections.add(name)
+            }
             rebuild()
         }
         val lp = LinearLayout.LayoutParams(MATCH, WRAP)
@@ -306,6 +327,7 @@ class SettingsActivity : Activity() {
         openRow.addView(openAll, LinearLayout.LayoutParams(0, WRAP, 1f))
         openRow.addView(closeAll, LinearLayout.LayoutParams(0, WRAP, 1f))
         col.addView(openRow)
+        col.addView(toggleRaw("Open one section at a time", Prefs.oneSection(this)) { Prefs.setOneSection(this, it); openSections.clear(); rebuild() })
         val chkAll = Button(this)
         chkAll.isAllCaps = false
         chkAll.text = "Check everything"
@@ -535,6 +557,8 @@ class SettingsActivity : Activity() {
         dragBtn.text = "Arrange & resize by dragging…"
         dragBtn.setOnClickListener { startActivity(Intent(this, ArrangeActivity::class.java)) }
         col.addView(dragBtn)
+        col.addView(seekRange("Space between the widget rows", Prefs.rowGap(this), 0, 30, " dp") { Prefs.setRowGap(this, it); applyLook() })
+        col.addView(hint("Top row, fast dial, shortcuts row and Inbox row. 6 dp = as designed. When items are placed freely, use Move > Tidy up: pack items closer instead."))
         col.addView(hint("Use ▲ ▼ to move the circles. Switch an item off to hide it."))
         val labels = mapOf("clock" to "Clock", "weather" to "Weather", "date" to "Date")
         val order = Prefs.order(this)
@@ -824,6 +848,44 @@ class SettingsActivity : Activity() {
 
         }
 
+        section("Filters & limits", "Hide words, old messages, muted chats, VIP names, reply templates, fewer tiles") {
+        col.addView(hint("These apply to the widget and to the panel. Nothing is deleted from your phone, the messages just stay out of the way."))
+        col.addView(title("Hide messages containing these words", 14f, 12))
+        col.addView(hint("Separate words with commas, for example: promo, offer, verification code. Capital letters do not matter."))
+        col.addView(textPref("Words to hide", Prefs.muteWords(this)) { Prefs.setMuteWords(this, it) })
+        col.addView(title("VIP names (always first)", 14f, 12))
+        col.addView(hint("Messages whose title (the sender or chat name) contains one of these names are listed first, before pinned apps."))
+        col.addView(textPref("VIP names", Prefs.vipNames(this)) { Prefs.setVipNames(this, it) })
+        col.addView(title("Hide messages older than", 14f, 12))
+        col.addView(choiceRow(listOf("0" to "Never", "1" to "1 hour", "6" to "6 hours", "24" to "1 day", "72" to "3 days"), Prefs.maxAgeHours(this).toString(), false) {
+            Prefs.setMaxAgeHours(this, it.toInt()); applyLook(); rebuild()
+        })
+        col.addView(title("Most tiles on the widget", 14f, 12))
+        col.addView(hint("A shorter list is lighter and faster. Only for the scrolling list; pages already show a few at a time."))
+        col.addView(choiceRow(listOf("0" to "All", "5" to "5", "10" to "10", "20" to "20"), Prefs.maxTiles(this).toString(), false) {
+            Prefs.setMaxTiles(this, it.toInt()); applyLook(); rebuild()
+        })
+        col.addView(title("Reply templates", 14f, 12))
+        col.addView(hint("Quick replies shown above the reply box in the panel. One per line (up to 12). Tapping one only fills the box; nothing is sent until you tap Send. Leave empty for none."))
+        col.addView(multiLinePref("Reply templates", Prefs.replyTemplatesRaw(this)) { Prefs.setReplyTemplates(this, it) })
+        col.addView(title("Muted chats", 14f, 12))
+        val mutedList = Prefs.mutedChats(this).sorted()
+        col.addView(hint(if (mutedList.isEmpty()) "No chat is muted. In the panel, open a message and tap Mute chat to hide just that chat (the rest of the app stays). Muting only hides it here; nothing is deleted from your phone."
+        else "These chats are hidden from the widget and the panel. Tap Unmute to bring one back."))
+        for (key in mutedList) {
+            val pkg = key.substringBefore("|")
+            val chat = key.substringAfter("|", key)
+            val b = Button(this)
+            b.isAllCaps = false
+            b.text = "Unmute  " + Feed.label(this, pkg) + " · " + chat
+            b.setOnClickListener {
+                Prefs.setChatMuted(this, key, false)
+                applyLook(); rebuild()
+            }
+            col.addView(b)
+        }
+        }
+
         section("Quiet hours & snooze", "Silence the widget for a while or at night") {
         col.addView(title("Snooze", 16f, 20))
         col.addView(hint(Extras.quietText(this)?.let { "$it. The widget stays empty until then; the panel still lists your messages." }
@@ -1077,6 +1139,29 @@ class SettingsActivity : Activity() {
         et.setSingleLine(true)
         et.setText(current)
         row.addView(et, LinearLayout.LayoutParams(0, WRAP, 1f))
+        val b = Button(this)
+        b.text = "Save"
+        b.isAllCaps = false
+        b.setOnClickListener {
+            onSave(et.text.toString())
+            applyLook()
+            Toast.makeText(this, "Saved", Toast.LENGTH_SHORT).show()
+        }
+        row.addView(b)
+        return row
+    }
+
+    private fun multiLinePref(label: String, current: String, onSave: (String) -> Unit): View {
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.VERTICAL
+        val et = EditText(this)
+        et.hint = label
+        et.setText(current)
+        et.minLines = 3
+        et.maxLines = 8
+        et.gravity = Gravity.TOP or Gravity.START
+        et.inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        row.addView(et, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, WRAP))
         val b = Button(this)
         b.text = "Save"
         b.isAllCaps = false

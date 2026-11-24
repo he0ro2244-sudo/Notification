@@ -682,6 +682,14 @@ class TilesWidget : AppWidgetProvider() {
                     rv.setViewVisibility(Q_NAME[i], if (showNames) View.VISIBLE else View.GONE)
                 }
             }
+            // Space between the rows of the widget (rows layout; ignored when items are placed freely)
+            val rg = Prefs.rowGap(ctx)
+            val dens = ctx.resources.displayMetrics.density
+            val rgPx = Math.round(rg * dens)
+            rv.setViewPadding(R.id.top_row, Math.round(4 * dens), 0, Math.round(4 * dens), rgPx)
+            rv.setViewPadding(R.id.header, Math.round(6 * dens), 0, Math.round(6 * dens), rgPx)
+            rv.setViewLayoutMargin(R.id.dialwrap, RemoteViews.MARGIN_BOTTOM, rg.toFloat(), TypedValue.COMPLEX_UNIT_DIP)
+            rv.setViewLayoutMargin(R.id.quickwrap, RemoteViews.MARGIN_BOTTOM, rg.toFloat(), TypedValue.COMPLEX_UNIT_DIP)
             applyItems(rv, ctx, sub)
         }
 
@@ -813,7 +821,9 @@ class TilesFactory(private val ctx: Context) : RemoteViewsService.RemoteViewsFac
 
     override fun onDataSetChanged() {
         // One tile per chat (or per app when grouped), in the chosen order; only the current page when pages are on.
-        tiles = Arrange.slice(ctx, "w", Arrange.tiles(ctx, Feed.items(ctx), 4))
+        val all = Arrange.slice(ctx, "w", Arrange.tiles(ctx, Feed.items(ctx), 4))
+        val most = Prefs.maxTiles(ctx)
+        tiles = if (most > 0 && Prefs.scrollMode(ctx) == 0) all.take(most) else all
         shortcuts = Arrange.shortcuts(ctx, "w")
     }
 

@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.2
+Version 1.1.3
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -18,7 +18,7 @@ Notif Tiles is a home-screen widget that shows your notifications as tiles, toge
 - **Fast-dial circles**: up to 5 contacts. Tap to call.
 - **Shortcuts row**: up to 5 circles that open an app, a screen inside an app, or an app shortcut (for example a direct WhatsApp chat).
 - **Inbox row**: the title, the mic, + Note, Clear all, the pencil and the settings gear.
-- **Message tiles**: your notifications. Tap a tile to open it or reply.
+- **Message tiles**: your notifications. Tap a tile to open it or reply. In the open message card you also get **Snooze** (hide this chat for 15 minutes, 1 hour, 3 hours or until tomorrow 8:00) and **Mute chat** (hide just this chat for good).
 - **Refresh icon and "Updated" line**: refreshes the weather and shows when it was last updated.
 
 ## 3. The pencil menu
@@ -28,7 +28,9 @@ Tap the pencil on the widget.
 Press and hold any item and drag it anywhere. It stays exactly where you drop it (Free layout).
 - While dragging, an item clicks into line with its neighbours when it is close.
 - **Tidy up: align items in each row** puts the items of a row on one line.
-- **Tidy up: align and space evenly** also spaces them equally.
+- **Tidy up: align and space evenly** also spaces them equally. It spreads the row between its first and last item, so one item far away leaves big gaps.
+- **Tidy up: pack items closer** puts the items of a row next to each other with the **Gap** you choose (0-40 dp). Turn on **Centre each packed row** to centre the row in the widget. Use this when "space evenly" leaves too much room.
+- **Undo last move or tidy-up** puts the items back to how they were before the last drag or tidy-up (one step).
 - Drag the bar **Messages start here** to choose where the message tiles begin.
 - **Back to the old rows layout** forgets all places and returns to the normal rows.
 - Places are saved for your widget width and stretch sideways if you resize the widget.
@@ -51,7 +53,7 @@ Puts the widget back to the standard layout. It removes all themes, colours, fon
 Appears after a Reset or a loaded layout and brings back what you had before. Custom background pictures are not brought back.
 
 ## 4. The settings screen (gear)
-Open it with the gear on the widget or from the Notif Tiles app (Look & colors). Settings is split into six groups: LOOK, WIDGET AND PANEL, MESSAGES, TOOLS, SYSTEM and HELP. Each group holds sections; tap a section name to open or close it. Every section starts closed and shows a one-line description. **Open all sections** and **Close all sections** are under the search box. The search box at the top shows only the rows that match what you type. "Check everything" tests that the app is set up correctly, and "Button log" shows the last button actions.
+Open it with the gear on the widget or from the Notif Tiles app (Look & colors). Settings is split into six groups: LOOK, WIDGET AND PANEL, MESSAGES, TOOLS, SYSTEM and HELP. Each group holds sections; tap a section name to open or close it. Every section starts closed and shows a one-line description. **Open all sections** and **Close all sections** are under the search box. A **live preview** of the widget stays at the top of Settings and of Arrange & resize and redraws itself when you change something; tap its grey bar to switch Off / Small / Medium / Full (tiles are not drawn in the preview). **Open one section at a time** closes the others when you open one. Settings closes all sections when you leave it with Home or recents. The search box at the top shows only the rows that match what you type. "Check everything" tests that the app is set up correctly, and "Button log" shows the last button actions.
 
 ## 5. LOOK
 ### Themes & accent colour
@@ -98,6 +100,7 @@ One colour per button, used on the widget and in the panel together.
 - **Arrange & resize by dragging**: opens the Arrange screen.
 - **Order of the circles**: use the up and down arrows; switch an item off to hide it.
 - **Maps search box at the start**: puts Where to? first.
+- **Space between the widget rows** (0-30 dp): the gap under the top row, the fast dial, the shortcuts row and the Inbox row. 6 dp is the original look. It applies to the rows layout; with free placement use Move > Tidy up: pack items closer.
 
 ### Clock & date
 - **Clock** (phone setting, 12 or 24 hour) and **Date** format.
@@ -130,6 +133,15 @@ Pin an app to the top, mute it (hidden from the widget, panel and counts), chang
 
 ### Counts & clearing
 Choose when the count drops: after opening the app, after leaving the message card, or after replying here. You can also remove the message from the phone's notification shade. **Clear all** can be switched to **Mark all read**.
+
+### Filters & limits
+- **Hide messages containing these words**: separate words with commas (for example promo, offer, verification code). Matching ignores capital letters and looks at the title and the text.
+- **VIP names**: messages from a sender or chat whose name contains one of these words are listed first, even before pinned apps.
+- **Hide messages older than**: Never, 1 hour, 6 hours, 1 day or 3 days.
+- **Most tiles on the widget**: All, 5, 10 or 20. A shorter list is lighter and faster. It applies to the scrolling list only.
+- **Reply templates**: quick replies (one per line, up to 12; the defaults are On my way, Thanks, OK, I'll call you later). They appear as buttons above the reply box in the panel. Tapping one only fills the box; nothing is sent until you tap Send.
+- **Muted chats**: chats you muted with **Mute chat** in the panel. Tap Unmute to bring one back. Muting one chat leaves the rest of the app alone.
+These filters apply to the widget and to the panel. Nothing is deleted from your phone. A snoozed chat comes back by itself when its time is up if its notification is still on the phone.
 
 ### Quiet hours & snooze
 Snooze the widget for a while, or keep it quiet between two times.

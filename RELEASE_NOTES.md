@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.3
+- **Mute one chat**: new **Mute chat** button in the open message card hides just that chat (not the whole app) from the widget and the panel. Unmute it in Settings > MESSAGES > Filters & limits > Muted chats. Nothing is deleted from your phone.
+- **Reply templates**: quick replies such as "On my way" shown above the reply box. Tap one to fill the box, then Send. Edit them in Settings > MESSAGES > Filters & limits > Reply templates.
+- **Snooze one chat**: new **Snooze** button in the open message card (15 minutes, 1 hour, 3 hours or until tomorrow 8:00). The chat returns by itself. The existing widget-wide Snooze and Quiet hours are unchanged.
+
 ## 1.1.2
 - **Full user manual inside the app**: Look & colors > HELP > User manual (read me), at the bottom of Settings. The same text is in USER_MANUAL.md.
 - **Merged shape colours fixed**: the merged clock / weather / date shape now uses the colours picked for Clock, Weather and Date (before, it ignored them and always used the shared circle text colour).
@@ -11,6 +16,12 @@
 - **Show or hide each part of the Updated line**: the time, the source (Open-Meteo / Phone weather app) and the "to match phone" note have their own switches. The master switch still hides the whole line.
 - **Hide or show the + (Add) circles**: separate switches for the fast dial and for the shortcuts row (Fast dial and Shortcuts row sections). With them off, add contacts and shortcuts from Settings.
 - **Tidier Settings**: the two biggest sections are split into smaller ones (Fonts & overall text size, Text size per part, Text colours, Wording & time stamp; Arrange the widget, Clock & date, Weather). Every section has a one-line description, groups have clearer headings, and there are new **Open all sections** / **Close all sections** buttons.
+- **Move: pack items closer**: new "Tidy up: pack items closer" button with a gap slider (0-40 dp) and an option to centre each row. Items of a row sit side by side with your gap, so there are no big empty spaces like "space evenly" can leave. "Space evenly" is unchanged.
+- **Move: Undo last move or tidy-up** button.
+- **Settings closes every section when you leave it** (Home or recents), and there is a new switch **Open one section at a time**.
+- **Space between the widget rows**: slider in Settings > Arrange the widget (0-30 dp) for the gap under the top row, fast dial, shortcuts row and Inbox row.
+- **Live preview**: a copy of the widget is pinned at the top of Settings and Arrange & resize and redraws by itself while you change things. Tap its grey bar to switch Off / Small / Medium / Full.
+- **Filters & limits** (Settings > MESSAGES): hide messages that contain chosen words, always list VIP names first, hide messages older than 1 hour to 3 days, and limit how many tiles the widget draws.
 - **New colour for the merged shape**: Text colour per part > "Widget: merged shape" (also a Colour button in Arrange & resize). When set it colours the whole merged shape; on Auto each part keeps its own colour.
 
 ## 1.1.1

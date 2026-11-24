@@ -295,6 +295,18 @@ object Feed {
 
     // ---- Done / answered: remembered per notification AND per conversation (an app may re-post under a new key) ----
 
+    /** Identifies one chat ("package|title") for mute and snooze; null when the notification has no title. */
+    fun chatKey(n: StatusBarNotification): String? {
+        val t = title(n)
+        return if (t.isEmpty()) null else n.packageName + "|" + t
+    }
+
+    /** Hide this chat for [minutes] (0 = wake it again). Nothing is removed from the phone. */
+    fun snoozeChat(c: Context, n: StatusBarNotification, until: Long) {
+        Prefs.setChatSnooze(c, chatKey(n) ?: n.key, until)
+        Extras.tick(c)
+    }
+
     private fun convKey(n: StatusBarNotification): String? {
         val t = title(n)
         return if (t.isEmpty()) null else "conv:" + n.packageName + "|" + t
@@ -440,18 +452,35 @@ object Feed {
             .filter { (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) == 0 }
             .map { it.packageName to it.notification.group }
             .toSet()
+        val mutedChats = Prefs.mutedChats(c)
+        val snoozedChats = Prefs.chatSnoozeMap(c)
+        val badWords = words(Prefs.muteWords(c))
+        val vips = words(Prefs.vipNames(c))
+        val maxAge = Prefs.maxAgeHours(c) * 3_600_000L
+        val now = System.currentTimeMillis()
         return all
             .filter { it.packageName in enabled && it.packageName != c.packageName && it.packageName !in muted }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
             .filter { newestTs(it) > maxOf(handledUntil(c, it, handled), dismissedUntil(c, it, handled)) }
             .filter { !ownLast(it) }
+            .filter { n -> chatKey(n).let { k -> k == null || k !in mutedChats } }
+            .filter { n -> (snoozedChats[chatKey(n) ?: n.key] ?: 0L) <= now }
             .filter { title(it).isNotEmpty() || text(it).isNotEmpty() }
             .filter {
                 val summary = (it.notification.flags and Notification.FLAG_GROUP_SUMMARY) != 0
                 !summary || (it.packageName to it.notification.group) !in withKids
             }
-            .sortedWith(order(c, pinned))
+            .filter { n ->
+                badWords.isEmpty() || (title(n) + " " + text(n)).lowercase().let { t -> badWords.none { w -> t.contains(w) } }
+            }
+            .filter { maxAge == 0L || now - newestTs(it) <= maxAge }
+            .sortedWith(compareByDescending<StatusBarNotification> { n -> vips.isNotEmpty() && title(n).lowercase().let { t -> vips.any { w -> t.contains(w) } } }
+                .then(order(c, pinned)))
     }
+
+    /** "mum, promo , offer" -> [mum, promo, offer] (lower case, no empty ones). */
+    private fun words(raw: String): List<String> =
+        raw.split(",", "\n").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
 
     /** Pinned apps first, then the order chosen in Look & colors (newest first unless changed). */
     private fun order(c: Context, pinned: Set<String>): Comparator<StatusBarNotification> {

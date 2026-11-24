@@ -28,23 +28,30 @@ class ArrangeActivity : Activity() {
     private val MATCH = ViewGroup.LayoutParams.MATCH_PARENT
     private lateinit var scroll: ScrollView
     private lateinit var col: LinearLayout
+    private lateinit var live: LivePreview
 
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         scroll = ScrollView(this)
-        scroll.setOnApplyWindowInsetsListener { v, insets ->
-            val b = insets.getInsets(WindowInsets.Type.systemBars())
-            v.setPadding(0, b.top, 0, b.bottom)
-            insets
-        }
         col = LinearLayout(this)
         col.orientation = LinearLayout.VERTICAL
         col.setPadding(dp(16), dp(16), dp(16), dp(32))
         scroll.addView(col)
-        setContentView(scroll)
+        live = LivePreview(this)
+        setContentView(live.wrap(scroll))
         build()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        live.start()
+    }
+
+    override fun onPause() {
+        live.stop()
+        super.onPause()
     }
 
     private fun redraw() {

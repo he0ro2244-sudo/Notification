@@ -8,7 +8,7 @@ import java.io.File
 
 // Export / import of every setting (plus the background pictures) as one JSON file.
 object Backup {
-    private val SKIP = setOf("w_try", "w_has", "w_temp", "w_code", "w_day", "w_time", "handled")
+    private val SKIP = setOf("w_try", "w_has", "w_temp", "w_code", "w_day", "w_time", "handled", "chat_snz")
     private val IMAGES = listOf("widget", "dial", "panel")
 
     private fun sp(c: Context) = c.getSharedPreferences("nt", Context.MODE_PRIVATE)

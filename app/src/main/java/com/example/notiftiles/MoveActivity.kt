@@ -73,14 +73,58 @@ class MoveActivity : Activity() {
         val alignBtn = Button(this)
         alignBtn.text = "Tidy up: align items in each row"
         alignBtn.isAllCaps = false
-        alignBtn.setOnClickListener { tidy(false) }
+        alignBtn.setOnClickListener { tidy(0) }
         col.addView(alignBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(16) })
 
         val spaceBtn = Button(this)
         spaceBtn.text = "Tidy up: align and space evenly"
         spaceBtn.isAllCaps = false
-        spaceBtn.setOnClickListener { tidy(true) }
+        spaceBtn.setOnClickListener { tidy(1) }
         col.addView(spaceBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
+
+        // Pack closer: items of a row sit next to each other with a small gap you choose (no big empty spaces)
+        val gapLabel = TextView(this)
+        gapLabel.textSize = 13f
+        gapLabel.setPadding(0, dp(12), 0, 0)
+        gapLabel.text = "Gap between items when packing: ${Prefs.freeGap(this)} dp"
+        col.addView(gapLabel)
+        val gapBar = android.widget.SeekBar(this)
+        gapBar.max = 40
+        gapBar.progress = Prefs.freeGap(this)
+        gapBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: android.widget.SeekBar, p: Int, fromUser: Boolean) {
+                gapLabel.text = "Gap between items when packing: $p dp"
+                if (fromUser) Prefs.setFreeGap(this@MoveActivity, p)
+            }
+            override fun onStartTrackingTouch(s: android.widget.SeekBar) {}
+            override fun onStopTrackingTouch(s: android.widget.SeekBar) {}
+        })
+        col.addView(gapBar)
+        val centre = android.widget.CheckBox(this)
+        centre.text = "Centre each packed row in the widget"
+        centre.isChecked = Prefs.freePackCenter(this)
+        centre.setOnCheckedChangeListener { _, v -> Prefs.setFreePackCenter(this, v) }
+        col.addView(centre)
+        val packBtn = Button(this)
+        packBtn.text = "Tidy up: pack items closer"
+        packBtn.isAllCaps = false
+        packBtn.setOnClickListener { tidy(2) }
+        col.addView(packBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(4) })
+
+        val undoBtn = Button(this)
+        undoBtn.text = "Undo last move or tidy-up"
+        undoBtn.isAllCaps = false
+        undoBtn.setOnClickListener {
+            if (Prefs.hasFreePrev(this)) {
+                Prefs.undoFree(this)
+                TilesWidget.rebuildAll(applicationContext)
+                holder.post { render() }
+                showNote("Put back to how it was before the last move or tidy-up.")
+            } else {
+                showNote("Nothing to undo yet.")
+            }
+        }
+        col.addView(undoBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
 
         val back = Button(this)
         back.text = "Back to the old rows layout"
@@ -241,13 +285,15 @@ class MoveActivity : Activity() {
      * Lines items up. Items whose middles are within about 14dp of each other form a row and are put on one line;
      * with [space] the items of a row (3 or more) also get equal gaps between the first and the last.
      */
-    private fun tidy(space: Boolean) {
+    private fun tidy(mode: Int) {
+        val space = mode == 1
         if (!Prefs.freeOn(this)) {
             showNote("Move an item first, then Tidy up lines the items up.")
             return
         }
         val sz = sizes()
         val places = currentPlaces()
+        Prefs.saveFreePrev(this)
         val keys = places.keys.filter { it in sz }.sortedBy { places.getValue(it).y + sz.getValue(it).second / 2f }
         val rows = ArrayList<MutableList<String>>()
         for (k in keys) {
@@ -265,6 +311,19 @@ class MoveActivity : Activity() {
             for (k in row) {
                 val p = places.getValue(k)
                 places[k] = Prefs.FreePos(p.x, (mid - sz.getValue(k).second / 2f).coerceAtLeast(0f), p.w)
+            }
+            if (mode == 2) {
+                // Pack: the items of the row sit side by side with the chosen gap, from the first item's place or centred
+                val gap = Prefs.freeGap(this).toFloat()
+                val byX = row.sortedBy { places.getValue(it).x }
+                val total = byX.sumOf { sz.getValue(it).first.toDouble() }.toFloat() + gap * (byX.size - 1)
+                val full = if (optW > 0f) optW else widthDp.toFloat()
+                var x = if (Prefs.freePackCenter(this)) ((full - total) / 2f).coerceAtLeast(0f) else places.getValue(byX.first()).x
+                for (k in byX) {
+                    val p = places.getValue(k)
+                    places[k] = Prefs.FreePos(x, p.y, p.w)
+                    x += sz.getValue(k).first + gap
+                }
             }
             if (space && row.size >= 3) {
                 val byX = row.sortedBy { places.getValue(it).x }
@@ -356,6 +415,7 @@ class MoveActivity : Activity() {
     private fun drop(dragged: View, key: String, dxDp: Float, dyDp: Float) {
         val rl = rootLoc()
         val places = currentPlaces()
+        Prefs.saveFreePrev(this)
         val p0 = placeOf(dragged, rl)
         val old = places[key]
         val maxX = (widthDp - 24).toFloat().coerceAtLeast(0f)

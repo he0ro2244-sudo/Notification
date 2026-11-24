@@ -928,6 +928,26 @@ class PanelActivity : Activity() {
             val slp = LinearLayout.LayoutParams(WRAP, WRAP)
             slp.marginStart = dp(8)
             row.addView(send, slp)
+            // Reply templates: tap one to put it in the box (nothing is sent until you tap Send).
+            val tpls = Prefs.replyTemplates(this)
+            if (tpls.isNotEmpty()) {
+                val tplBar = LinearLayout(this)
+                tplBar.orientation = LinearLayout.HORIZONTAL
+                tplBar.setPadding(0, dp(10), 0, 0)
+                for (t in tpls) {
+                    val lp = LinearLayout.LayoutParams(WRAP, WRAP)
+                    lp.marginEnd = dp(6)
+                    tplBar.addView(pill(t, fg, bg, false) {
+                        et.setText(t)
+                        et.setSelection(et.text.length)
+                        et.requestFocus()
+                    }, lp)
+                }
+                val tplScroll = android.widget.HorizontalScrollView(this)
+                tplScroll.isHorizontalScrollBarEnabled = false
+                tplScroll.addView(tplBar)
+                card.addView(tplScroll)
+            }
             card.addView(row)
         }
 
@@ -959,6 +979,10 @@ class PanelActivity : Activity() {
                 finish()
             }, blp())
         }
+        bar.addView(pill("Snooze", fg, bg, false) { snoozeDialog(sbn) }, blp())
+        if (Feed.chatKey(sbn) != null) {
+            bar.addView(pill("Mute chat", fg, bg, false) { muteChatDialog(sbn) }, blp())
+        }
         bar.addView(pill(if (snap) "Open Snapchat" else "Open", fg, bg, false) { open(sbn) }, blp())
         if (count > 1) {
             bar.addView(pill("Clear $count", fg, bg, false) { clearApp(sbn.packageName) }, blp())
@@ -987,6 +1011,43 @@ class PanelActivity : Activity() {
         scScroll.addView(scBar)
         card.addView(scScroll)
         return card
+    }
+
+    // Snooze one chat: it leaves the widget and the panel for a while and comes back by itself (still in the phone's shade).
+    private fun snoozeDialog(sbn: StatusBarNotification) {
+        val names = arrayOf("15 minutes", "1 hour", "3 hours", "Until tomorrow 8:00")
+        android.app.AlertDialog.Builder(this).setTitle("Snooze this chat")
+            .setItems(names) { _, which ->
+                val until = when (which) {
+                    0 -> System.currentTimeMillis() + 15 * 60000L
+                    1 -> System.currentTimeMillis() + 60 * 60000L
+                    2 -> System.currentTimeMillis() + 180 * 60000L
+                    else -> Extras.nextAt(8 * 60)
+                }
+                Feed.snoozeChat(this, sbn, until)
+                ActionLog.add(this, "Snooze on " + Feed.label(this, sbn.packageName) + ": chat hidden until " + Extras.fmtTime(until))
+                if (viewing?.key == sbn.key) viewing = null
+                expanded = null
+                TilesWidget.refresh(applicationContext)
+                finish()
+            }
+            .setNegativeButton("Cancel", null).show()
+    }
+
+    // Mute one chat for good (until you unmute it in Settings > Messages > Filters & limits).
+    private fun muteChatDialog(sbn: StatusBarNotification) {
+        val key = Feed.chatKey(sbn) ?: return
+        android.app.AlertDialog.Builder(this)
+            .setMessage("Mute \"" + Feed.title(sbn) + "\"? It will no longer show on the widget or here. Other chats of this app are not affected. You can unmute it in Settings > Messages > Filters & limits.")
+            .setPositiveButton("Mute") { _, _ ->
+                Prefs.setChatMuted(this, key, true)
+                ActionLog.add(this, "Mute chat on " + Feed.label(this, sbn.packageName) + ": this chat is hidden until unmuted in Settings")
+                if (viewing?.key == sbn.key) viewing = null
+                expanded = null
+                TilesWidget.refresh(applicationContext)
+                finish()
+            }
+            .setNegativeButton("Cancel", null).show()
     }
 
     // Long press on the photo box: what the app offers in its notification (to see whether it gives any picture).

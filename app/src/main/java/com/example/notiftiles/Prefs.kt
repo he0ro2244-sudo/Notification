@@ -419,6 +419,96 @@ object Prefs {
     fun setFreeGridTop(c: Context, v: Float) = sp(c).edit().putFloat("free_grid_top", v.coerceAtLeast(0f)).apply()
 
     /** While moving, items snap to a 4dp grid (on by default: lines things up). */
+    /** Gap (dp) used by "Tidy up: pack items closer", and whether a packed row is centred in the widget. */
+    fun freeGap(c: Context): Int = sp(c).getInt("free_gap", 12).coerceIn(0, 40)
+    fun setFreeGap(c: Context, v: Int) = sp(c).edit().putInt("free_gap", v).apply()
+    fun freePackCenter(c: Context): Boolean = sp(c).getBoolean("free_pack_center", false)
+    fun setFreePackCenter(c: Context, v: Boolean) = sp(c).edit().putBoolean("free_pack_center", v).apply()
+
+    /** Space (dp) below each block of the widget in the rows layout: top row, fast dial, shortcuts row, Inbox row. 6 = as designed. */
+    fun rowGap(c: Context): Int = sp(c).getInt("lay_row_gap", 6).coerceIn(0, 30)
+    fun setRowGap(c: Context, v: Int) = sp(c).edit().putInt("lay_row_gap", v).apply()
+
+    // ---- Message filters and limits
+    /** Messages containing any of these words (comma separated) are hidden from the widget and the panel. */
+    fun muteWords(c: Context): String = sp(c).getString("flt_words", "") ?: ""
+    fun setMuteWords(c: Context, v: String) = sp(c).edit().putString("flt_words", v.trim()).apply()
+    /** Messages from these names (comma separated) are always listed first. */
+    fun vipNames(c: Context): String = sp(c).getString("flt_vip", "") ?: ""
+    fun setVipNames(c: Context, v: String) = sp(c).edit().putString("flt_vip", v.trim()).apply()
+    /** Messages older than this many hours are hidden; 0 = never. */
+    fun maxAgeHours(c: Context): Int = sp(c).getInt("flt_age", 0).coerceIn(0, 720)
+    fun setMaxAgeHours(c: Context, v: Int) = sp(c).edit().putInt("flt_age", v).apply()
+    /** Most tiles drawn on the widget (fewer = lighter and faster); 0 = all. */
+    fun maxTiles(c: Context): Int = sp(c).getInt("flt_max", 0).coerceIn(0, 100)
+    fun setMaxTiles(c: Context, v: Int) = sp(c).edit().putInt("flt_max", v).apply()
+
+    // ---- Mute one chat (not the whole app); the key is "package|chat title" (see Feed.chatKey)
+    fun mutedChats(c: Context): Set<String> = HashSet(sp(c).getStringSet("chat_muted", emptySet()) ?: emptySet())
+    fun setChatMuted(c: Context, key: String, on: Boolean) {
+        val s = HashSet(mutedChats(c))
+        if (on) s.add(key) else s.remove(key)
+        sp(c).edit().putStringSet("chat_muted", s).apply()
+    }
+
+    // ---- Reply templates: one per line, shown as quick buttons above the reply box
+    private const val DEFAULT_TEMPLATES = "On my way\nThanks\nOK\nI'll call you later"
+    fun replyTemplatesRaw(c: Context): String = sp(c).getString("reply_tpl", DEFAULT_TEMPLATES) ?: DEFAULT_TEMPLATES
+    fun setReplyTemplates(c: Context, v: String) = sp(c).edit().putString("reply_tpl", v.trim()).apply()
+    fun replyTemplates(c: Context): List<String> =
+        replyTemplatesRaw(c).split("\n").map { it.trim() }.filter { it.isNotEmpty() }.take(12)
+
+    // ---- Snooze one chat: key -> time (ms) when it comes back
+    fun chatSnoozeMap(c: Context): Map<String, Long> {
+        val raw = sp(c).getString("chat_snz", "") ?: ""
+        if (raw.isEmpty()) return emptyMap()
+        return try {
+            val o = org.json.JSONObject(raw)
+            val now = System.currentTimeMillis()
+            val m = HashMap<String, Long>()
+            for (k in o.keys()) {
+                val t = o.getLong(k)
+                if (t > now) m[k] = t
+            }
+            m
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    /** until = 0 wakes the chat again. */
+    fun setChatSnooze(c: Context, key: String, until: Long) {
+        val m = HashMap(chatSnoozeMap(c))
+        if (until <= 0L) m.remove(key) else m[key] = until
+        while (m.size > 60) {
+            val oldest = m.minByOrNull { it.value }?.key ?: break
+            m.remove(oldest)
+        }
+        val o = org.json.JSONObject()
+        for ((k, v) in m) o.put(k, v)
+        sp(c).edit().putString("chat_snz", o.toString()).apply()
+    }
+
+    /** Settings: opening a section closes the others. */
+    fun oneSection(c: Context): Boolean = sp(c).getBoolean("ui_one_section", false)
+    fun setOneSection(c: Context, v: Boolean) = sp(c).edit().putBoolean("ui_one_section", v).apply()
+
+    /** One step of undo for Move: the places before the last drag or tidy-up. */
+    fun saveFreePrev(c: Context) {
+        val p = sp(c)
+        p.edit().putBoolean("free_prev_has", true).putBoolean("free_prev_on", p.getBoolean("free_on", false))
+            .putString("free_prev_pos", p.getString("free_pos", "") ?: "").putFloat("free_prev_ref", p.getFloat("free_ref_w", 0f)).apply()
+    }
+    fun hasFreePrev(c: Context): Boolean = sp(c).getBoolean("free_prev_has", false)
+    fun undoFree(c: Context) {
+        val p = sp(c)
+        if (!p.getBoolean("free_prev_has", false)) return
+        val e = p.edit().putBoolean("free_on", p.getBoolean("free_prev_on", false)).putString("free_pos", p.getString("free_prev_pos", "") ?: "")
+        val ref = p.getFloat("free_prev_ref", 0f)
+        if (ref > 0f) e.putFloat("free_ref_w", ref) else e.remove("free_ref_w")
+        e.remove("free_prev_has").apply()
+    }
+
     fun freeSnap(c: Context): Boolean = sp(c).getBoolean("free_snap", true)
     fun setFreeSnap(c: Context, v: Boolean) = sp(c).edit().putBoolean("free_snap", v).apply()
 

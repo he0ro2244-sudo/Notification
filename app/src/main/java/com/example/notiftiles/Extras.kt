@@ -76,6 +76,7 @@ object Extras {
             var t = Long.MAX_VALUE
             val sn = Prefs.snoozeUntil(c)
             if (sn > System.currentTimeMillis()) t = sn
+            for (until in Prefs.chatSnoozeMap(c).values) t = minOf(t, until)
             if (Prefs.quietOn(c)) t = minOf(t, nextAt(Prefs.quietStart(c)), nextAt(Prefs.quietEnd(c)))
             if (Prefs.autoTheme(c)) t = minOf(t, nextAt(Prefs.autoDayStart(c)), nextAt(Prefs.autoNightStart(c)))
             if (t == Long.MAX_VALUE) am.cancel(pi) else am.set(AlarmManager.RTC, t + 1000L, pi)
