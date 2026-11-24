@@ -1091,6 +1091,7 @@ object Prefs {
         "p_badge" to "Panel: message count badge",
         "p_note" to "Panel: + Note",
         "p_clear" to "Panel: Clear all / Read all",
+        "p_gear" to "Panel: settings icon",
         "p_icon" to "Panel tiles: app icon",
         "p_cnt" to "Panel tiles: count badge",
         "p_title_t" to "Panel tiles: message title",
@@ -1155,6 +1156,9 @@ object Prefs {
     fun setSwipeThrough(c: Context, v: Boolean) = sp(c).edit().putBoolean("scr_thru", v).apply()
     /** Swipe-through: false = only the top line of a tile (app name and count) opens it, the rest passes swipes to the launcher; true = the whole tile opens it (a swipe starting on a tile is then taken by the widget). */
     fun swipeTapAll(c: Context): Boolean = sp(c).getBoolean("scr_tap_all", false)
+    /** Phone Back button inside an opened message: false = closes the panel, true = goes back to the tiles first. */
+    fun backToTiles(c: Context): Boolean = sp(c).getBoolean("back_to_tiles", false)
+    fun setBackToTiles(c: Context, v: Boolean) = sp(c).edit().putBoolean("back_to_tiles", v).apply()
     fun setSwipeTapAll(c: Context, v: Boolean) = sp(c).edit().putBoolean("scr_tap_all", v).apply()
     /** Swipe-through: also let the name line of a tile (e.g. the sender) open it, besides the top line. */
     fun swipeTapName(c: Context): Boolean = sp(c).getBoolean("scr_tap_name", false)

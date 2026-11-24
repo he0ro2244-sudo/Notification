@@ -187,6 +187,7 @@ class PanelActivity : Activity() {
             }
         }
         gear.setPadding(dp(4), dp(2), dp(2), dp(2))
+        gear.visibility = if (Prefs.showItem(this, "p_gear")) View.VISIBLE else View.GONE
         gear.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
             finish()
@@ -253,10 +254,10 @@ class PanelActivity : Activity() {
         return false
     }
 
-    // The phone's Back button first goes from an opened message back to the tiles, then closes the panel
+    // The phone's Back button closes the panel; with "Back goes to the tiles first" on, an opened message goes back to the tiles first
     @Suppress("DEPRECATION")
     override fun onBackPressed() {
-        if (expanded != null) {
+        if (expanded != null && Prefs.backToTiles(this)) {
             finishViewing()
             expanded = null
             refresh()

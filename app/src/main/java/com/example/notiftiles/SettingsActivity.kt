@@ -833,6 +833,10 @@ class SettingsActivity : Activity() {
             })
         }
 
+        col.addView(toggleRaw("Back button in an opened message goes to the tiles first (off: Back closes the panel)", Prefs.backToTiles(this)) {
+            Prefs.setBackToTiles(this, it)
+        })
+
         col.addView(title("Group messages", 16f, 20))
         col.addView(hint("One tile per chat (as before), or one tile per app that shows all its chats together. Tapping a grouped tile opens its newest chat."))
         col.addView(choiceRow(listOf("0" to "One tile per chat", "1" to "One tile per app"), Prefs.groupMode(this).toString(), false) {

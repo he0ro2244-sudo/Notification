@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.24
+- **Back button is back to closing the panel.** In 1.1.22 Back inside an opened message went to the tile list first. Now Back closes the panel again, as before. If you like the 1.1.22 way, Settings > MESSAGES > Pages, shortcuts & grouping > *Back button in an opened message goes to the tiles first* turns it on.
+- **Hide the panel's settings icon:** new item *Panel: settings icon* in Arrange & resize > Every item (and Settings > Arrange the widget). The Inbox title, count badge, + Note and Clear all already have their own show / hide switches there.
+- Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.23
 - **Swipe-through: tap the name line too.** With Swipe-through on, only the top line of a tile (app name and count) opened it. New switch under Swipe-through, **Tap the name line too**: the sender / chat name under the app name opens the message as well, while the message text below still passes swipes to your launcher. (*Tap anywhere on a tile* still opens from the whole tile.)
 - **Less flicker in the panel.** The panel redrew itself on every notification update, even when nothing visible had changed, which made an opened message flicker. It now redraws only when the messages, notes or the opened message actually changed.
