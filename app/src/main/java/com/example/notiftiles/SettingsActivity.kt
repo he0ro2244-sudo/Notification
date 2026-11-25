@@ -909,6 +909,7 @@ class SettingsActivity : Activity() {
         col.addView(choiceRow(listOf("0" to "Clear all", "1" to "Mark all read"), Prefs.clearMode(this).toString(), false) {
             Prefs.setClearMode(this, it.toInt()); applyLook(); rebuild()
         })
+        col.addView(toggleRaw("Close the bottom popup after Clear all / Read all", Prefs.closeAfterClear(this)) { Prefs.setCloseAfterClear(this, it) })
         col.addView(hint("Mark all read counts every message as read and, with the option above, clears it from the phone's shade, the same as opening it here. The button then says Read all.\n\nWhen you read, reply to or mark a message as read here, its notification is cleared from the phone's shade too. A new message from the same chat counts again."))
 
         }

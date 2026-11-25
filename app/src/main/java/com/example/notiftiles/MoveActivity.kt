@@ -80,6 +80,12 @@ class MoveActivity : Activity() {
         alignBtn.setOnClickListener { tidy(0) }
         col.addView(alignBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(16) })
 
+        val reflowBtn = Button(this)
+        reflowBtn.text = "Fix layout: close gaps and line everything up"
+        reflowBtn.isAllCaps = false
+        reflowBtn.setOnClickListener { reflowAll(false) }
+        col.addView(reflowBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(16) })
+
         val fixBtn = Button(this)
         fixBtn.text = "Tidy up: fix overlapping items (smart)"
         fixBtn.isAllCaps = false
@@ -217,7 +223,11 @@ class MoveActivity : Activity() {
             } catch (e: Throwable) {
                 android.util.Log.e("NotifTilesMove", "Could not make the items draggable", e)
             }
-            if (Prefs.tidyPending(this) && Prefs.freeOn(this)) {
+            if (intent.getBooleanExtra("fix_all", false) && !fixAllDone) {
+                fixAllDone = true
+                Prefs.setTidyPending(this, false)
+                holder.postDelayed({ reflowAll(true) }, 500)
+            } else if (Prefs.tidyPending(this) && Prefs.freeOn(this)) {
                 Prefs.setTidyPending(this, false)
                 holder.postDelayed({ fixOverlaps(true) }, 500)
             } else {
@@ -364,6 +374,76 @@ class MoveActivity : Activity() {
     // Opened by itself after something was switched on: close again once the overlaps are fixed
     private fun closeIfAuto() {
         if (intent.getBooleanExtra("auto_tidy", false)) holder.postDelayed({ if (!isFinishing) finish() }, 900)
+    }
+
+    private var fixAllDone = false
+
+    /**
+     * One-tap "Fix layout": everything below the clock / fast-dial rows (shortcut circles, title, count, mic, + Note,
+     * Clear all, pencil, gear) is laid out again in reading order, side by side with a small gap, a new line when a row is full.
+     * Gaps left by deleted items close, and the line "Messages start here" moves up or down to sit just under them.
+     */
+    private fun reflowAll(auto: Boolean) {
+        if (!Prefs.freeOn(this)) {
+            android.widget.Toast.makeText(this, "The widget is in the normal rows layout: nothing to fix. Use Move first.", android.widget.Toast.LENGTH_LONG).show()
+            closeIfAuto()
+            return
+        }
+        val sz = sizes()
+        val places = currentPlaces()
+        val topKeys = setOf("clock", "weather", "date", "merge", "maps", "d0", "d1", "d2", "d3", "d4")
+        val group = places.keys.filter { it in sz && it !in topKeys }
+        if (group.isEmpty()) {
+            closeIfAuto()
+            return
+        }
+        val full = if (optW > 0f) optW else widthDp.toFloat()
+        val gap = Prefs.freeGap(this).toFloat().coerceAtLeast(6f)
+        fun cy(k: String) = places.getValue(k).y + sz.getValue(k).second / 2f
+        // rows as they are now (items whose middles are within 20dp), each row left to right
+        val rows = ArrayList<MutableList<String>>()
+        for (k in group.sortedBy { cy(it) }) {
+            val row = rows.lastOrNull()
+            if (row != null && kotlin.math.abs(cy(k) - row.map { cy(it) }.average().toFloat()) <= 20f) row.add(k) else rows.add(mutableListOf(k))
+        }
+        val order = rows.flatMap { r -> r.sortedBy { places.getValue(it).x } }
+        val topBottom = places.keys.filter { it in sz && it in topKeys && it != "merge" }.maxOfOrNull { places.getValue(it).y + sz.getValue(it).second } ?: 0f
+        val left = group.minOf { places.getValue(it).x }.coerceIn(0f, 16f)
+        var y = maxOf(group.minOf { places.getValue(it).y }, topBottom + 4f)
+        val out = LinkedHashMap(places)
+        var i = 0
+        var bottom = y
+        while (i < order.size) {
+            val line = ArrayList<String>()
+            var x = left
+            while (i < order.size) {
+                val w = sz.getValue(order[i]).first
+                if (line.isNotEmpty() && x + w > full) break
+                line.add(order[i])
+                x += w + gap
+                i++
+            }
+            val rowH = line.maxOf { sz.getValue(it).second }
+            var px = left
+            for (k in line) {
+                val (w, h) = sz.getValue(k)
+                val p = places.getValue(k)
+                out[k] = Prefs.FreePos(px, y + (rowH - h) / 2f, p.w)
+                px += w + gap
+            }
+            y += rowH + 4f
+            bottom = y
+        }
+        Prefs.saveFreePrev(this)
+        Prefs.setFreePos(this, out)
+        Prefs.setFreeRefW(this, optW)
+        Prefs.setFreeGridTop(this, bottom + 4f)
+        TilesWidget.rebuildAll(applicationContext)
+        holder.post {
+            render()
+            showNote("Layout fixed: gaps closed and items lined up. Undo is below if you do not like it.")
+            closeIfAuto()
+        }
     }
 
     private class Box(val key: String, var x: Float, var y: Float, val w: Float, val h: Float)

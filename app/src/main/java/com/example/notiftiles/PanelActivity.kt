@@ -173,6 +173,7 @@ class PanelActivity : Activity() {
             } else {
                 clearAll()
             }
+            if (Prefs.closeAfterClear(this)) finish()
         }
         header.addView(clear)
 
