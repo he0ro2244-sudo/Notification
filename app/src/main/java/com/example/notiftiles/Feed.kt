@@ -337,6 +337,38 @@ object Feed {
         convKey(n)?.let { Prefs.markHandled(c, it, until) }
     }
 
+    // ---- Read for good ----
+    // Some apps (Facebook: "Waiting for you: 20 messages ...") post the same notification again and again with a newer time,
+    // so a time-based "done" is not enough. When you mark such a notification read we also remember what it said; a re-post
+    // with the same words stays hidden (with the numbers ignored too, if that switch is on). Chats with a message list are
+    // left out: they are told apart by the time of each message, and the same short answer may arrive twice.
+
+    private fun contentOf(n: StatusBarNotification): String =
+        n.packageName + "|" + title(n).trim() + "|" + text(n).trim()
+
+    private fun sigExact(n: StatusBarNotification): String {
+        val s = contentOf(n)
+        return "x:" + s.length + ":" + s.hashCode()
+    }
+
+    private fun sigLoose(n: StatusBarNotification): String {
+        val s = contentOf(n).replace(Regex("[0-9\\u0660-\\u0669]+"), "#")
+        return "n:" + s.length + ":" + s.hashCode()
+    }
+
+    /** Call when the person marks a notification read or opens it: its identical re-posts stay hidden. */
+    fun markReadSticky(c: Context, n: StatusBarNotification) {
+        if (hasMessages(n)) return
+        Prefs.addReadSig(c, sigExact(n))
+        if (Prefs.readRepeatNumbers(c)) Prefs.addReadSig(c, sigLoose(n))
+    }
+
+    fun isReadRepeat(c: Context, n: StatusBarNotification, sigs: Map<String, Long>): Boolean {
+        if (sigs.isEmpty() || hasMessages(n)) return false
+        if (sigs.containsKey(sigExact(n))) return true
+        return Prefs.readRepeatNumbers(c) && sigs.containsKey(sigLoose(n))
+    }
+
     private class Sent(val pkg: String, val title: String, val text: String, val time: Long)
 
     private val sentList = java.util.concurrent.CopyOnWriteArrayList<Sent>()
@@ -443,6 +475,7 @@ object Feed {
         val muted = Prefs.muted(c)
         val pinned = Prefs.pinned(c)
         val handled = Prefs.handledMap(c)
+        val readSigs = Prefs.readSigs(c)
         val all: List<StatusBarNotification> = try {
             svc.activeNotifications?.toList() ?: emptyList()
         } catch (e: Exception) {
@@ -462,6 +495,7 @@ object Feed {
             .filter { it.packageName in enabled && it.packageName != c.packageName && it.packageName !in muted }
             .filter { (it.notification.flags and Notification.FLAG_ONGOING_EVENT) == 0 }
             .filter { newestTs(it) > maxOf(handledUntil(c, it, handled), dismissedUntil(c, it, handled)) }
+            .filter { !isReadRepeat(c, it, readSigs) }
             .filter { !ownLast(it) }
             .filter { n -> chatKey(n).let { k -> k == null || k !in mutedChats } }
             .filter { n -> (snoozedChats[chatKey(n) ?: n.key] ?: 0L) <= now }

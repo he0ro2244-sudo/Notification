@@ -903,6 +903,7 @@ class SettingsActivity : Activity() {
         // ---- Counts
         col.addView(title("Counts", 16f, 20))
         col.addView(toggleRaw("Count drops after I open the app, mark read or tap the photo", Prefs.countRead(this)) { Prefs.setCountRead(this, it) })
+        col.addView(toggleRaw("Mark as read also hides the same notification when the app posts it again with only the numbers changed (e.g. Facebook \"Waiting for you\")", Prefs.readRepeatNumbers(this)) { Prefs.setReadRepeatNumbers(this, it) })
         col.addView(toggleRaw("Count drops just from opening and closing the message card", Prefs.countLeave(this)) { Prefs.setCountLeave(this, it) })
         col.addView(toggleRaw("Count drops after I reply here", Prefs.countReply(this)) { Prefs.setCountReply(this, it) })
         col.addView(toggleRaw("Also remove it from the phone's notification panel", Prefs.dismissHandled(this)) { Prefs.setDismissHandled(this, it) })

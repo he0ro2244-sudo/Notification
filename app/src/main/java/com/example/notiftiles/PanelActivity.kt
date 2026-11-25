@@ -676,6 +676,7 @@ class PanelActivity : Activity() {
         val b = Button(this, null, android.R.attr.borderlessButtonStyle)
         b.text = label
         b.isAllCaps = false
+        b.setSingleLine(true)
         b.textSize = 13f
         b.setTag(R.id.nt_grp, "buttons")
         b.minHeight = 0
@@ -1064,6 +1065,7 @@ class PanelActivity : Activity() {
             bar.addView(pill("Mark as read", fg, bg, false) {
                 ActionLog.add(this, "Mark as read (own button) on " + Feed.label(this, sbn.packageName) + ": chat marked done and hidden")
                 Feed.markDone(this, sbn, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
+                Feed.markReadSticky(this, sbn)
                 dismissFromShade(sbn, 800L)
                 if (viewing?.key == sbn.key) viewing = null
                 expanded = null
@@ -1079,7 +1081,11 @@ class PanelActivity : Activity() {
         if (count > 1) {
             bar.addView(pill("Clear $count", fg, bg, false) { clearApp(sbn.packageName) }, blp())
         }
-        card.addView(bar)
+        // In a sideways scroll like the shortcuts row: a long row of buttons never squeezes one into "Mar / k as / read"
+        val barScroll = android.widget.HorizontalScrollView(this)
+        barScroll.isHorizontalScrollBarEnabled = false
+        barScroll.addView(bar)
+        card.addView(barScroll)
         // Shortcuts that belong to this app (add them in Settings > Apps, or with the + here). Long-press one to remove it.
         val scBar = LinearLayout(this)
         scBar.orientation = LinearLayout.HORIZONTAL
@@ -1286,6 +1292,20 @@ class PanelActivity : Activity() {
         val pi = a.actionIntent
         val fired = fire(pi)
         ActionLog.add(this, "Button '" + a.title + "' on " + Feed.label(this, sbn.packageName) + " (" + ActionLog.kind(pi) + "): " + (if (fired) "sent" else "FAILED, the button expired"))
+        val isRead = title.contains("read") && !title.contains("unread")
+        if (isRead) {
+            // The app's own "Mark as read": whatever the app does with it (it may only open its screen, or the button may have
+            // expired), it counts as opened and read here, and the same notification re-posted by the app stays hidden.
+            Feed.markDone(this, sbn, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
+            Feed.markReadSticky(this, sbn)
+            ActionLog.add(this, "Mark as read on " + Feed.label(this, sbn.packageName) + ": counted as opened and read, repeats of it stay hidden")
+            dismissFromShade(sbn, 800L)
+            if (viewing?.key == sbn.key) viewing = null
+            expanded = null
+            TilesWidget.refresh(applicationContext)
+            finish()
+            return
+        }
         if (!fired) {
             toast("That action expired, opening the app instead")
             open(sbn)
@@ -1317,6 +1337,7 @@ class PanelActivity : Activity() {
     private fun open(sbn: StatusBarNotification) {
         if (Prefs.countRead(this)) {
             Feed.markDone(this, sbn, Feed.handledStamp(sbn))
+            Feed.markReadSticky(this, sbn)
             dismissFromShade(sbn, if (sbn.packageName == "com.snapchat.android") 4000L else 1500L)
         }
         viewing = null

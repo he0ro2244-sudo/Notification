@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.1.36
+- **Mark as read now counts as really opened and read.** The app's own *Mark as read* button (Facebook, ...) used to do nothing when the app answered it by opening a screen, and the app then posted the same notification again so it came back. Now it is always counted as read here, and **the same notification posted again stays hidden** (the action log says what happened).
+- Also hidden when only the numbers change (Facebook "Waiting for you: 20 messages, 7 new..." becoming "21 messages"). Switch: Settings > Counts & clearing, *Mark as read also hides the same notification when the app posts it again with only the numbers changed* (on by default). It is remembered for 3 days.
+- Open, Mark as read and Read all all do this. Chats with a message list (WhatsApp, Teams ...) are not affected: they are told apart by the time of each message.
+- **The panel buttons no longer squeeze** ("Mar / k as / read"): the row scrolls sideways and each button stays on one line.
+- Includes 1.1.33 to 1.1.35. Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.35
 - **Clear the undo history.** ☰ History (Settings, Arrange & resize, Move and the pencil menu) has a new **Clear history** button. It asks first, then deletes the undo and redo steps of that list; the widget stays as it is.
 - Includes 1.1.33 and 1.1.34. Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.

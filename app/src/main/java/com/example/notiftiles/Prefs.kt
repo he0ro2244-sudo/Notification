@@ -1042,6 +1042,42 @@ object Prefs {
         sp(c).edit().putString("handled", o.toString()).apply()
     }
 
+    // ---- Read for good: what a notification said when you marked it read (so an identical re-post stays hidden) ----
+    private const val READ_SIG_DAYS = 3L
+
+    fun readSigs(c: Context): Map<String, Long> {
+        val raw = sp(c).getString("read_sigs", "") ?: ""
+        if (raw.isEmpty()) return emptyMap()
+        return try {
+            val o = org.json.JSONObject(raw)
+            val now = System.currentTimeMillis()
+            val m = HashMap<String, Long>()
+            for (k in o.keys()) {
+                val t = o.getLong(k)
+                if (now - t < READ_SIG_DAYS * 86_400_000L) m[k] = t
+            }
+            m
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
+    fun addReadSig(c: Context, sig: String) {
+        val m = HashMap(readSigs(c))
+        m[sig] = System.currentTimeMillis()
+        while (m.size > 80) {
+            val oldest = m.minByOrNull { it.value }?.key ?: break
+            m.remove(oldest)
+        }
+        val o = org.json.JSONObject()
+        for ((k, v) in m) o.put(k, v)
+        sp(c).edit().putString("read_sigs", o.toString()).apply()
+    }
+
+    /** Mark as read also hides a re-post of the same notification when only its numbers changed (e.g. "20 messages" -> "21 messages"). */
+    fun readRepeatNumbers(c: Context): Boolean = sp(c).getBoolean("read_repeat_numbers", true)
+    fun setReadRepeatNumbers(c: Context, v: Boolean) = sp(c).edit().putBoolean("read_repeat_numbers", v).apply()
+
     // ---- Snooze and quiet hours (minutes of the day) ----
     fun snoozeUntil(c: Context): Long = sp(c).getLong("sn_until", 0L)
     fun setSnoozeUntil(c: Context, v: Long) = sp(c).edit().putLong("sn_until", v).apply()
