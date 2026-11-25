@@ -1,5 +1,15 @@
 # Release notes
 
+## 1.1.47
+- **The whole panel feels alive** (Snapchat / WhatsApp style):
+  - **Touch feedback:** every tile and button squishes under your finger and bounces back (or a soft dim).
+  - **Tiles appear:** when the panel opens, or you change page or open / close a message, the tiles rise one by one (or fade in).
+  - **Panel opens:** the sheet rises from the bottom with a spring, the dark background fades in and the header icons float in one by one.
+  - **Panel closes:** swipe the sheet down and it follows your finger, then drops away (or springs back). Tapping outside or Back plays the same drop (or a fade).
+  - **Clear all:** the tiles fly out one after another while the messages drop into the bin.
+- Three new choices in Settings > Animation: Touch feedback, Tiles appear, Panel closes. Each has two styles or Off, and Speed applies to them.
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
 ## 1.1.46
 - **Panel animations rebuilt from scratch.** They are now drawn on an overlay over the panel and tied to what each part does:
   - **Note:** a pen writes a line under the word as you type; a ring and a tick stamp in when saved.

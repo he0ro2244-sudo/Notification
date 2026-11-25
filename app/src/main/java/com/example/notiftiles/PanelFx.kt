@@ -12,6 +12,12 @@ import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.animation.ValueAnimator
+import android.view.MotionEvent
+import android.view.VelocityTracker
+import android.view.ViewConfiguration
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.DecelerateInterpolator
@@ -504,8 +510,8 @@ object PanelFx {
         }, end = { show(v) })
     }
 
-    // ------------------------------------------------------------------ Panel opens: the sheet rises, the header follows
-    fun open(c: Context, sheet: View, header: ViewGroup) {
+    // ------------------------------------------------------------------ Panel opens: the sheet rises, the scrim fades in, the header follows
+    fun open(c: Context, sheet: View, header: ViewGroup, root: View? = null) {
         val style = st(c, "open")
         if (style == "off") return
         val d = dp(c, 1f)
@@ -513,15 +519,171 @@ object PanelFx {
             sheet.alpha = 0f
             sheet.animate().alpha(1f).setDuration(t(c, 260)).start()
         } else {
-            sheet.translationY = 60f * d
             sheet.alpha = 0f
-            sheet.animate().translationY(0f).alpha(1f).setDuration(t(c, 460)).setInterpolator(OvershootInterpolator(0.8f)).start()
+            sheet.post {
+                sheet.translationY = sheet.height + 24f * d
+                sheet.alpha = 1f
+                sheet.animate().translationY(0f).setDuration(t(c, 520)).setInterpolator(OvershootInterpolator(0.9f)).start()
+            }
+        }
+        root?.background?.let { bg ->
+            val col = (bg as? android.graphics.drawable.ColorDrawable)?.color
+            if (col != null) {
+                val a0 = Color.alpha(col)
+                val va = ValueAnimator.ofInt(0, a0)
+                va.duration = t(c, 320)
+                va.addUpdateListener { root.setBackgroundColor(Color.argb(it.animatedValue as Int, Color.red(col), Color.green(col), Color.blue(col))) }
+                va.start()
+            }
         }
         val views = (0 until header.childCount).map { header.getChildAt(it) }.filter { it.visibility == View.VISIBLE }
         for ((i, v) in views.withIndex()) {
             v.alpha = 0f
-            v.animate().alpha(1f).setStartDelay(t(c, 120L + i * 60L)).setDuration(t(c, 240)).start()
+            v.translationY = 8f * d
+            v.animate().alpha(1f).translationY(0f).setStartDelay(t(c, 140L + i * 55L)).setDuration(t(c, 300)).setInterpolator(DecelerateInterpolator()).start()
         }
+    }
+
+    // ------------------------------------------------------------------ Touch feedback: every tile and button squishes under the finger
+    /** Gives [v] touch feedback without taking the touch away from its own click. Safe to call more than once. */
+    @android.annotation.SuppressLint("ClickableViewAccessibility")
+    fun press(c: Context, v: View) {
+        if (v is EditText) return
+        if (v.getTag(R.id.nt_press) != null) return
+        v.setTag(R.id.nt_press, true)
+        v.setOnTouchListener { view, ev ->
+            val style = st(c, "press")
+            if (style != "off") when (ev.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    if (style == "dim") view.animate().setStartDelay(0).alpha(0.6f).setDuration(t(c, 90)).start()
+                    else view.animate().setStartDelay(0).scaleX(0.93f).scaleY(0.93f).setDuration(t(c, 110)).setInterpolator(DecelerateInterpolator()).start()
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (style == "dim") view.animate().setStartDelay(0).alpha(1f).setDuration(t(c, 200)).start()
+                    else view.animate().setStartDelay(0).scaleX(1f).scaleY(1f).setDuration(t(c, 380)).setInterpolator(OvershootInterpolator(3f)).start()
+                }
+            }
+            false
+        }
+    }
+
+    /** Touch feedback for every tappable thing inside [g] (tiles, buttons, page arrows). */
+    fun pressAll(c: Context, g: View) {
+        if (st(c, "press") == "off") return
+        if (g.isClickable && g !is EditText) press(c, g)
+        if (g is ViewGroup) for (i in 0 until g.childCount) pressAll(c, g.getChildAt(i))
+    }
+
+    // ------------------------------------------------------------------ Tiles appear: they rise one after another
+    fun cascade(c: Context, list: ViewGroup) {
+        val style = st(c, "list")
+        if (style == "off") return
+        val d = dp(c, 1f)
+        for (i in 0 until list.childCount) {
+            val v = list.getChildAt(i)
+            val delay = t(c, 40L + i * 55L)
+            v.animate().cancel()
+            v.alpha = 0f
+            if (style == "fade") {
+                v.animate().alpha(1f).setStartDelay(delay).setDuration(t(c, 260)).start()
+            } else {
+                v.translationY = 22f * d
+                v.scaleX = 0.96f
+                v.scaleY = 0.96f
+                v.animate().alpha(1f).translationY(0f).scaleX(1f).scaleY(1f).setStartDelay(delay)
+                    .setDuration(t(c, 420)).setInterpolator(OvershootInterpolator(1.1f)).start()
+            }
+        }
+    }
+
+    /** Clear all: the rows leave one after another (the last one first) before the list is cleared. */
+    fun rowsOut(c: Context, list: ViewGroup) {
+        if (st(c, "clear") == "off") return
+        val d = dp(c, 1f)
+        val n = list.childCount
+        for (i in 0 until n) {
+            val v = list.getChildAt(i)
+            v.animate().alpha(0f).translationX(if (i % 2 == 0) -48f * d else 48f * d)
+                .setStartDelay(t(c, 50L * (n - 1 - i))).setDuration(t(c, 260)).setInterpolator(DecelerateInterpolator()).start()
+        }
+    }
+
+    // ------------------------------------------------------------------ Panel closes
+    /** Closes the panel with the chosen style, then runs [done] (finish). */
+    fun close(c: Context, sheet: View, root: View, from: Float = 0f, done: () -> Unit) {
+        val style = st(c, "close")
+        if (style == "off") { done(); return }
+        val d = dp(c, 1f)
+        val col = (root.background as? android.graphics.drawable.ColorDrawable)?.color
+        if (col != null) {
+            val a0 = Color.alpha(col)
+            val va = ValueAnimator.ofInt(a0, 0)
+            va.duration = t(c, 220)
+            va.addUpdateListener { root.setBackgroundColor(Color.argb(it.animatedValue as Int, Color.red(col), Color.green(col), Color.blue(col))) }
+            va.start()
+        }
+        if (style == "fade") {
+            sheet.animate().alpha(0f).setDuration(t(c, 200)).withEndAction { done() }.start()
+        } else {
+            sheet.animate().translationY(sheet.height + 40f * d).alpha(0.4f)
+                .setDuration(t(c, 260)).setInterpolator(android.view.animation.AccelerateInterpolator(1.3f)).withEndAction { done() }.start()
+        }
+    }
+
+    // ------------------------------------------------------------------ The sheet follows a downward drag and drops away when pulled far or flicked
+    class SwipeSheet(val ctx: Context, val canDrag: () -> Boolean, val onDismiss: (Float) -> Unit) : LinearLayout(ctx) {
+        private val slop = ViewConfiguration.get(ctx).scaledTouchSlop
+        private var downX = 0f
+        private var downY = 0f
+        private var dragging = false
+        private var vt: VelocityTracker? = null
+
+        override fun onInterceptTouchEvent(ev: MotionEvent): Boolean {
+            if (st2(ctx) == "off") return false
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_DOWN -> { downX = ev.rawX; downY = ev.rawY; dragging = false; vt?.recycle(); vt = VelocityTracker.obtain(); vt?.addMovement(ev) }
+                MotionEvent.ACTION_MOVE -> {
+                    vt?.addMovement(ev)
+                    val dy = ev.rawY - downY
+                    val dx = ev.rawX - downX
+                    if (!dragging && dy > slop * 2 && dy > Math.abs(dx) * 1.6f && canDrag()) {
+                        dragging = true
+                        parent?.requestDisallowInterceptTouchEvent(true)
+                        return true
+                    }
+                }
+                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP -> { vt?.recycle(); vt = null }
+            }
+            return false
+        }
+
+        @android.annotation.SuppressLint("ClickableViewAccessibility")
+        override fun onTouchEvent(ev: MotionEvent): Boolean {
+            if (!dragging) return super.onTouchEvent(ev)
+            vt?.addMovement(ev)
+            when (ev.actionMasked) {
+                MotionEvent.ACTION_MOVE -> {
+                    val dy = (ev.rawY - downY).coerceAtLeast(0f)
+                    translationY = dy
+                    alpha = 1f - 0.5f * (dy / height.coerceAtLeast(1)).coerceIn(0f, 1f)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    vt?.computeCurrentVelocity(1000)
+                    val vy = vt?.yVelocity ?: 0f
+                    vt?.recycle(); vt = null
+                    dragging = false
+                    val far = translationY > height * 0.3f || vy > 1400f
+                    if (far && ev.actionMasked == MotionEvent.ACTION_UP) {
+                        onDismiss(translationY)
+                    } else {
+                        animate().translationY(0f).alpha(1f).setDuration(Alive.t(ctx, 380)).setInterpolator(OvershootInterpolator(1.6f)).start()
+                    }
+                }
+            }
+            return true
+        }
+
+        private fun st2(c: Context) = Alive.style(c, "close")
     }
 
     // ------------------------------------------------------------------ New message: slides in with a highlight

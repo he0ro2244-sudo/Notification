@@ -38,6 +38,10 @@ class PanelActivity : Activity() {
     private var arrived = false
     private lateinit var fxRoot: FrameLayout
     private var expanded: String? = null
+    private lateinit var sheetView: View
+    private var lastExp: String? = "?"
+    private var lastPage = -1
+    private var closing = false
     private var dark = false
 
     private var cBg = 0
@@ -89,14 +93,16 @@ class PanelActivity : Activity() {
         val root = FrameLayout(this)
         fxRoot = root
         root.setBackgroundColor(Prefs.scrimArgb(this))
-        root.setOnClickListener { finish() }
+        root.setOnClickListener { dismissPanel() }
         root.setOnApplyWindowInsetsListener { v, insets ->
             val b = insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime())
             v.setPadding(0, b.top, 0, b.bottom)
             insets
         }
 
-        val sheet = LinearLayout(this)
+        lateinit var scrollRef: ScrollView
+        val sheet = PanelFx.SwipeSheet(this, { !scrollRef.canScrollVertically(-1) }) { dismissPanel(it) }
+        sheetView = sheet
         sheet.orientation = LinearLayout.VERTICAL
         sheet.background = Look.panelBackground(this, cBg, dp(24))
         sheet.setPadding(dp(12), dp(12), dp(12), dp(8))
@@ -180,6 +186,7 @@ class PanelActivity : Activity() {
         clear.visibility = if (Prefs.showItem(this, "p_clear")) View.VISIBLE else View.GONE
         clear.setOnClickListener {
             Alive.go(this, "clear", 1900)
+            PanelFx.rowsOut(this, list)
             PanelFx.clearAll(this, fxRoot, clear, if (Prefs.clearMode(this) == 1) "Read all" else "Clear all") {
                 if (Prefs.clearMode(this) == 1) {
                     Extras.markAllRead(this)
@@ -248,8 +255,8 @@ class PanelActivity : Activity() {
         header.addView(gear, LinearLayout.LayoutParams(gsz + dp(6), gsz + dp(4)))
         aliveViews["gear"] = gear
         sheet.addView(header)
-        PanelFx.open(this, sheet, header)
-        val scroll = ScrollView(this)
+                val scroll = ScrollView(this)
+        scrollRef = scroll
         list = LinearLayout(this)
         list.orientation = LinearLayout.VERTICAL
         scroll.addView(list)
@@ -258,6 +265,8 @@ class PanelActivity : Activity() {
         PanelFx.attach(this, root)
         setContentView(root)
         Look.applyTree(root, this)
+        PanelFx.pressAll(this, header)
+        PanelFx.open(this, sheet, header, root)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -317,8 +326,15 @@ class PanelActivity : Activity() {
             expanded = null
             refresh()
         } else {
-            super.onBackPressed()
+            dismissPanel()
         }
+    }
+
+    /** Closes the panel with its closing animation ([from] = how far the sheet was already dragged down). */
+    private fun dismissPanel(from: Float = 0f) {
+        if (closing) return
+        closing = true
+        PanelFx.close(this, sheetView, fxRoot, from) { finish() }
     }
 
     override fun onResume() {
@@ -391,9 +407,16 @@ class PanelActivity : Activity() {
     }
 
     private fun refresh() {
+        val page = Prefs.page(this, "p")
+        val navChanged = lastExp == "?" || lastExp != expanded || page != lastPage
+        lastExp = expanded
+        lastPage = page
         refreshInner()
-        if (arrived) { arrived = false; list.getChildAt(0)?.let { PanelFx.newRow(this, it) } }
         Look.applyTree(list, this)
+        PanelFx.pressAll(this, list)
+        if (navChanged) PanelFx.cascade(this, list)
+        else if (arrived) { arrived = false; list.getChildAt(0)?.let { PanelFx.newRow(this, it) } }
+        arrived = false
         lastSig = screenSig()
     }
 

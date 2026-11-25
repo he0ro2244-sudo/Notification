@@ -171,6 +171,12 @@ object Alive {
             listOf("rise" to "Sheet rises", "fade" to "Fade in")),
         Elem("row", "New message tile (when it arrives)",
             listOf("slide" to "Slide in with highlight", "fade" to "Fade in")),
+        Elem("press", "Touch feedback (tiles and buttons)",
+            listOf("squish" to "Squish and bounce back", "dim" to "Soft dim")),
+        Elem("list", "Tiles appear (panel opens, page or message changes)",
+            listOf("cascade" to "Rise one by one", "fade" to "Fade in")),
+        Elem("close", "Panel closes (swipe down or tap outside)",
+            listOf("drop" to "Sheet follows your finger and drops", "fade" to "Fade out")),
     )
 
     /** The style picked for [key] in Settings, or the default one when nothing was picked. */
