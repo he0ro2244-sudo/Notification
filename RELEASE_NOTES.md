@@ -1,5 +1,8 @@
 # Release notes
 
+## 1.1.43
+- Fix for the build error of 1.1.42 (Settings had two onPause functions). Nothing else changed.
+
 ## 1.1.42
 - **Alive icons, done properly: an icon moves when something happens that it stands for, and is still the rest of the time.** (1.1.41 kept every icon moving all the time; that is gone.)
 - **Widget:**

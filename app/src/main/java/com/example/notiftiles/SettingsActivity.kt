@@ -78,12 +78,6 @@ class SettingsActivity : Activity() {
         applyFilter()
     }
 
-    // Alive icons: the widget's gear spins when you leave Settings (you land on the widget)
-    override fun onPause() {
-        super.onPause()
-        Alive.go(this, "gear", 1800)
-    }
-
     // Settings' own undo list (the pencil screens keep a separate one): every change made here can be taken back one step at a time
     private lateinit var tracker: ChangeTracker
     private lateinit var undoBar: UndoBar
@@ -116,6 +110,8 @@ class SettingsActivity : Activity() {
         // Opening a screen from Settings (contacts, shortcuts, notes, Arrange...) keeps tracking, so what is changed there is also one undo step
         if (!childOpen) tracker.stop()
         live.stop()
+        // Alive icons: the widget's gear spins when you leave Settings (you land on the widget)
+        if (!childOpen) Alive.go(this, "gear", 1800)
         super.onPause()
     }
 
