@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.1.28
+- **Smarter overlap fix: keeps things on their row.** In 1.1.27 an item that overlapped another (for example + Note on the + Add circle) was pushed down to a new line even when the row had room for it. Now, in this order: (1) it goes to a free gap on its own row, the one closest to where it was, including the end of the row; (2) if there is no gap, the items of that row are packed side by side in their order with the moved item last, when they all fit; (3) only then does it go to the right of what it overlaps or to the next line.
+- Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.27
 - **Hiding and re-showing an item no longer leaves it crammed.** In the free layout, every time something is switched on again (the + Add circle of the shortcuts row or fast dial, an item in Show / hide parts or in Arrange > Every item, the pencil, refresh, or a new shortcut circle), Move now opens for about a second by itself, moves whatever overlaps to a free place, and closes. You do not have to open Move. If you switch an item on from somewhere that cannot open it, the fix runs the next time you open Move. *Tidy up: fix overlapping items (smart)* is still there to run by hand, and Undo in Move takes a fix back.
 - Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.

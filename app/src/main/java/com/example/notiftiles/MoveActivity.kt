@@ -361,15 +361,15 @@ class MoveActivity : Activity() {
         holder.post { render() }
     }
 
-    /**
-     * Smart fix after something new was added: items that sit on top of each other are moved. The item further down /
-     * left stays; the other one moves to the right of what it overlaps, or to the next line when there is no room.
-     */
-    // Opened by itself after something was switched on: close again once the overlaps are fixed
-    private fun closeIfAuto() {
-        if (intent.getBooleanExtra("auto_tidy", false)) holder.postDelayed({ if (!isFinishing) finish() }, 900)
-    }
+    private class Box(val key: String, var x: Float, var y: Float, val w: Float, val h: Float)
 
+    /**
+     * Smart fix after something was added or switched on again: items that sit on top of each other are separated.
+     * The item that comes later (further down, then further right) is the one that moves. In order:
+     *  1. it goes to a free gap on its own row, the one closest to where it was (the end of the row counts too);
+     *  2. else the items of that row are packed side by side in their order, the moved item last, if they all fit;
+     *  3. else it goes to the right of what it overlaps, or to the next line.
+     */
     private fun fixOverlaps(auto: Boolean) {
         if (!Prefs.freeOn(this)) {
             if (!auto) showNote("Move an item first, then Tidy up can fix overlaps.")
@@ -380,35 +380,92 @@ class MoveActivity : Activity() {
         val keys = places.keys.filter { it in sz && it != "merge" }
             .sortedWith(compareBy({ places.getValue(it).y }, { places.getValue(it).x }))
         val full = if (optW > 0f) optW else widthDp.toFloat()
-        val gap = Prefs.freeGap(this).toFloat().coerceAtLeast(4f)
-        val placed = ArrayList<FloatArray>()
-        var moved = 0
-        val out = LinkedHashMap(places)
+        val m = 4f // smallest space kept between two items
+        val placed = ArrayList<Box>()
+        val moved = LinkedHashSet<String>()
+        fun hits(x: Float, y: Float, w: Float, h: Float, o: Box) =
+            x < o.x + o.w - 2f && x + w > o.x + 2f && y < o.y + o.h - 2f && y + h > o.y + 2f
+        fun vOverlap(y: Float, h: Float, o: Box) = minOf(y + h, o.y + o.h) - maxOf(y, o.y)
+
         for (k in keys) {
             val p = places.getValue(k)
             val (w, h) = sz.getValue(k)
+            if (placed.none { hits(p.x, p.y, w, h, it) }) {
+                placed.add(Box(k, p.x, p.y, w, h))
+                continue
+            }
+            // 1. a free gap on its own row
+            val row = placed.filter { vOverlap(p.y, h, it) > 4f }.sortedBy { it.x }
+            var bestX = Float.NaN
+            var bestD = Float.MAX_VALUE
+            var edge = 0f
+            val gaps = ArrayList<Pair<Float, Float>>()
+            for (o in row) {
+                gaps.add(Pair(edge, o.x - m))
+                edge = o.x + o.w + m
+            }
+            gaps.add(Pair(edge, full))
+            for ((a, b) in gaps) {
+                if (b - a < w) continue
+                val x = p.x.coerceIn(a, b - w)
+                val d = kotlin.math.abs(x - p.x)
+                if (d < bestD) { bestD = d; bestX = x }
+            }
+            if (!bestX.isNaN() && placed.none { hits(bestX, p.y, w, h, it) }) {
+                placed.add(Box(k, bestX, p.y, w, h))
+                moved.add(k)
+                continue
+            }
+            // 2. pack the row: the items already there keep their order, this one goes last
+            val cluster = placed.filter { vOverlap(p.y, h, it) >= 0.3f * minOf(h, it.h) }.sortedBy { it.x }
+            val total = cluster.sumOf { it.w.toDouble() }.toFloat() + w + m * cluster.size
+            if (cluster.isNotEmpty() && total <= full) {
+                var x = cluster.first().x
+                if (x + total > full) x = (full - total).coerceAtLeast(0f)
+                val snapshot = cluster.map { Pair(it.x, it.y) }
+                for (o in cluster) {
+                    o.x = x
+                    x += o.w + m
+                }
+                val inRow = cluster.map { c -> c.key }
+                val ok = placed.none { o -> o.key !in inRow && hits(x, p.y, w, h, o) }
+                if (ok) {
+                    for ((i, o) in cluster.withIndex()) if (o.x != snapshot[i].first) moved.add(o.key)
+                    placed.add(Box(k, x, p.y, w, h))
+                    moved.add(k)
+                    continue
+                }
+                for ((i, o) in cluster.withIndex()) o.x = snapshot[i].first // did not work out: put them back
+            }
+            // 3. to the right of what it overlaps, or to the next line
             var x = p.x
             var y = p.y
             var guard = 0
             while (guard++ < 60) {
                 val cx = x
                 val cy = y
-                val hit = placed.firstOrNull { cx < it[0] + it[2] - 2f && cx + w > it[0] + 2f && cy < it[1] + it[3] - 2f && cy + h > it[1] + 2f } ?: break
-                val nx = hit[0] + hit[2] + gap
+                val hit = placed.firstOrNull { hits(cx, cy, w, h, it) } ?: break
+                val nx = hit.x + hit.w + m
                 if (nx + w <= full) {
                     x = nx
                 } else {
                     x = p.x.coerceAtMost((full - w).coerceAtLeast(0f))
-                    y = hit[1] + hit[3] + gap
+                    y = hit.y + hit.h + m
                 }
             }
-            if (x != p.x || y != p.y) {
-                out[k] = Prefs.FreePos(x, y, p.w)
-                moved++
-            }
-            placed.add(floatArrayOf(x, y, w, h))
+            placed.add(Box(k, x, y, w, h))
+            moved.add(k)
         }
-        if (moved == 0) {
+        val out = LinkedHashMap(places)
+        var count = 0
+        for (b in placed) {
+            val p = places.getValue(b.key)
+            if (b.x != p.x || b.y != p.y) {
+                out[b.key] = Prefs.FreePos(b.x, b.y, p.w)
+                count++
+            }
+        }
+        if (count == 0) {
             if (!auto) showNote("Nothing overlaps.")
             closeIfAuto()
             return
@@ -419,7 +476,7 @@ class MoveActivity : Activity() {
         TilesWidget.rebuildAll(applicationContext)
         holder.post {
             render()
-            showNote("Moved $moved item(s) so nothing overlaps. Undo is below if you do not like it.")
+            showNote("Moved $count item(s) so nothing overlaps. Undo is below if you do not like it.")
             closeIfAuto()
         }
     }
