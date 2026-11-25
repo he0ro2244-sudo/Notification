@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.1.30
+- **Voice assistant choices fixed.** Add to shortcuts row > *Voice assistant* now offers two clear choices: **Gemini: talk** (opens Gemini ready to listen, the "What's next" screen) and **Google voice search** (the "Listening... Search, AI mode, Talk, Song" screen). Before, the first choice tried Google voice search first, so it did not open Gemini. Gemini's own Live shortcut, if listed, is still under *Shortcut*.
+- **No + circle after you choose a shortcut.** In the free layout, choosing a shortcut now hides the + (Add) circle so no new item appears and crowds the row. Switch it back on in Settings > Shortcuts row > *Show the + (Add) circle*; the new switch *Free layout: after I choose a shortcut, hide the + circle* turns this behaviour off.
+- **Overlap fix keeps wrapped items tidy.** When a row is full, the items that do not fit now move to a new line just under it and line up from the left in their order, instead of being scattered. The messages start lower if needed so nothing sits on top of them.
+- Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.29
 - Fixes the 1.1.28 build error (a helper that closes the automatic Move screen had been removed by mistake). No other change.
 

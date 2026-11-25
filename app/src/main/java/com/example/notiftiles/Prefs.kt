@@ -973,6 +973,9 @@ object Prefs {
     fun dialAdd(c: Context): Boolean = sp(c).getBoolean("lay_dial_add", true)
     fun setDialAdd(c: Context, v: Boolean) { sp(c).edit().putBoolean("lay_dial_add", v).apply(); markTidy(c, v) }
     fun quickAdd(c: Context): Boolean = sp(c).getBoolean("lay_quick_add", true)
+    /** After a shortcut is chosen in the free layout, hide the + circle so no new item appears and crowds the row. */
+    fun keepPlusHidden(c: Context): Boolean = sp(c).getBoolean("keep_plus_hidden", true)
+    fun setKeepPlusHidden(c: Context, v: Boolean) = sp(c).edit().putBoolean("keep_plus_hidden", v).apply()
     fun setQuickAdd(c: Context, v: Boolean) { sp(c).edit().putBoolean("lay_quick_add", v).apply(); markTidy(c, v) }
 
     fun dialNames(c: Context): Boolean = sp(c).getBoolean("lay_dialnames", true)

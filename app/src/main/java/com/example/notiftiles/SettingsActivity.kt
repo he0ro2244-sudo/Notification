@@ -773,6 +773,7 @@ class SettingsActivity : Activity() {
         col.addView(hint("A second row of circles under the fast dial. Each circle can open an app, one screen (activity) inside an app, or a shortcut an app offers (like a direct WhatsApp chat). Tap the Add circle on the widget, or use Pick here. Circle size, colour, shape and names follow the fast-dial settings."))
         col.addView(toggleRaw("Show the shortcuts row", Prefs.quickOn(this)) { Prefs.setQuickOn(this, it); applyLook() })
         col.addView(toggleRaw("Show the + (Add) circle in the shortcuts row", Prefs.quickAdd(this)) { Prefs.setQuickAdd(this, it); applyLook() })
+        col.addView(toggleRaw("Free layout: after I choose a shortcut, hide the + circle (so no new item appears)", Prefs.keepPlusHidden(this)) { Prefs.setKeepPlusHidden(this, it) })
         for (i in 0 until Prefs.QUICK_SLOTS) {
             val q = Prefs.quick(this, i)
             val row = LinearLayout(this)

@@ -442,23 +442,26 @@ class MoveActivity : Activity() {
                 }
                 for ((i, o) in cluster.withIndex()) o.x = snapshot[i].first // did not work out: put them back
             }
-            // 3. to the right of what it overlaps, or to the next line
-            var x = p.x
-            var y = p.y
+            // 3. the row is full: a new line just under it. Wrapped items line up there from the left, in order.
+            val band = placed.filter { vOverlap(p.y, h, it) > 4f }
+            var y = (band.maxOfOrNull { it.y + it.h } ?: (p.y + h)) + m
+            var nx = Float.NaN
             var guard = 0
-            while (guard++ < 60) {
-                val cx = x
+            while (guard++ < 40 && nx.isNaN()) {
                 val cy = y
-                val hit = placed.firstOrNull { hits(cx, cy, w, h, it) } ?: break
-                val nx = hit.x + hit.w + m
-                if (nx + w <= full) {
-                    x = nx
-                } else {
-                    x = p.x.coerceAtMost((full - w).coerceAtLeast(0f))
-                    y = hit.y + hit.h + m
+                val line = placed.filter { vOverlap(cy, h, it) > 4f }.sortedBy { it.x }
+                var edge = 0f
+                val free = ArrayList<Pair<Float, Float>>()
+                for (o in line) {
+                    free.add(Pair(edge, o.x - m))
+                    edge = o.x + o.w + m
                 }
+                free.add(Pair(edge, full))
+                val spot = free.firstOrNull { it.second - it.first >= w }
+                if (spot != null) nx = spot.first else if (line.isEmpty()) nx = 0f else y = line.maxOf { it.y + it.h } + m
             }
-            placed.add(Box(k, x, y, w, h))
+            if (nx.isNaN()) nx = p.x
+            placed.add(Box(k, nx, y, w, h))
             moved.add(k)
         }
         val out = LinkedHashMap(places)
@@ -478,6 +481,9 @@ class MoveActivity : Activity() {
         Prefs.saveFreePrev(this)
         Prefs.setFreePos(this, out)
         Prefs.setFreeRefW(this, optW)
+        // Items that wrapped to a new line must not end up on top of the messages: they start lower then
+        val lowest = placed.maxOfOrNull { it.y + it.h } ?: 0f
+        if (lowest + 8f > Prefs.freeGridTop(this)) Prefs.setFreeGridTop(this, lowest + 8f)
         TilesWidget.rebuildAll(applicationContext)
         holder.post {
             render()

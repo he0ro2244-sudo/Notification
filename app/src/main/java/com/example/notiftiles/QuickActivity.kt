@@ -69,16 +69,19 @@ class QuickActivity : Activity() {
         val gApp = "com.google.android.googlequicksearchbox"
         val pkg = listOf(gemini, gApp).firstOrNull { packageManager.getLaunchIntentForPackage(it) != null } ?: gemini
         fun uri(action: String) = Intent(action).toUri(Intent.URI_INTENT_SCHEME)
-        val voice = listOf(uri("android.intent.action.VOICE_ASSIST"), uri(Intent.ACTION_VOICE_COMMAND), uri(Intent.ACTION_ASSIST))
         val lines = listOf(
-            "Talk to the assistant (voice first, then the assistant screen, then the app)",
-            "Open the assistant screen only",
-            "Tip: the Gemini app may list its own Live / voice shortcut under \"Shortcut\""
+            "Gemini: talk (opens Gemini ready to listen, the \"What's next\" screen)",
+            "Google voice search (the \"Listening...\" screen: Search, AI mode, Talk, Song)",
+            "Tip: the Gemini app may list its own Live shortcut under \"Shortcut\""
         )
         pickFrom("Voice assistant", lines) { w ->
             when (w) {
-                0 -> saveChain(pkg, voice, "Gemini")
-                1 -> saveChain(pkg, listOf(uri(Intent.ACTION_ASSIST)), "Assistant")
+                0 -> saveChain(pkg, listOf(uri(Intent.ACTION_ASSIST)), "Gemini")
+                1 -> saveChain(
+                    if (packageManager.getLaunchIntentForPackage(gApp) != null) gApp else pkg,
+                    listOf(uri("android.intent.action.VOICE_ASSIST"), uri(Intent.ACTION_VOICE_COMMAND)),
+                    "Voice search"
+                )
                 else -> pickAllShortcuts()
             }
         }
@@ -650,6 +653,8 @@ class QuickActivity : Activity() {
         }
         Prefs.setQuick(this, slot, q)
         Prefs.setQuickOn(this, true)
+        // Free layout: the next empty + circle would appear by itself and crowd the row, so it stays hidden
+        if (Prefs.freeOn(this) && Prefs.keepPlusHidden(this)) Prefs.setQuickAdd(this, false)
         toast("Saved: " + q.name)
         TilesWidget.refresh(applicationContext)
         finish()
