@@ -2,4 +2,5 @@
 <resources>
     <item name="nt_orig" type="id" />
     <item name="nt_grp" type="id" />
+    <item name="nt_alive" type="id" />
 </resources>

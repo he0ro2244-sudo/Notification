@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.1.44
+- **Every panel icon has its own animation story** (press the icon):
+  - **Note**: becomes a writing hand (✍️ 🖊️) that travels along the line while you type, and a ✅ pops in when the note is saved.
+  - **Clear all**: a basket 🧺 catches the messages 📨 💬 📩 one by one, tips over and pours them out while the list empties, then stands up with a ✅.
+  - **Gear**: spins up and slows down, then Settings opens.
+  - **Refresh**: turns twice while it refreshes.
+  - **Mic**: red rings spread out like a live recording, then the recorder opens.
+  - **Pencil**: writes a line and ends with a ✨, then its menu opens.
+  - **Mail box (Inbox title)**: the flag goes up (📪 📫 📬) when a new message arrives; the count badge pops.
+- The widget keeps its own reactions (gear after Settings, refresh while refreshing, writing hand while typing a note, red mic while recording, broom on Clear all, mail flag on a new message).
+- Settings > Show / hide parts > Alive icons: same switches as before.
+- Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.43
 - Fix for the build error of 1.1.42 (Settings had two onPause functions). Nothing else changed.
 

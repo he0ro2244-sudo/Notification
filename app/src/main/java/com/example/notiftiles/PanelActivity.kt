@@ -35,6 +35,7 @@ class PanelActivity : Activity() {
     private lateinit var titleView: TextView
     private val aliveViews = HashMap<String, View>()
     private var lastCount = -1
+    private lateinit var fxRoot: FrameLayout
     private var expanded: String? = null
     private var dark = false
 
@@ -85,6 +86,7 @@ class PanelActivity : Activity() {
         if (expanded == "note:new" && openNotesDirect()) expanded = null
 
         val root = FrameLayout(this)
+        fxRoot = root
         root.setBackgroundColor(Prefs.scrimArgb(this))
         root.setOnClickListener { finish() }
         root.setOnApplyWindowInsetsListener { v, insets ->
@@ -160,7 +162,7 @@ class PanelActivity : Activity() {
         addNote.visibility = if (Prefs.showItem(this, "p_note")) View.VISIBLE else View.GONE
         addNote.setOnClickListener {
             Alive.go(this, "note", 2000)
-            Alive.wiggle(this, addNote)
+            PanelFx.writing(this, addNote, "Note")
             if (openNotesDirect()) return@setOnClickListener
             expanded = "note:new"
             refresh()
@@ -176,8 +178,8 @@ class PanelActivity : Activity() {
         clear.setPadding(dp(8), dp(6), dp(8), dp(6))
         clear.visibility = if (Prefs.showItem(this, "p_clear")) View.VISIBLE else View.GONE
         clear.setOnClickListener {
-            Alive.go(this, "clear", 1500)
-            Alive.tap(this, clear, "clear") {
+            Alive.go(this, "clear", 1900)
+            PanelFx.clearAll(this, fxRoot, clear, if (Prefs.clearMode(this) == 1) "Read all" else "Clear all") {
                 if (Prefs.clearMode(this) == 1) {
                     Extras.markAllRead(this)
                     TilesWidget.refresh(applicationContext)
@@ -200,7 +202,14 @@ class PanelActivity : Activity() {
             b.setTextColor(if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub)
             b.setPadding(dp(8), dp(4), dp(8), dp(4))
             b.visibility = if (Prefs.showItem(this, show)) View.VISIBLE else View.GONE
-            b.setOnClickListener { Alive.tap(this, b, key) { onTap() } }
+            b.setOnClickListener {
+                when (key) {
+                    "mic" -> PanelFx.mic(this, fxRoot, b, onTap)
+                    "edit" -> PanelFx.pencil(this, fxRoot, b, onTap)
+                    "refresh" -> PanelFx.refresh(this, b, onTap)
+                    else -> onTap()
+                }
+            }
             header.addView(b)
             aliveViews[key] = b
         }
@@ -230,7 +239,7 @@ class PanelActivity : Activity() {
         gear.setPadding(dp(4), dp(2), dp(2), dp(2))
         gear.visibility = if (Prefs.showItem(this, "p_gear")) View.VISIBLE else View.GONE
         gear.setOnClickListener {
-            Alive.tap(this, gear, "gear") {
+            PanelFx.gear(this, gear) {
                 startActivity(Intent(this, SettingsActivity::class.java))
                 finish()
             }
@@ -390,7 +399,7 @@ class PanelActivity : Activity() {
         val items = if (svc == null) emptyList() else Feed.items(this, true)
         val notes = Prefs.notes(this)
         badge.text = items.size.toString()
-        if (lastCount in 0 until items.size) { Alive.pop(this, badge); Alive.bounce(this, titleView) }
+        if (lastCount in 0 until items.size) { Alive.pop(this, badge); PanelFx.mail(this, titleView, "Inbox") }
         lastCount = items.size
         badge.visibility = if (items.isEmpty() || !Prefs.showItem(this, "p_badge")) View.GONE else View.VISIBLE
 
@@ -746,7 +755,7 @@ class PanelActivity : Activity() {
             override fun afterTextChanged(s: android.text.Editable?) {}
             override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {
                 Alive.go(this@PanelActivity, "note", 2200)
-                aliveViews["note"]?.let { Alive.wiggle(this@PanelActivity, it) }
+                (aliveViews["note"] as? TextView)?.let { PanelFx.writing(this@PanelActivity, it, "Note") }
             }
         })
         et.minLines = 4
@@ -787,6 +796,7 @@ class PanelActivity : Activity() {
                     et.setText("")
                     expanded = null
                     refresh()
+                    (aliveViews["note"] as? TextView)?.let { PanelFx.saved(this, it, "Note") }
                     toast("Saved")
                 }
             }
