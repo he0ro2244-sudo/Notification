@@ -1,5 +1,19 @@
 # Release notes
 
+## 1.1.39
+- **Icons that change with the inbox.** The Inbox icon 📬 (mail in the box) now turns into 📭 (empty box) by itself while there are no messages, and back to 📬 with the next one (📫 turns into 📪). Works in the widget and in the panel.
+- **Your own icon for the empty state.** Emoji icons (pencil menu or Settings) has new lines: *Inbox title when empty*, *Clear all when empty*, *Mic when empty* and *Notes when empty*. Pick any emoji; "Normal icon" means the same as the full one.
+- Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
+## 1.1.38
+- **Parts that show only when there are messages.** Settings > Show / hide parts > *Only when there are messages*: switch it on for the Inbox title, the mic, + Note and Clear all / Read all. While the inbox is empty (after Clear all, Read all or Mark as read) they go away, and they come back with the next message. The count badge already worked this way. Everything is off by default, so nothing changes until you switch one on.
+- The Move screen still draws every part, so you can place them even when the inbox is empty. The settings gear and the pencil never hide.
+- Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
+## 1.1.37
+- **Choose the buttons under a message.** New section in Settings: *Message buttons*. The buttons are: the app's own buttons (View, Notifications ...), Mark as read, Snooze, Mute chat, Open, and Clear all of the app. Tick to show or hide each one, move it with the up and down arrows, or switch on *Sort by how often I use them* so the most used come first. It shows how many times you used each and can reset the counts.
+- Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.36
 - **Mark as read now counts as really opened and read.** The app's own *Mark as read* button (Facebook, ...) used to do nothing when the app answered it by opening a screen, and the app then posted the same notification again so it came back. Now it is always counted as read here, and **the same notification posted again stays hidden** (the action log says what happened).
 - Also hidden when only the numbers change (Facebook "Waiting for you: 20 messages, 7 new..." becoming "21 messages"). Switch: Settings > Counts & clearing, *Mark as read also hides the same notification when the app posts it again with only the numbers changed* (on by default). It is remembered for 3 days.

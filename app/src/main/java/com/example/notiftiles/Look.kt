@@ -87,10 +87,10 @@ object Look {
     fun withEmoji(emoji: String, text: String): String = if (emoji.isEmpty()) text else "$emoji $text"
 
     /** "Inbox", or "<emoji> Inbox" when an emoji is chosen. */
-    fun inboxLabel(ctx: Context): String = withEmoji(Prefs.emojiOf(ctx, "inbox"), "Inbox")
+    fun inboxLabel(ctx: Context, empty: Boolean = false): String = withEmoji(Prefs.emojiFor(ctx, "inbox", empty), "Inbox")
 
     /** "+ Note", or "<emoji> Note" when an emoji is chosen. */
-    fun noteLabel(ctx: Context): String = Prefs.emojiOf(ctx, "note").let { if (it.isEmpty()) "+ Note" else "$it Note" }
+    fun noteLabel(ctx: Context, empty: Boolean = false): String = Prefs.emojiFor(ctx, "note", empty).let { if (it.isEmpty()) "+ Note" else "$it Note" }
 
     /** An emoji drawn into a square picture, for the widget's image buttons (mic, refresh). */
     fun emojiBitmap(ctx: Context, emoji: String, dpSize: Float): Bitmap? {

@@ -120,6 +120,9 @@ class TilesWidget : AppWidgetProvider() {
         const val ACTION_PAGE_PREV = "com.example.notiftiles.PAGE_PREV"
         const val ACTION_PAGE_NEXT = "com.example.notiftiles.PAGE_NEXT"
 
+        /** True only while Move draws its preview: every part is drawn then, so it can be dragged even when the inbox is empty. */
+        @Volatile var ignoreHideEmpty = false
+
         // One view per item. Each item is added into the row it sits in (top row or Inbox row), see addItems.
         val ITEM_VIEW = mapOf(
             "clock" to R.id.wclock, "weather" to R.id.wweather, "date" to R.id.wdate, "maps" to R.id.wloc,
@@ -553,10 +556,11 @@ class TilesWidget : AppWidgetProvider() {
             val main = if (ov != 0) ov else if (lightText) 0xFFF2F2F5.toInt() else if (darkText) 0xFF1B1B1F.toInt() else ctx.getColor(R.color.nt_text)
             val sub = if (ov != 0) Feed.alpha(ov, 0xB3) else if (lightText) 0xFFB4B4BC.toInt() else if (darkText) 0xFF55555C.toInt() else ctx.getColor(R.color.nt_sub)
             val hsc = bs(ctx, "head")
-            txt(rv, ctx, R.id.hdr_title, Look.inboxLabel(ctx), 16f * hsc * isc(ctx, "w_title") * psc(ctx, "title"), true)
+            val noMsg = Feed.items(ctx).isEmpty() // the icons can be different while the inbox is empty
+            txt(rv, ctx, R.id.hdr_title, Look.inboxLabel(ctx, noMsg), 16f * hsc * isc(ctx, "w_title") * psc(ctx, "title"), true)
             rv.setTextColor(R.id.hdr_title, Prefs.partColor(ctx, "title").let { if (it != 0) it else main })
-            txt(rv, ctx, R.id.wnote, Look.noteLabel(ctx), 13f * hsc * isc(ctx, "w_note") * psc(ctx, "note"), true)
-            txt(rv, ctx, R.id.wclear, Look.withEmoji(Prefs.emojiOf(ctx, "clear"), if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all"), 13f * hsc * isc(ctx, "w_clear") * psc(ctx, "clear"), false)
+            txt(rv, ctx, R.id.wnote, Look.noteLabel(ctx, noMsg), 13f * hsc * isc(ctx, "w_note") * psc(ctx, "note"), true)
+            txt(rv, ctx, R.id.wclear, Look.withEmoji(Prefs.emojiFor(ctx, "clear", noMsg), if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all"), 13f * hsc * isc(ctx, "w_clear") * psc(ctx, "clear"), false)
             val ic = Prefs.iconColor(ctx)
             rv.setTextColor(R.id.wclear, Prefs.partColor(ctx, "clear").let { if (it != 0) it else if (ic != 0) ic else sub })
             rv.setInt(R.id.wset, "setColorFilter", Prefs.partColor(ctx, "gear").let { if (it != 0) it else if (ic != 0) ic else sub })
@@ -761,10 +765,13 @@ class TilesWidget : AppWidgetProvider() {
 
         // Show / hide switches, the page bar and 3D icons. Everything is shown and flat unless changed in Look & colors.
         private fun applyItems(rv: RemoteViews, ctx: Context, sub: Int) {
-            rv.setViewVisibility(R.id.hdr_title, vis(Prefs.showItem(ctx, "w_title"), View.INVISIBLE))
-            rv.setViewVisibility(R.id.wmic, vis(Prefs.showItem(ctx, "w_mic"), View.GONE))
-            rv.setViewVisibility(R.id.wnote, vis(Prefs.showItem(ctx, "w_note"), View.GONE))
-            rv.setViewVisibility(R.id.wclear, vis(Prefs.showItem(ctx, "w_clear"), View.GONE))
+            // A part set to "only when there are messages" goes while the inbox is empty and comes back with the next message
+            val noMsgs = !ignoreHideEmpty && Prefs.HIDE_EMPTY_PARTS.any { Prefs.hideWhenEmpty(ctx, it.first) } && Feed.items(ctx).isEmpty()
+            fun onNow(item: String, part: String) = Prefs.showItem(ctx, item) && !(noMsgs && Prefs.hideWhenEmpty(ctx, part))
+            rv.setViewVisibility(R.id.hdr_title, vis(onNow("w_title", "title"), View.INVISIBLE))
+            rv.setViewVisibility(R.id.wmic, vis(onNow("w_mic", "mic"), View.GONE))
+            rv.setViewVisibility(R.id.wnote, vis(onNow("w_note", "note"), View.GONE))
+            rv.setViewVisibility(R.id.wclear, vis(onNow("w_clear", "clear"), View.GONE))
             rv.setViewVisibility(R.id.wset, vis(Prefs.showItem(ctx, "w_gear"), View.GONE))
             rv.setViewVisibility(R.id.wedit, if (Prefs.editBtn(ctx)) View.VISIBLE else View.GONE)
             rv.setTextViewText(R.id.wedit, Prefs.emojiOf(ctx, "edit").ifEmpty { "✎" })
@@ -810,7 +817,7 @@ class TilesWidget : AppWidgetProvider() {
 
         // Emoji instead of the built-in mic / refresh icons (the red stop icon stays while recording)
         private fun applyEmoji(rv: RemoteViews, ctx: Context) {
-            val em = Prefs.emojiOf(ctx, "mic")
+            val em = Prefs.emojiFor(ctx, "mic", Feed.items(ctx).isEmpty())
             if (em.isNotEmpty() && !RecordService.running()) {
                 Look.emojiBitmap(ctx, em, Prefs.micSize(ctx).toFloat() * bs(ctx, "head") * isc(ctx, "w_mic"))?.let {
                     rv.setImageViewBitmap(R.id.wmic, it)

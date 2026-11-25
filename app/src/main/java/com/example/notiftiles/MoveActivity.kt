@@ -216,13 +216,16 @@ class MoveActivity : Activity() {
             return
         }
         val view: View
+        TilesWidget.ignoreHideEmpty = true // draw every part, even those set to "only when there are messages"
         try {
             view = TilesWidget.build(applicationContext, ids[0]).apply(this, holder)
         } catch (e: Throwable) {
+            TilesWidget.ignoreHideEmpty = false
             android.util.Log.e("NotifTilesMove", "Could not draw the widget preview", e)
             showNote("The widget could not be drawn here: $e")
             return
         }
+        TilesWidget.ignoreHideEmpty = false
         val opt = mgr.getAppWidgetOptions(ids[0])
         val screenW = (resources.displayMetrics.widthPixels / density).toInt() - 32
         val wOpt = opt.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0)

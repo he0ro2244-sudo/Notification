@@ -120,7 +120,8 @@ class PanelActivity : Activity() {
         header.addView(back)
 
         val title = TextView(this)
-        title.text = Look.inboxLabel(this)
+        val noMsgs = Feed.items(this, true).isEmpty()
+        title.text = Look.inboxLabel(this, noMsgs)
         title.textSize = 20f
         title.setTag(R.id.nt_grp, "head")
         title.setTypeface(null, Typeface.BOLD)
@@ -144,7 +145,7 @@ class PanelActivity : Activity() {
 
 
         val addNote = TextView(this)
-        addNote.text = Look.noteLabel(this)
+        addNote.text = Look.noteLabel(this, noMsgs)
         addNote.textSize = 14f
         addNote.setTag(R.id.nt_grp, "hdr")
         addNote.setTypeface(null, Typeface.BOLD)
@@ -159,7 +160,7 @@ class PanelActivity : Activity() {
         header.addView(addNote)
 
         val clear = TextView(this)
-        clear.text = Look.withEmoji(Prefs.emojiOf(this, "clear"), if (Prefs.clearMode(this) == 1) "Read all" else "Clear all")
+        clear.text = Look.withEmoji(Prefs.emojiFor(this, "clear", noMsgs), if (Prefs.clearMode(this) == 1) "Read all" else "Clear all")
         clear.textSize = 14f
         clear.setTag(R.id.nt_grp, "clear")
         clear.setTextColor(if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub)
@@ -1053,34 +1054,51 @@ class PanelActivity : Activity() {
         bar.orientation = LinearLayout.HORIZONTAL
         bar.setPadding(0, dp(10), 0, 0)
         val blp = { LinearLayout.LayoutParams(WRAP, WRAP).apply { marginEnd = dp(6) } }
+        // The buttons under a message. Their order and which are shown is chosen in Settings > Message buttons
+        // (or they sort themselves by how often each is used).
+        val hasRead = actions.any { a -> a.title.toString().lowercase().let { it.contains("read") && !it.contains("unread") } }
+        val adders = HashMap<String, () -> Unit>()
         // Snapchat: View / Reply / Open all only open Snapchat, so one honest button.
-        if (!snap) {
-            for (a in others) {
-                bar.addView(pill(a.title.toString(), fg, bg, false) { runAction(sbn, a) }, blp())
+        adders["app"] = {
+            if (!snap) {
+                for (a in others) {
+                    bar.addView(pill(a.title.toString(), fg, bg, false) { Prefs.countBtnUse(this, "app"); runAction(sbn, a) }, blp())
+                }
             }
         }
         // Apps like Teams give no "Mark as read" button of their own: offer one here (hides this chat, like the app's own button would).
-        val hasRead = actions.any { a -> a.title.toString().lowercase().let { it.contains("read") && !it.contains("unread") } }
-        if (!snap && !hasRead) {
-            bar.addView(pill("Mark as read", fg, bg, false) {
-                ActionLog.add(this, "Mark as read (own button) on " + Feed.label(this, sbn.packageName) + ": chat marked done and hidden")
-                Feed.markDone(this, sbn, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
-                Feed.markReadSticky(this, sbn)
-                dismissFromShade(sbn, 800L)
-                if (viewing?.key == sbn.key) viewing = null
-                expanded = null
-                TilesWidget.refresh(applicationContext)
-                finish()
-            }, blp())
+        adders["read"] = {
+            if (!snap && !hasRead) {
+                bar.addView(pill("Mark as read", fg, bg, false) {
+                    Prefs.countBtnUse(this, "read")
+                    ActionLog.add(this, "Mark as read (own button) on " + Feed.label(this, sbn.packageName) + ": chat marked done and hidden")
+                    Feed.markDone(this, sbn, maxOf(Feed.handledStamp(sbn), System.currentTimeMillis()) + 4000)
+                    Feed.markReadSticky(this, sbn)
+                    dismissFromShade(sbn, 800L)
+                    if (viewing?.key == sbn.key) viewing = null
+                    expanded = null
+                    TilesWidget.refresh(applicationContext)
+                    finish()
+                }, blp())
+            }
         }
-        bar.addView(pill("Snooze", fg, bg, false) { snoozeDialog(sbn) }, blp())
-        if (Feed.chatKey(sbn) != null) {
-            bar.addView(pill("Mute chat", fg, bg, false) { muteChatDialog(sbn) }, blp())
+        adders["snooze"] = { bar.addView(pill("Snooze", fg, bg, false) { Prefs.countBtnUse(this, "snooze"); snoozeDialog(sbn) }, blp()) }
+        adders["mute"] = {
+            if (Feed.chatKey(sbn) != null) {
+                bar.addView(pill("Mute chat", fg, bg, false) { Prefs.countBtnUse(this, "mute"); muteChatDialog(sbn) }, blp())
+            }
         }
-        bar.addView(pill(if (snap) "Open Snapchat" else "Open", fg, bg, false) { open(sbn) }, blp())
-        if (count > 1) {
-            bar.addView(pill("Clear $count", fg, bg, false) { clearApp(sbn.packageName) }, blp())
+        adders["open"] = { bar.addView(pill(if (snap) "Open Snapchat" else "Open", fg, bg, false) { Prefs.countBtnUse(this, "open"); open(sbn) }, blp()) }
+        adders["clear"] = {
+            if (count > 1) {
+                bar.addView(pill("Clear $count", fg, bg, false) { Prefs.countBtnUse(this, "clear"); clearApp(sbn.packageName) }, blp())
+            }
         }
+        val hiddenBtns = Prefs.cardBtnHidden(this)
+        for (k in Prefs.cardBtnOrder(this)) {
+            if (k !in hiddenBtns) adders[k]?.invoke()
+        }
+
         // In a sideways scroll like the shortcuts row: a long row of buttons never squeezes one into "Mar / k as / read"
         val barScroll = android.widget.HorizontalScrollView(this)
         barScroll.isHorizontalScrollBarEnabled = false

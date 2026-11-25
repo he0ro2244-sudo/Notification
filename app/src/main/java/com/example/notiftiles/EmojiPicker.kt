@@ -21,7 +21,12 @@ object EmojiPicker {
         Slot("clear", "Clear all", "none", Look.EMOJI_CLEAR),
         Slot("edit", "Pencil", "✎", Look.EMOJI_EDIT),
         Slot("gear", "Settings (gear)", "gear icon", Look.EMOJI_GEAR),
-        Slot("inbox", "Inbox title", "none", Look.EMOJI_INBOX)
+        Slot("inbox", "Inbox title", "none", Look.EMOJI_INBOX),
+        // The same places while the inbox is empty ("same" = the icon above stays; 📬 turns into 📭 by itself)
+        Slot("inbox_e", "Inbox title when empty", "automatic (📬 → 📭)", listOf("📭", "📪") + Look.EMOJI_INBOX),
+        Slot("clear_e", "Clear all when empty", "same", Look.EMOJI_CLEAR),
+        Slot("mic_e", "Mic when empty", "same", Look.EMOJI_MIC),
+        Slot("note_e", "Notes when empty", "same", Look.EMOJI_NOTE)
     )
 
     /** One-line summary of what is chosen now, for Settings. */

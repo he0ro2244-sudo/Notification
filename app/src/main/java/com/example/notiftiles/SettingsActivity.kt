@@ -724,6 +724,11 @@ class SettingsActivity : Activity() {
         for ((k, label) in Prefs.SHOW_ITEMS) {
             col.addView(toggleRaw(label, Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); applyLook() })
         }
+        col.addView(title("Only when there are messages", 16f, 16))
+        col.addView(hint("A part set here shows while the Inbox has messages and goes away when it is empty (after Clear all, Read all or Mark as read). It comes back with the next message. The count badge already works this way. The Move screen always shows every part, so you can still place it."))
+        for ((k, label) in Prefs.HIDE_EMPTY_PARTS) {
+            col.addView(toggleRaw(label, Prefs.hideWhenEmpty(this, k)) { Prefs.setHideWhenEmpty(this, k, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
+        }
 
         }
 
@@ -897,6 +902,56 @@ class SettingsActivity : Activity() {
             col.addView(addSc)
         }
 
+        }
+
+        section("Message buttons", "Order of the buttons under a message, hide the ones you do not use") {
+        col.addView(hint("These are the buttons under each message in the panel. Tick = shown. Use the arrows to move a button up or down, or let them sort themselves with the most used first."))
+        col.addView(toggleRaw("Sort by how often I use them (most used first)", Prefs.cardBtnAuto(this)) { Prefs.setCardBtnAuto(this, it); rebuild() })
+        val order = Prefs.cardBtnOrder(this)
+        val hidden = Prefs.cardBtnHidden(this)
+        val uses = Prefs.cardBtnUses(this)
+        val names = Prefs.CARD_BTNS.toMap()
+        val manual = !Prefs.cardBtnAuto(this)
+        for ((i, k) in order.withIndex()) {
+            val row = LinearLayout(this)
+            row.orientation = LinearLayout.HORIZONTAL
+            row.gravity = Gravity.CENTER_VERTICAL
+            val cb = android.widget.CheckBox(this)
+            cb.text = (names[k] ?: k) + "  (used " + (uses[k] ?: 0) + "x)"
+            cb.isChecked = k !in hidden
+            cb.setOnCheckedChangeListener { _, v ->
+                val h = Prefs.cardBtnHidden(this).toMutableSet()
+                if (v) h.remove(k) else h.add(k)
+                Prefs.setCardBtnHidden(this, h)
+            }
+            row.addView(cb, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            if (manual) {
+                val up = Button(this)
+                up.text = "▲"
+                up.isEnabled = i > 0
+                up.setOnClickListener {
+                    val l = Prefs.cardBtnOrder(this).toMutableList()
+                    val j = l.indexOf(k)
+                    if (j > 0) { l.removeAt(j); l.add(j - 1, k); Prefs.setCardBtnOrder(this, l); rebuild() }
+                }
+                row.addView(up, LinearLayout.LayoutParams(dp(52), ViewGroup.LayoutParams.WRAP_CONTENT))
+                val down = Button(this)
+                down.text = "▼"
+                down.isEnabled = i < order.size - 1
+                down.setOnClickListener {
+                    val l = Prefs.cardBtnOrder(this).toMutableList()
+                    val j = l.indexOf(k)
+                    if (j >= 0 && j < l.size - 1) { l.removeAt(j); l.add(j + 1, k); Prefs.setCardBtnOrder(this, l); rebuild() }
+                }
+                row.addView(down, LinearLayout.LayoutParams(dp(52), ViewGroup.LayoutParams.WRAP_CONTENT))
+            }
+            col.addView(row)
+        }
+        val resetUse = Button(this)
+        resetUse.text = "Reset the use counts"
+        resetUse.isAllCaps = false
+        resetUse.setOnClickListener { Prefs.resetBtnUses(this); rebuild() }
+        col.addView(resetUse)
         }
 
         section("Counts & clearing", "When the count drops and what Clear all does") {

@@ -180,7 +180,7 @@ object Prefs {
     private const val HIST_MAX = 25
 
     /** Keys that make up "the look": tracked for undo, copied into saved layouts. The one-step Move undo copy is not part of it. */
-    fun isLookKey(k: String) = (k.startsWith("look_") || k.startsWith("lay_") || k.startsWith("free_") || k == "quick_on") && !k.startsWith("free_prev_")
+    fun isLookKey(k: String) = (k.startsWith("look_") || k.startsWith("lay_") || k.startsWith("free_") || k == "quick_on") && !k.startsWith("free_prev_") && !k.startsWith("card_btn_use_")
 
     /** The same settings always give the same text (keys sorted), so two copies can be compared. */
     fun snapshotJson(c: Context): String {
@@ -232,7 +232,7 @@ object Prefs {
     private val NOT_TRACKED = setOf(
         "w_try", "w_has", "w_temp", "w_code", "w_day", "w_time", "w_appcode", "w_apptemp", "w_apptime", "w_upd_note", "w_upd_src", "w_upd_time",
         "w_gaptime", "weather_code", "handled", "chat_snz", "sn_until", "seen", "battery_asked", "undo_look", "loc_seen", "loc_since",
-        "dest_recent", "ui_preview", "log"
+        "dest_recent", "ui_preview", "log", "read_sigs"
     )
 
     fun isTrackedKey(k: String): Boolean =
@@ -1042,6 +1042,64 @@ object Prefs {
         sp(c).edit().putString("handled", o.toString()).apply()
     }
 
+    // ---- Dynamic header: a part that shows only while there are messages (the count badge already does) ----
+    val HIDE_EMPTY_PARTS: List<Pair<String, String>> = listOf(
+        "title" to "Inbox title",
+        "mic" to "Mic icon",
+        "note" to "+ Note",
+        "clear" to "Clear all / Read all"
+    )
+    fun hideWhenEmpty(c: Context, k: String): Boolean = sp(c).getBoolean("hide_empty_$k", false)
+    fun setHideWhenEmpty(c: Context, k: String, v: Boolean) = sp(c).edit().putBoolean("hide_empty_$k", v).apply()
+
+    // ---- Buttons under a message: order, hidden ones, and use counts ----
+    val CARD_BTNS: List<Pair<String, String>> = listOf(
+        "app" to "The app's own buttons (View, Notifications, ...)",
+        "read" to "Mark as read (own button, for apps without one)",
+        "snooze" to "Snooze",
+        "mute" to "Mute chat",
+        "open" to "Open",
+        "clear" to "Clear all of the app"
+    )
+
+    /** The buttons in the order they are shown: the saved order (or the sort by use), with every button present once. */
+    fun cardBtnOrder(c: Context): List<String> {
+        val all = CARD_BTNS.map { it.first }
+        val saved = (sp(c).getString("card_btn_order", "") ?: "").split(",").filter { it in all }.distinct()
+        val manual = saved + all.filter { it !in saved }
+        if (!cardBtnAuto(c)) return manual
+        val uses = cardBtnUses(c)
+        return manual.sortedByDescending { uses[it] ?: 0 } // a stable sort: equal counts keep the saved order
+    }
+
+    fun setCardBtnOrder(c: Context, l: List<String>) = sp(c).edit().putString("card_btn_order", l.joinToString(",")).apply()
+
+    fun cardBtnHidden(c: Context): Set<String> =
+        (sp(c).getString("card_btn_hidden", "") ?: "").split(",").filter { it.isNotEmpty() }.toSet()
+
+    fun setCardBtnHidden(c: Context, s: Set<String>) = sp(c).edit().putString("card_btn_hidden", s.joinToString(",")).apply()
+
+    /** On: the buttons sort themselves, the most used first. */
+    fun cardBtnAuto(c: Context): Boolean = sp(c).getBoolean("card_btn_auto", false)
+    fun setCardBtnAuto(c: Context, v: Boolean) = sp(c).edit().putBoolean("card_btn_auto", v).apply()
+
+    fun cardBtnUses(c: Context): Map<String, Int> {
+        val m = HashMap<String, Int>()
+        for ((k, _) in CARD_BTNS) m[k] = sp(c).getInt("card_btn_use_$k", 0)
+        return m
+    }
+
+    fun countBtnUse(c: Context, key: String) {
+        val k = "card_btn_use_$key"
+        sp(c).edit().putInt(k, sp(c).getInt(k, 0) + 1).apply()
+    }
+
+    fun resetBtnUses(c: Context) {
+        val e = sp(c).edit()
+        for ((k, _) in CARD_BTNS) e.remove("card_btn_use_$k")
+        e.apply()
+    }
+
     // ---- Read for good: what a notification said when you marked it read (so an identical re-post stays hidden) ----
     private const val READ_SIG_DAYS = 3L
 
@@ -1184,6 +1242,18 @@ object Prefs {
     fun setTextCase(c: Context, v: Int) = sp(c).edit().putInt("look_case", v).apply()
     // Emoji in place of the built-in icons / words ("" = the normal one). Keys: note, mic, reset, clear, edit, gear, inbox
     fun emojiOf(c: Context, k: String): String = sp(c).getString("look_emoji_$k", "") ?: ""
+
+    /**
+     * The emoji for [k] now: while the inbox is empty ([empty]) the one chosen for "when empty" (key + "_e"), if any.
+     * A full mailbox 📬 turns into the empty mailbox 📭 by itself (and 📫 into 📪), so the Inbox icon shows mail only while there is mail.
+     */
+    fun emojiFor(c: Context, k: String, empty: Boolean): String {
+        val base = emojiOf(c, k)
+        if (!empty) return base
+        val e = emojiOf(c, k + "_e")
+        if (e.isNotEmpty()) return e
+        return when (base) { "📬" -> "📭"; "📫" -> "📪"; else -> base }
+    }
     fun setEmojiOf(c: Context, k: String, v: String) = sp(c).edit().putString("look_emoji_$k", v.trim().take(8)).apply()
     // Message tiles in the panel: corner roundness (-1 = as designed), border style (0 solid, 1 dashed, 2 dotted),
     // own fill colour (0 = each app's colour) and how solid the fill is (100 = as designed)
