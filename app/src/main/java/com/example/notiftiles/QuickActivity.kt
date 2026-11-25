@@ -50,8 +50,9 @@ class QuickActivity : Activity() {
     private fun chooseKind() {
         AlertDialog.Builder(this)
             .setTitle(if (forPkg.isNotEmpty()) "Add a shortcut for " + Feed.label(this, forPkg) else "Add to shortcuts row")
-            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut (like Camera, New post...)", "Type my own link")) { _, w ->
+            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut (like Camera, New post...)", "Type my own link", "Voice assistant (Gemini: start talking)")) { _, w ->
                 when (w) {
+                    4 -> pickVoice()
                     0 -> pickApp { pkg -> nameIt(Feed.label(this, pkg)) { n -> save(Quick("app", n, pkg, "")) } }
                     1 -> pickApp { pkg -> pickActivity(pkg) }
                     3 -> typeOwnLink()
@@ -60,6 +61,27 @@ class QuickActivity : Activity() {
             }
             .setOnCancelListener { finish() }
             .show()
+    }
+
+    /** Voice assistant: opens the phone's assistant (Gemini when it is the default assistant) ready to talk. */
+    private fun pickVoice() {
+        val gemini = "com.google.android.apps.bard"
+        val gApp = "com.google.android.googlequicksearchbox"
+        val pkg = listOf(gemini, gApp).firstOrNull { packageManager.getLaunchIntentForPackage(it) != null } ?: gemini
+        fun uri(action: String) = Intent(action).toUri(Intent.URI_INTENT_SCHEME)
+        val voice = listOf(uri("android.intent.action.VOICE_ASSIST"), uri(Intent.ACTION_VOICE_COMMAND), uri(Intent.ACTION_ASSIST))
+        val lines = listOf(
+            "Talk to the assistant (voice first, then the assistant screen, then the app)",
+            "Open the assistant screen only",
+            "Tip: the Gemini app may list its own Live / voice shortcut under \"Shortcut\""
+        )
+        pickFrom("Voice assistant", lines) { w ->
+            when (w) {
+                0 -> saveChain(pkg, voice, "Gemini")
+                1 -> saveChain(pkg, listOf(uri(Intent.ACTION_ASSIST)), "Assistant")
+                else -> pickAllShortcuts()
+            }
+        }
     }
 
     /** A list with a search box on top. Typing filters the lines; tapping one calls onPick with its index in `lines`. */
@@ -628,6 +650,7 @@ class QuickActivity : Activity() {
         }
         Prefs.setQuick(this, slot, q)
         Prefs.setQuickOn(this, true)
+        if (Prefs.freeOn(this)) Prefs.setTidyPending(this, true)
         toast("Saved: " + q.name)
         TilesWidget.refresh(applicationContext)
         finish()

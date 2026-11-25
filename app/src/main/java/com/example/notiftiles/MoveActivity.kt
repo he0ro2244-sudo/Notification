@@ -80,6 +80,12 @@ class MoveActivity : Activity() {
         alignBtn.setOnClickListener { tidy(0) }
         col.addView(alignBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(16) })
 
+        val fixBtn = Button(this)
+        fixBtn.text = "Tidy up: fix overlapping items (smart)"
+        fixBtn.isAllCaps = false
+        fixBtn.setOnClickListener { fixOverlaps(false) }
+        col.addView(fixBtn, LinearLayout.LayoutParams(MATCH, WRAP).apply { topMargin = dp(8) })
+
         val spaceBtn = Button(this)
         spaceBtn.text = "Tidy up: align and space evenly"
         spaceBtn.isAllCaps = false
@@ -210,6 +216,10 @@ class MoveActivity : Activity() {
                 setupDrag(view)
             } catch (e: Throwable) {
                 android.util.Log.e("NotifTilesMove", "Could not make the items draggable", e)
+            }
+            if (Prefs.tidyPending(this) && Prefs.freeOn(this)) {
+                Prefs.setTidyPending(this, false)
+                holder.postDelayed({ fixOverlaps(true) }, 500)
             }
         }
     }
@@ -347,6 +357,62 @@ class MoveActivity : Activity() {
         Prefs.setFreeRefW(this, optW)
         TilesWidget.rebuildAll(applicationContext)
         holder.post { render() }
+    }
+
+    /**
+     * Smart fix after something new was added: items that sit on top of each other are moved. The item further down /
+     * left stays; the other one moves to the right of what it overlaps, or to the next line when there is no room.
+     */
+    private fun fixOverlaps(auto: Boolean) {
+        if (!Prefs.freeOn(this)) {
+            if (!auto) showNote("Move an item first, then Tidy up can fix overlaps.")
+            return
+        }
+        val sz = sizes()
+        val places = currentPlaces()
+        val keys = places.keys.filter { it in sz && it != "merge" }
+            .sortedWith(compareBy({ places.getValue(it).y }, { places.getValue(it).x }))
+        val full = if (optW > 0f) optW else widthDp.toFloat()
+        val gap = Prefs.freeGap(this).toFloat().coerceAtLeast(4f)
+        val placed = ArrayList<FloatArray>()
+        var moved = 0
+        val out = LinkedHashMap(places)
+        for (k in keys) {
+            val p = places.getValue(k)
+            val (w, h) = sz.getValue(k)
+            var x = p.x
+            var y = p.y
+            var guard = 0
+            while (guard++ < 60) {
+                val cx = x
+                val cy = y
+                val hit = placed.firstOrNull { cx < it[0] + it[2] - 2f && cx + w > it[0] + 2f && cy < it[1] + it[3] - 2f && cy + h > it[1] + 2f } ?: break
+                val nx = hit[0] + hit[2] + gap
+                if (nx + w <= full) {
+                    x = nx
+                } else {
+                    x = p.x.coerceAtMost((full - w).coerceAtLeast(0f))
+                    y = hit[1] + hit[3] + gap
+                }
+            }
+            if (x != p.x || y != p.y) {
+                out[k] = Prefs.FreePos(x, y, p.w)
+                moved++
+            }
+            placed.add(floatArrayOf(x, y, w, h))
+        }
+        if (moved == 0) {
+            if (!auto) showNote("Nothing overlaps.")
+            return
+        }
+        Prefs.saveFreePrev(this)
+        Prefs.setFreePos(this, out)
+        Prefs.setFreeRefW(this, optW)
+        TilesWidget.rebuildAll(applicationContext)
+        holder.post {
+            render()
+            showNote("Moved $moved item(s) so nothing overlaps. Undo is below if you do not like it.")
+        }
     }
 
     // ---- Dragging ----

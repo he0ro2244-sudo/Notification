@@ -585,6 +585,9 @@ object Prefs {
     val FREE_KEYS: List<String> = ALL_ITEMS + listOf("merge") +
         (0 until DIAL_SLOTS).map { "d$it" } + (0 until QUICK_SLOTS).map { "q$it" }
 
+    /** Set when something was added to the widget (a shortcut circle): Move then fixes overlaps by itself once. */
+    fun tidyPending(c: Context): Boolean = sp(c).getBoolean("tidy_pending", false)
+    fun setTidyPending(c: Context, v: Boolean) = sp(c).edit().putBoolean("tidy_pending", v).apply()
     fun freeOn(c: Context): Boolean = sp(c).getBoolean("free_on", false)
     fun setFreeOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("free_on", v).apply()
 

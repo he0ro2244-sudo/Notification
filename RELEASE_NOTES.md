@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.26
+- **Smart fix for crowded items.** In the free layout (after you moved an item), a new shortcut circle could land on top of + Note, the mic and the other buttons. New button in Move: **Tidy up: fix overlapping items (smart)**. Items on top of each other are moved to the right of what they overlap, or to the next line when there is no room; the rest stays. It also runs by itself, once, the next time you open Move after you add a shortcut circle. Undo (in Move) takes it back.
+- **Voice assistant shortcut.** Add to shortcuts row now has **Voice assistant (Gemini: start talking)**. It opens the phone's voice assistant (Gemini, when it is the default assistant) trying voice mode first, then the assistant screen, then the app. Which of these starts listening straight away depends on the phone and the assistant. Gemini's own Live shortcut, if the app lists it, can also be found under *Shortcut*.
+- Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.25
 - **New items in the bottom popup (panel) header**, each with its own show / hide switch in Settings > WIDGET AND PANEL > Show / hide parts > *Widget header, tiles and panel*: **‹ Back** (shown as before; switch it off to hide it), **Mic** (opens the recorder), **Pencil** (opens the pencil menu) and **Refresh** (refreshes counts and weather). Mic, Pencil and Refresh start **hidden**, so nothing changes until you switch them on. They use the emoji you chose for Mic, Pencil and Reset, if any.
 - Correction to 1.1.24's notes: the panel's Inbox title, count, + Note, Clear all and settings icon switches are in that same Show / hide parts list, not in Arrange > Every item.
