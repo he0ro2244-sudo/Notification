@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.1.49
+- **Zoom & Parallax** now has real depth: the background dims deeper while the panel scales in, and the list trails the panel slightly.
+- **Pen writes:** the pen tilts back and forth as it scribbles, and fades away smoothly when you stop typing.
+- **Mic:** Rings and pulse sends three concentric rings; Live sound bars shows seven livelier bars.
+- **Send to notes app** now plays the stamp, and the widget note icon nudges when a note is saved or sent.
+- **Live preview demos** are smoother (the sound bars use scaleY, no layout work) and show a tilting pen with a scribble stroke, a pencil trail, and a crisp stamp. Switching Animation or Panel animations on plays a demo straight away.
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
 ## 1.1.48
 - **Panel animations (Settings > Animation):** four launcher-style choices plus Off. They open from the tapped widget spot when Android gives it, and close the same way: **Spring scale & fade** (0.86 to 1.0 with a gentle overshoot, default), **Slide & card rise**, **Circle reveal**, **Zoom & parallax** (the background dims while the panel scales in).
 - **Speed** is now Slow 1.5x, Normal 1x, Fast 0.65x.

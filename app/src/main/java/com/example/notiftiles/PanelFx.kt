@@ -207,7 +207,7 @@ object PanelFx {
         val ty = waveY(tx)
         cv.save()
         cv.translate(tx, ty)
-        cv.rotate(-35f)
+        cv.rotate(-35f + 9f * sin(SystemClock.uptimeMillis() / 55f))   // the pen tilts as it scribbles
         cv.drawRoundRect(RectF(-2.6f * d, -16f * d, 2.6f * d, 0f), 2.6f * d, 2.6f * d, paint(ink.color, (255 * fade).toInt()))
         val nib = Path().apply { moveTo(-2.6f * d, -2f * d); lineTo(2.6f * d, -2f * d); lineTo(0f, 5f * d); close() }
         cv.drawPath(nib, paint(ink.color, (255 * fade).toInt()))
@@ -377,8 +377,8 @@ object PanelFx {
                 tv.animate().scaleX(1f).scaleY(1f).setDuration(t(act, 240)).start()
             }.start()
             anim(act, L, 800, draw = { cv, p ->
-                for (k in 0..1) {
-                    val rp = seg(p, k * 0.22f, k * 0.22f + 0.7f)
+                for (k in 0..2) {
+                    val rp = seg(p, k * 0.16f, k * 0.16f + 0.6f)
                     if (rp > 0f) cv.drawCircle(cx, cy, (10f + 26f * outCubic(rp)) * d, paint(RED, (180 * (1f - rp)).toInt(), Paint.Style.STROKE, 2f * d))
                 }
             })
@@ -388,11 +388,11 @@ object PanelFx {
             anim(act, L, 900, draw = { cv, p ->
                 val bw = 3f * d
                 val gap = 2.6f * d
-                val bars = 5
+                val bars = 7
                 val total = bars * bw + (bars - 1) * gap
                 val env = max(sin(p * PI_F), 0.2f)
                 for (i in 0 until bars) {
-                    val level = 0.5f + 0.5f * sin(p * 14f + i * 1.1f)
+                    val level = 0.5f + 0.5f * sin(p * (12f + i * 2.3f) + i * 1.7f)
                     val h = (4f + 18f * level) * d * env
                     val x = cx - total / 2f + i * (bw + gap)
                     cv.drawRoundRect(RectF(x, cy - h / 2f, x + bw, cy + h / 2f), bw / 2f, bw / 2f, paint(RED))
@@ -548,6 +548,14 @@ object PanelFx {
                     sheet.scaleX = 0.9f; sheet.scaleY = 0.9f; sheet.alpha = 0f
                     sheet.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(t(c, 400))
                         .setInterpolator(DecelerateInterpolator(1.6f)).start()
+                    // parallax: the content moves a little slower than the panel, so it has depth
+                    (sheet as? ViewGroup)?.let { g ->
+                        if (g.childCount > 1) g.getChildAt(g.childCount - 1).let { body ->
+                            body.translationY = 18f * d
+                            body.animate().translationY(0f).setStartDelay(t(c, 40)).setDuration(t(c, 520))
+                                .setInterpolator(android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f)).start()
+                        }
+                    }
                 }
                 else -> { // spring
                     sheet.scaleX = 0.86f; sheet.scaleY = 0.86f; sheet.alpha = 0f
@@ -560,8 +568,9 @@ object PanelFx {
             val col = (bg as? android.graphics.drawable.ColorDrawable)?.color
             if (col != null) {
                 val a0 = Color.alpha(col)
-                val va = ValueAnimator.ofInt(0, a0)
-                va.duration = t(c, 320)
+                val aT = if (style == "zoom") maxOf(a0, 0x70) else a0   // Zoom & Parallax: the background dims softly
+                val va = ValueAnimator.ofInt(0, aT)
+                va.duration = t(c, if (style == "zoom") 400 else 320)
                 va.addUpdateListener { root.setBackgroundColor(Color.argb(it.animatedValue as Int, Color.red(col), Color.green(col), Color.blue(col))) }
                 va.start()
             }

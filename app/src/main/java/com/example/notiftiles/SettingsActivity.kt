@@ -737,8 +737,8 @@ class SettingsActivity : Activity() {
 
         section("Animation", "Every animation in the panel: style, speed, on or off") {
         col.addView(hint("Pick a style for each part, or Off. The speed applies to all of them. Press an icon in the panel to see its animation. Widget icons have their own switch."))
-        col.addView(toggleRaw("Animation (master switch)", Prefs.aliveOn(this)) { Prefs.setAliveOn(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
-        col.addView(toggleRaw("Panel animations", Prefs.alivePanel(this)) { Prefs.setAlivePanel(this, it) })
+        col.addView(toggleRaw("Animation (master switch)", Prefs.aliveOn(this)) { Prefs.setAliveOn(this, it); TilesWidget.rebuildAll(applicationContext); applyLook(); if (it) live.demo("open", Alive.chosen(this, "open")) })
+        col.addView(toggleRaw("Panel animations", Prefs.alivePanel(this)) { Prefs.setAlivePanel(this, it); if (it) live.demo("open", Alive.chosen(this, "open")) })
         col.addView(toggleRaw("Widget: icons move when something happens", Prefs.aliveWave(this)) { Prefs.setAliveWave(this, it) })
         col.addView(title("Speed", 16f, 16))
         col.addView(choiceRow(listOf("0" to "Slow", "1" to "Normal", "2" to "Fast"), Prefs.animSpeed(this).toString(), false) { Prefs.setAnimSpeed(this, it.toInt()); rebuild(); live.demo("open", Alive.chosen(this, "open")) })

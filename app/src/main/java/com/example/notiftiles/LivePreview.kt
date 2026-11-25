@@ -1,11 +1,16 @@
 package com.example.notiftiles
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.SharedPreferences
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Path
 import android.os.Handler
 import android.os.Looper
 import android.view.Gravity
@@ -187,24 +192,74 @@ class LivePreview(private val act: Activity) {
                 else icon.animate().rotation(360f).setDuration(T(900)).setInterpolator(fso).start() }
             "refresh" -> { put(icon, dp(60f), dp(60f)); icon.animate().rotation(360f).setDuration(T(if (style == "arc") 1100 else 800)).setInterpolator(fso).start() }
             "mic" -> if (style == "rings") {
+                // three concentric rings spread out from the mic while it "listens"
                 put(icon, dp(60f), dp(60f))
                 for (i in 0 until 3) { val r = dot(36f, true); box.addView(r, 0); r.alpha = 0f
-                    r.animate().setStartDelay(T(i * 380L)).alpha(0.8f).scaleX(2.6f).scaleY(2.6f).setDuration(T(900)).withEndAction { r.alpha = 0f }.start() }
+                    r.animate().setStartDelay(T(i * 300L)).alpha(0.8f).scaleX(2.6f).scaleY(2.6f).setDuration(T(800)).withEndAction { r.alpha = 0f }.start() }
+                icon.animate().scaleX(1.12f).scaleY(1.12f).setDuration(T(160)).withEndAction { icon.animate().scaleX(1f).scaleY(1f).setDuration(T(240)).start() }.start()
             } else {
-                val row = LinearLayout(act); row.gravity = Gravity.CENTER; put(row, dp(90f), dp(60f))
-                for (i in 0 until 5) { val b = View(act).apply { setBackgroundColor(accent) }; row.addView(b, LinearLayout.LayoutParams(dp(8f), dp(14f)).apply { setMargins(dp(3f), 0, dp(3f), 0) })
-                    ValueAnimator.ofInt(dp(10f), dp(54f)).apply { duration = T(260L + i * 60L); repeatMode = ValueAnimator.REVERSE; repeatCount = 4
-                        addUpdateListener { b.layoutParams = b.layoutParams.apply { height = it.animatedValue as Int }; b.requestLayout() } }.start() }
+                // equalizer bars bounce with scaleY (hardware accelerated, no layout work)
+                val row = LinearLayout(act); row.gravity = Gravity.CENTER; put(row, dp(110f), dp(60f))
+                for (i in 0 until 7) { val b = View(act).apply { setBackgroundColor(accent) }
+                    row.addView(b, LinearLayout.LayoutParams(dp(8f), dp(48f)).apply { setMargins(dp(3f), 0, dp(3f), 0) })
+                    b.scaleY = 0.2f
+                    ValueAnimator.ofFloat(0.2f, 1f).apply { duration = T(190L + i * 45L); repeatMode = ValueAnimator.REVERSE; repeatCount = 6
+                        interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+                        addUpdateListener { b.scaleY = it.animatedValue as Float }
+                        addListener(object : AnimatorListenerAdapter() { override fun onAnimationEnd(a: Animator) { b.animate().scaleY(0.2f).setDuration(T(160)).start() } }) }.start() }
             }
             "note" -> { put(icon, dp(60f), dp(60f))
-                if (style == "ink") ValueAnimator.ofFloat(-12f, 12f).apply { duration = 160; repeatMode = ValueAnimator.REVERSE; repeatCount = 7; addUpdateListener { icon.rotation = it.animatedValue as Float } }.start()
-                else icon.animate().scaleX(1.35f).scaleY(1.35f).setDuration(T(140)).withEndAction { icon.animate().scaleX(1f).scaleY(1f).setDuration(T(300)).setInterpolator(android.view.animation.OvershootInterpolator(2f)).start() }.start() }
+                if (style == "ink") {
+                    // the pen tilts and scribbles a short stroke while you "type", then settles back
+                    val stroke = ScribbleView(act, accent)
+                    box.addView(stroke, FrameLayout.LayoutParams(dp(90f), dp(14f), Gravity.CENTER).apply { topMargin = dp(46f) })
+                    stroke.play(T(1200))
+                    ValueAnimator.ofFloat(-14f, 14f).apply { duration = T(170); repeatMode = ValueAnimator.REVERSE; repeatCount = 6
+                        addUpdateListener { icon.rotation = it.animatedValue as Float }
+                        addListener(object : AnimatorListenerAdapter() { override fun onAnimationEnd(a: Animator) { icon.animate().rotation(0f).setDuration(T(200)).start() } }) }.start()
+                } else if (style == "ripple") {
+                    // one crisp stamp: the icon presses down, a ring spreads out
+                    val ring = dot(36f, true); box.addView(ring, 0); ring.alpha = 0f
+                    ring.animate().alpha(0.8f).scaleX(2.4f).scaleY(2.4f).setDuration(T(520)).withEndAction { ring.alpha = 0f }.start()
+                    icon.animate().scaleX(0.8f).scaleY(0.8f).setDuration(T(110)).withEndAction { icon.animate().scaleX(1f).scaleY(1f).setDuration(T(380)).setInterpolator(android.view.animation.OvershootInterpolator(3f)).start() }.start()
+                } }
             "edit" -> { put(icon, dp(60f), dp(60f))
-                if (style == "trail") icon.animate().translationX(dp(40f).toFloat()).translationY(-dp(18f).toFloat()).setDuration(T(500)).setInterpolator(fso).withEndAction { icon.animate().translationX(0f).translationY(0f).setDuration(T(400)).start() }.start()
+                if (style == "trail") { val tr = ScribbleView(act, accent); box.addView(tr, 0, FrameLayout.LayoutParams(dp(90f), dp(14f), Gravity.CENTER).apply { topMargin = dp(40f) }); tr.play(T(900))
+                    icon.animate().translationX(dp(40f).toFloat()).translationY(-dp(18f).toFloat()).setDuration(T(500)).setInterpolator(fso).withEndAction { icon.animate().translationX(0f).translationY(0f).setDuration(T(400)).start() }.start() }
                 else { icon.animate().rotation(-28f).setDuration(T(300)).start()
                     for (i in 0 until 3) { val dd = dot(8f, false); dd.alpha = 0f; (dd.layoutParams as FrameLayout.LayoutParams).leftMargin = dp(60f + i * 16f); box.addView(dd); dd.animate().alpha(1f).setStartDelay(T(300L + i * 200L)).setDuration(T(160)).start() } } }
             else -> { put(icon, dp(60f), dp(60f)); icon.animate().translationY(-dp(14f).toFloat()).setDuration(T(200)).setInterpolator(android.view.animation.DecelerateInterpolator()).withEndAction { icon.animate().translationY(0f).setDuration(T(400)).setInterpolator(android.view.animation.OvershootInterpolator(2f)).start() }.start() }
         }
         handler.postDelayed(endDemo, 1600)
+    }
+}
+
+/** A short scribbled stroke that draws itself, then fades. Used by the demo of the pen and pencil styles. */
+private class ScribbleView(c: Context, col: Int) : View(c) {
+    private var p = 0f
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = col; style = Paint.Style.STROKE
+        strokeWidth = 3f * c.resources.displayMetrics.density
+        strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
+    }
+    fun play(ms: Long) {
+        ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = ms
+            addUpdateListener { p = it.animatedValue as Float; invalidate() }
+        }.start()
+    }
+    override fun onDraw(cv: Canvas) {
+        val w = width.toFloat(); val h = height.toFloat()
+        val n = 40
+        val end = (p / 0.8f).coerceAtMost(1f)
+        val path = Path()
+        for (k in 0..(n * end).toInt()) {
+            val u = k / n.toFloat()
+            val x = w * u
+            val y = h / 2f + Math.sin(u * Math.PI * 8.0).toFloat() * h * 0.35f
+            if (k == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        paint.alpha = (255 * (1f - ((p - 0.8f) / 0.2f).coerceIn(0f, 1f))).toInt()
+        cv.drawPath(path, paint)
     }
 }

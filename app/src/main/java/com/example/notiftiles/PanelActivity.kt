@@ -810,7 +810,10 @@ class PanelActivity : Activity() {
                         if (Notes.send(this, txt)) {
                             et.setText("")
                             expanded = null
-                            finish()
+                            Alive.go(this, "note", 1200)
+                            (aliveViews["note"] as? TextView)?.let { PanelFx.saved(this, it, "Note") }
+                            if (Alive.style(this, "note") == "off") finish()
+                            else window.decorView.postDelayed({ if (!isFinishing) finish() }, Alive.t(this, 500))
                         } else {
                             Prefs.addNote(this, txt)
                             et.setText("")
@@ -826,6 +829,7 @@ class PanelActivity : Activity() {
                     expanded = null
                     refresh()
                     (aliveViews["note"] as? TextView)?.let { PanelFx.saved(this, it, "Note") }
+                    Alive.go(this, "note", 1200)
                     toast("Saved")
                 }
             }
