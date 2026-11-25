@@ -56,7 +56,7 @@ class MoveActivity : Activity() {
         col.addView(heading)
 
         val hint = TextView(this)
-        hint.text = "Press and drag any item of the widget to any place, then let go. Every item (clock, date, weather, Where to?, each fast-dial circle, each shortcut circle, title, count, mic, + Note, Clear all, pencil, gear) stays exactly where you drop it. Drag the bar \"Messages start here\" to choose where the message tiles begin. While you drag, an item clicks into line with its neighbours (same height, same left or right edge) when it is close. \"Tidy up\" lines up whole rows for you. A hidden item is shown again in Arrange & resize first."
+        hint.text = "Press and drag any item of the widget to any place, then let go. Every item (clock, date, weather, Where to?, each fast-dial circle, each shortcut circle, title, count, mic, + Note, Clear all, pencil, gear) stays exactly where you drop it. Drag the bar \"Messages start here\" to choose where the message tiles begin. While you drag, an item clicks into line with its neighbours (same height, same left or right edge) when it is close. \"Tidy up\" lines up whole rows for you. With Auto-fix on, the widget checks for overlaps after every move and separates them by itself. The Fix layout button at the bottom is always on screen. A hidden item is shown again in Arrange & resize first."
         hint.textSize = 13f
         hint.alpha = 0.7f
         hint.setPadding(0, dp(2), 0, dp(6))
@@ -67,6 +67,12 @@ class MoveActivity : Activity() {
         note.setPadding(0, dp(6), 0, dp(6))
         note.visibility = View.GONE
         col.addView(note)
+
+        val autoBox = android.widget.CheckBox(this)
+        autoBox.text = "Auto-fix after every move (separate overlaps, keep the Messages line below the items)"
+        autoBox.isChecked = Prefs.freeAuto(this)
+        autoBox.setOnCheckedChangeListener { _, v -> Prefs.setFreeAuto(this, v) }
+        col.addView(autoBox)
 
         // The preview is as wide as the real widget, so a place here is the same place on the home screen
         holder = FrameLayout(this)
@@ -155,7 +161,26 @@ class MoveActivity : Activity() {
 
         val scroll = ScrollView(this)
         scroll.addView(col)
-        setContentView(scroll)
+        // A bar that stays on screen while the page scrolls: Fix layout and Done
+        val page = LinearLayout(this)
+        page.orientation = LinearLayout.VERTICAL
+        page.addView(scroll, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        val bar = LinearLayout(this)
+        bar.orientation = LinearLayout.HORIZONTAL
+        bar.setPadding(dp(8), dp(6), dp(8), dp(6))
+        bar.setBackgroundColor(0xF0202020.toInt())
+        val fixPinned = Button(this)
+        fixPinned.text = "Fix layout"
+        fixPinned.isAllCaps = false
+        fixPinned.setOnClickListener { reflowAll(false) }
+        bar.addView(fixPinned, LinearLayout.LayoutParams(0, WRAP, 1f))
+        val donePinned = Button(this)
+        donePinned.text = "Done"
+        donePinned.isAllCaps = false
+        donePinned.setOnClickListener { finish() }
+        bar.addView(donePinned, LinearLayout.LayoutParams(0, WRAP, 1f))
+        page.addView(bar, LinearLayout.LayoutParams(MATCH, WRAP))
+        setContentView(page)
         render()
     }
 
@@ -371,6 +396,24 @@ class MoveActivity : Activity() {
         holder.post { render() }
     }
 
+    /**
+     * The height (dp) from the top of an item to the middle of its visible shape. Circles and hexagons carry a name under
+     * them, so their middle is higher than the middle of the whole item; rows are lined up on this line so a circle and a
+     * text button sit at the same height.
+     */
+    private fun anchorOf(key: String, h: Float): Float {
+        val labelId = when (key) {
+            "q0" -> R.id.qn0; "q1" -> R.id.qn1; "q2" -> R.id.qn2; "q3" -> R.id.qn3; "q4" -> R.id.qn4
+            "d0" -> R.id.dn0; "d1" -> R.id.dn1; "d2" -> R.id.dn2; "d3" -> R.id.dn3; "d4" -> R.id.dn4
+            else -> 0
+        }
+        if (labelId == 0) return h / 2f
+        val lv = root?.findViewById<View>(labelId)
+        if (lv == null || lv.visibility == View.GONE || lv.height <= 0) return h / 2f
+        val shapeH = h - lv.height / density
+        return if (shapeH > 8f) shapeH / 2f else h / 2f
+    }
+
     // Opened by itself after something was switched on: close again once the overlaps are fixed
     private fun closeIfAuto() {
         if (intent.getBooleanExtra("auto_tidy", false)) holder.postDelayed({ if (!isFinishing) finish() }, 900)
@@ -399,6 +442,7 @@ class MoveActivity : Activity() {
         }
         val full = if (optW > 0f) optW else widthDp.toFloat()
         val gap = Prefs.freeGap(this).toFloat().coerceAtLeast(6f)
+        val vgap = (gap / 2f).coerceIn(4f, 10f) // the same space between every two rows
         fun cy(k: String) = places.getValue(k).y + sz.getValue(k).second / 2f
         // Order: shortcut circles (left to right), then + Note, mic, pencil, gear; Inbox, Clear all and the count always go last,
         // on their own line just above the messages.
@@ -424,15 +468,19 @@ class MoveActivity : Activity() {
                     x += w + gap
                     i++
                 }
-                val rowH = line.maxOf { sz.getValue(it).second }
+                // Line the row up on the middle of each visible shape (not on the whole item with its name)
+                val anc = HashMap<String, Float>()
+                for (k in line) anc[k] = anchorOf(k, sz.getValue(k).second)
+                val above = line.maxOf { anc.getValue(it) }
+                val below = line.maxOf { sz.getValue(it).second - anc.getValue(it) }
                 var px = left
                 for (k in line) {
-                    val (w, h) = sz.getValue(k)
+                    val (w, _) = sz.getValue(k)
                     val p = places.getValue(k)
-                    out[k] = Prefs.FreePos(px, y + (rowH - h) / 2f, p.w)
+                    out[k] = Prefs.FreePos(px, y + above - anc.getValue(k), p.w)
                     px += w + gap
                 }
-                y += rowH + 4f
+                y += above + below + vgap
                 bottom = y
             }
         }
@@ -460,7 +508,7 @@ class MoveActivity : Activity() {
      *  2. else the items of that row are packed side by side in their order, the moved item last, if they all fit;
      *  3. else it goes to the right of what it overlaps, or to the next line.
      */
-    private fun fixOverlaps(auto: Boolean) {
+    private fun fixOverlaps(auto: Boolean, quiet: Boolean = false) {
         if (!Prefs.freeOn(this)) {
             if (!auto) showNote("Move an item first, then Tidy up can fix overlaps.")
             return
@@ -560,10 +608,10 @@ class MoveActivity : Activity() {
         }
         if (count == 0) {
             if (!auto) showNote("Nothing overlaps.")
-            closeIfAuto()
+            if (!quiet) closeIfAuto()
             return
         }
-        Prefs.saveFreePrev(this)
+        if (!quiet) Prefs.saveFreePrev(this) // after a move the step saved by the move is kept, so one Undo takes back both
         Prefs.setFreePos(this, out)
         Prefs.setFreeRefW(this, optW)
         // Items that wrapped to a new line must not end up on top of the messages: they start lower then
@@ -572,8 +620,8 @@ class MoveActivity : Activity() {
         TilesWidget.rebuildAll(applicationContext)
         holder.post {
             render()
-            showNote("Moved $count item(s) so nothing overlaps. Undo is below if you do not like it.")
-            closeIfAuto()
+            showNote(if (quiet) "Auto-fix: moved $count item(s) so nothing overlaps. Undo is below if you do not like it." else "Moved $count item(s) so nothing overlaps. Undo is below if you do not like it.")
+            if (!quiet) closeIfAuto()
         }
     }
 
@@ -676,8 +724,16 @@ class MoveActivity : Activity() {
         Prefs.setFreePos(this, places)
         Prefs.setFreeRefW(this, optW)
         Prefs.setFreeOn(this, true)
+        if (Prefs.freeAuto(this)) {
+            // Auto-detect: an item let go on the line where the messages start pushes the line down below it
+            val h = dragged.height / density
+            val gt = Prefs.freeGridTop(this)
+            if (y < gt && y + h > gt - 2f) Prefs.setFreeGridTop(this, y + h + 8f)
+        }
         TilesWidget.rebuildAll(applicationContext)
         holder.post { render() }
+        // ...and items that now sit on top of each other are separated (the one that moved last gives way)
+        if (Prefs.freeAuto(this)) fixOverlaps(true, true)
     }
 
     // ---- The bar where the message tiles start ----

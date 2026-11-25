@@ -1,5 +1,11 @@
 # Release notes
 
+## 1.1.33
+- **Auto-fix after every move (Move screen).** When you let go of an item, the widget checks by itself: items that now sit on top of each other are separated (the one that moved last gives way), and if the item lands on the line *Messages start here*, that line moves down below it. One Undo takes back the move and the fix together. Switch: *Auto-fix after every move* at the top of Move (on by default).
+- **A Fix layout button that always stays on screen.** The bottom bar of Move (Fix layout, Done) no longer scrolls away.
+- **Fix layout lines rows up on the middle of the circles.** Circles and hexagons have a name under them, so a circle and a text button (+ Note, mic, pencil, gear) used to sit at different heights. Rows are now lined up on the middle of the shape, and the space between rows is the same everywhere (follows the gap slider).
+- Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.32
 - **Fix layout now puts things where you want them.** Shortcut circles first, then + Note, mic, pencil and gear on the same rows (a new line only when a row is full); **Inbox, Clear all and the count always go on the last line, just above the messages**. The line *Messages start here* moves to sit right under them.
 - **Refresh icon ("Reset" icon with the Updated line) can sit at the top.** New switch in Settings > Show / hide parts: *Refresh icon at the top, right under the buttons (off: middle of the widget)*. Fix layout turns it on. It is the icon shown when there are no new messages.

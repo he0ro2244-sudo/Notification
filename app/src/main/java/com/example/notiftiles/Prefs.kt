@@ -734,6 +734,10 @@ object Prefs {
     fun freeSnap(c: Context): Boolean = sp(c).getBoolean("free_snap", true)
     fun setFreeSnap(c: Context, v: Boolean) = sp(c).edit().putBoolean("free_snap", v).apply()
 
+    /** Auto-fix: after every move, items that now overlap are separated and the Messages line stays below them (on by default). */
+    fun freeAuto(c: Context): Boolean = sp(c).getBoolean("free_auto_fix", true)
+    fun setFreeAuto(c: Context, v: Boolean) = sp(c).edit().putBoolean("free_auto_fix", v).apply()
+
     /** Width of the Where to? box in the free layout, in dp (0 = as it was). */
     fun setFreeWidth(c: Context, key: String, w: Float) {
         val m = freePos(c).toMutableMap()
