@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.1.27
+- **Hiding and re-showing an item no longer leaves it crammed.** In the free layout, every time something is switched on again (the + Add circle of the shortcuts row or fast dial, an item in Show / hide parts or in Arrange > Every item, the pencil, refresh, or a new shortcut circle), Move now opens for about a second by itself, moves whatever overlaps to a free place, and closes. You do not have to open Move. If you switch an item on from somewhere that cannot open it, the fix runs the next time you open Move. *Tidy up: fix overlapping items (smart)* is still there to run by hand, and Undo in Move takes a fix back.
+- Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.26
 - **Smart fix for crowded items.** In the free layout (after you moved an item), a new shortcut circle could land on top of + Note, the mic and the other buttons. New button in Move: **Tidy up: fix overlapping items (smart)**. Items on top of each other are moved to the right of what they overlap, or to the next line when there is no room; the rest stays. It also runs by itself, once, the next time you open Move after you add a shortcut circle. Undo (in Move) takes it back.
 - **Voice assistant shortcut.** Add to shortcuts row now has **Voice assistant (Gemini: start talking)**. It opens the phone's voice assistant (Gemini, when it is the default assistant) trying voice mode first, then the assistant screen, then the app. Which of these starts listening straight away depends on the phone and the assistant. Gemini's own Live shortcut, if the app lists it, can also be found under *Shortcut*.

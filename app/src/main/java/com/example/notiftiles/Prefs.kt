@@ -89,7 +89,7 @@ object Prefs {
     // ---- Shortcuts row under the fast dial (5 slots): an app, an activity of an app, or a Nova-style shortcut ----
     const val QUICK_SLOTS = 5
     fun quickOn(c: Context): Boolean = sp(c).getBoolean("quick_on", false)
-    fun setQuickOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("quick_on", v).apply()
+    fun setQuickOn(c: Context, v: Boolean) { sp(c).edit().putBoolean("quick_on", v).apply(); markTidy(c, v) }
     fun quick(c: Context, i: Int): Quick? {
         val t = sp(c).getString("quick_$i", null) ?: return null
         return try {
@@ -494,7 +494,7 @@ object Prefs {
 
     /** key: clock, weather, date, maps, dial */
     fun show(c: Context, key: String): Boolean = sp(c).getBoolean("lay_show_$key", true)
-    fun setShow(c: Context, key: String, v: Boolean) = sp(c).edit().putBoolean("lay_show_$key", v).apply()
+    fun setShow(c: Context, key: String, v: Boolean) { sp(c).edit().putBoolean("lay_show_$key", v).apply(); markTidy(c, v) }
 
     /** Top-row items merged into ONE shape (any of clock, weather, date; fewer than 2 = nothing merged). */
     fun merged(c: Context): Set<String> =
@@ -563,7 +563,7 @@ object Prefs {
 
     /** The small pencil on the widget (opens Move / Arrange & resize / Reset). On by default so Reset can always be reached. */
     fun editBtn(c: Context): Boolean = sp(c).getBoolean("lay_editbtn", true)
-    fun setEditBtn(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_editbtn", v).apply()
+    fun setEditBtn(c: Context, v: Boolean) { sp(c).edit().putBoolean("lay_editbtn", v).apply(); markTidy(c, v) }
 
     /** Size of one widget section in percent (100 = as before). */
     fun blockScale(c: Context, key: String): Int = sp(c).getInt("lay_scale_$key", 100).coerceIn(50, 200)
@@ -584,6 +584,21 @@ object Prefs {
     /** Every item that can be placed freely: the 11 items, the merged shape, the 5 fast-dial and the 5 shortcut circles. */
     val FREE_KEYS: List<String> = ALL_ITEMS + listOf("merge") +
         (0 until DIAL_SLOTS).map { "d$it" } + (0 until QUICK_SLOTS).map { "q$it" }
+
+    /**
+     * Something was switched ON or added in the free layout: it may now sit on top of other items. Remember that, and
+     * when this is called from a screen, open Move for a moment (it fixes the overlaps by itself, then closes).
+     */
+    fun markTidy(c: Context, shown: Boolean) {
+        if (!shown || !freeOn(c)) return
+        setTidyPending(c, true)
+        if (c is android.app.Activity && c !is MoveActivity && !c.isFinishing) {
+            try {
+                c.startActivity(android.content.Intent(c, MoveActivity::class.java).putExtra("auto_tidy", true))
+            } catch (e: Exception) {
+            }
+        }
+    }
 
     /** Set when something was added to the widget (a shortcut circle): Move then fixes overlaps by itself once. */
     fun tidyPending(c: Context): Boolean = sp(c).getBoolean("tidy_pending", false)
@@ -933,7 +948,7 @@ object Prefs {
     fun micSize(c: Context): Int = sp(c).getInt("look_szmic", 22)
     fun setMicSize(c: Context, v: Int) = sp(c).edit().putInt("look_szmic", v).apply()
     fun refreshShow(c: Context): Boolean = sp(c).getBoolean("look_refresh", true)
-    fun setRefreshShow(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_refresh", v).apply()
+    fun setRefreshShow(c: Context, v: Boolean) { sp(c).edit().putBoolean("look_refresh", v).apply(); markTidy(c, v) }
     fun refreshSize(c: Context): Int = sp(c).getInt("look_szrefresh", 16)
     fun setRefreshSize(c: Context, v: Int) = sp(c).edit().putInt("look_szrefresh", v).apply()
     fun topSize(c: Context): Int = sp(c).getInt("look_sztop", 50)
@@ -956,9 +971,9 @@ object Prefs {
     // ---- Layout extras ----
     /** The "+ Add" circle: empty fast-dial circles and the shortcuts row's Add circle can be hidden (add contacts and shortcuts from Settings instead). */
     fun dialAdd(c: Context): Boolean = sp(c).getBoolean("lay_dial_add", true)
-    fun setDialAdd(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_dial_add", v).apply()
+    fun setDialAdd(c: Context, v: Boolean) { sp(c).edit().putBoolean("lay_dial_add", v).apply(); markTidy(c, v) }
     fun quickAdd(c: Context): Boolean = sp(c).getBoolean("lay_quick_add", true)
-    fun setQuickAdd(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_quick_add", v).apply()
+    fun setQuickAdd(c: Context, v: Boolean) { sp(c).edit().putBoolean("lay_quick_add", v).apply(); markTidy(c, v) }
 
     fun dialNames(c: Context): Boolean = sp(c).getBoolean("lay_dialnames", true)
     fun setDialNames(c: Context, v: Boolean) = sp(c).edit().putBoolean("lay_dialnames", v).apply()
@@ -1107,7 +1122,7 @@ object Prefs {
     // Items added later start hidden, so nothing changes until they are switched on
     private val OFF_BY_DEFAULT = setOf("p_mic", "p_edit", "p_refresh")
     fun showItem(c: Context, k: String): Boolean = sp(c).getBoolean("lay_item_$k", k !in OFF_BY_DEFAULT)
-    fun setShowItem(c: Context, k: String, v: Boolean) = sp(c).edit().putBoolean("lay_item_$k", v).apply()
+    fun setShowItem(c: Context, k: String, v: Boolean) { sp(c).edit().putBoolean("lay_item_$k", v).apply(); markTidy(c, v) }
 
     // ---- Font format: letter case of the widget text, and 3D icons ----
     /** 0 = as typed, 1 = UPPERCASE, 2 = lowercase, 3 = Each Word Capital (widget text only) */

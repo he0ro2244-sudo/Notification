@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.26
+Version 1.1.27
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -211,3 +211,7 @@ Settings > WIDGET AND PANEL > Show / hide parts > *Widget header, tiles and pane
 
 ## Fix overlapping items, voice assistant shortcut (1.1.26)
 Move > *Tidy up: fix overlapping items (smart)* moves items that sit on top of each other (for example a new shortcut circle on top of + Note) to the right or the next line. It also runs once by itself when you open Move after adding a shortcut circle. Undo is in Move. Add to shortcuts row > *Voice assistant (Gemini: start talking)* opens the phone's voice assistant.
+
+
+## Automatic overlap fix (1.1.27)
+With the free layout on, switching an item back on (for example the + Add circle) briefly opens Move, which moves overlapping items apart and closes by itself.

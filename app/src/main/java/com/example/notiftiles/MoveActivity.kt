@@ -220,6 +220,8 @@ class MoveActivity : Activity() {
             if (Prefs.tidyPending(this) && Prefs.freeOn(this)) {
                 Prefs.setTidyPending(this, false)
                 holder.postDelayed({ fixOverlaps(true) }, 500)
+            } else {
+                closeIfAuto()
             }
         }
     }
@@ -363,6 +365,11 @@ class MoveActivity : Activity() {
      * Smart fix after something new was added: items that sit on top of each other are moved. The item further down /
      * left stays; the other one moves to the right of what it overlaps, or to the next line when there is no room.
      */
+    // Opened by itself after something was switched on: close again once the overlaps are fixed
+    private fun closeIfAuto() {
+        if (intent.getBooleanExtra("auto_tidy", false)) holder.postDelayed({ if (!isFinishing) finish() }, 900)
+    }
+
     private fun fixOverlaps(auto: Boolean) {
         if (!Prefs.freeOn(this)) {
             if (!auto) showNote("Move an item first, then Tidy up can fix overlaps.")
@@ -403,6 +410,7 @@ class MoveActivity : Activity() {
         }
         if (moved == 0) {
             if (!auto) showNote("Nothing overlaps.")
+            closeIfAuto()
             return
         }
         Prefs.saveFreePrev(this)
@@ -412,6 +420,7 @@ class MoveActivity : Activity() {
         holder.post {
             render()
             showNote("Moved $moved item(s) so nothing overlaps. Undo is below if you do not like it.")
+            closeIfAuto()
         }
     }
 

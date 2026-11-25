@@ -650,7 +650,6 @@ class QuickActivity : Activity() {
         }
         Prefs.setQuick(this, slot, q)
         Prefs.setQuickOn(this, true)
-        if (Prefs.freeOn(this)) Prefs.setTidyPending(this, true)
         toast("Saved: " + q.name)
         TilesWidget.refresh(applicationContext)
         finish()
