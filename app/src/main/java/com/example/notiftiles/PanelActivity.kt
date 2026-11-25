@@ -248,13 +248,14 @@ class PanelActivity : Activity() {
         header.addView(gear, LinearLayout.LayoutParams(gsz + dp(6), gsz + dp(4)))
         aliveViews["gear"] = gear
         sheet.addView(header)
-        PanelFx.open(this, header)
+        PanelFx.open(this, sheet, header)
         val scroll = ScrollView(this)
         list = LinearLayout(this)
         list.orientation = LinearLayout.VERTICAL
         scroll.addView(list)
         sheet.addView(scroll, LinearLayout.LayoutParams(MATCH, WRAP))
 
+        PanelFx.attach(this, root)
         setContentView(root)
         Look.applyTree(root, this)
     }
@@ -401,9 +402,10 @@ class PanelActivity : Activity() {
         val svc = NotifListener.instance
         val items = if (svc == null) emptyList() else Feed.items(this, true)
         val notes = Prefs.notes(this)
+        val prevCount = badge.text.toString()
         badge.text = items.size.toString()
         arrived = lastCount in 0 until items.size
-        if (arrived) { PanelFx.badge(this, badge); PanelFx.mail(this, titleView, "Inbox") }
+        if (arrived) { PanelFx.badge(this, badge, prevCount); PanelFx.mail(this, titleView, "Inbox") }
         lastCount = items.size
         badge.visibility = if (items.isEmpty() || !Prefs.showItem(this, "p_badge")) View.GONE else View.VISIBLE
 

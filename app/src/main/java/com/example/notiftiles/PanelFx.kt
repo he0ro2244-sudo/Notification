@@ -2,448 +2,549 @@ package com.example.notiftiles
 
 import android.app.Activity
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.RectF
+import android.graphics.Typeface
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
-import android.view.animation.AccelerateInterpolator
 import android.view.animation.DecelerateInterpolator
 import android.view.animation.OvershootInterpolator
 import android.widget.FrameLayout
 import android.widget.TextView
+import kotlin.math.cos
+import kotlin.math.max
+import kotlin.math.sin
+
+/** One drawn animation on the panel overlay. [draw] gets the progress 0..1 for the current time. */
+class FxAnim(var start: Long, var end: Long, val draw: (Canvas, Float) -> Unit, val onEnd: (() -> Unit)?)
+
+/** The overlay over the whole panel. It draws the animations and lets every touch pass through to what is under it. */
+class FxLayer(c: Context) : View(c) {
+    private val anims = ArrayList<FxAnim>()
+    private var running = false
+
+    private val tick = object : Runnable {
+        override fun run() {
+            val now = SystemClock.uptimeMillis()
+            val done = anims.filter { now >= it.end }
+            anims.removeAll(done)
+            invalidate()
+            for (a in done) a.onEnd?.invoke()
+            if (anims.isNotEmpty()) postOnAnimation(this) else running = false
+        }
+    }
+
+    init { setWillNotDraw(false) }
+
+    fun add(a: FxAnim) {
+        anims.add(a)
+        if (!running) { running = true; postOnAnimation(tick) }
+        invalidate()
+    }
+
+    override fun onDraw(cv: Canvas) {
+        val now = SystemClock.uptimeMillis()
+        for (a in anims.toList()) {
+            if (now < a.start) continue
+            val p = ((now - a.start).toFloat() / (a.end - a.start).coerceAtLeast(1L)).coerceIn(0f, 1f)
+            a.draw(cv, p)
+        }
+    }
+}
 
 /**
- * The panel's animations. Each part has its own styles (Settings > Animation); "off" keeps it still.
- * Parts: Note, Clear all, Gear, Refresh, Mic, Pencil, the Inbox title, the count badge, the header when the panel
- * opens, and a new message tile. The speed (Slow / Normal / Fast) changes the length of all of them.
+ * The panel's animations, drawn on an overlay over the panel. Each one is tied to what the item does
+ * (a pen writes, messages drop into the bin, the envelope drops into the Inbox title, a sound bar pulses while
+ * recording). The style of each part is chosen in Settings > Animation; "off" keeps it still.
+ * The icon itself is copied into the overlay, so it keeps the emoji and colour you chose.
  */
 object PanelFx {
     private val main = Handler(Looper.getMainLooper())
+    private var layer: FxLayer? = null
+    private val PI_F = Math.PI.toFloat()
+    private val RED = Color.parseColor("#E53935")
+
+    /** Adds the overlay on top of the panel. Call it once the panel's views are in place. */
+    fun attach(c: Context, root: ViewGroup) {
+        val l = FxLayer(c)
+        root.addView(l, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        layer = l
+    }
+
     private fun st(c: Context, key: String) = Alive.style(c, key)
     private fun t(c: Context, ms: Long) = Alive.t(c, ms)
-    private fun dpf(c: Context, v: Float) = v * c.resources.displayMetrics.density
+    private fun dp(c: Context, v: Float) = v * c.resources.displayMetrics.density
     private fun gone(c: Context): Boolean = (c as? Activity)?.let { it.isFinishing || it.isDestroyed } ?: false
 
-    /** Runs [r] after [ms] (speed applied), unless the panel has closed in the meantime. */
-    private fun at(c: Context, ms: Long, r: () -> Unit) {
+    /** Runs [r] after [ms] (speed applied), unless the panel has closed. */
+    private fun later(c: Context, ms: Long, r: () -> Unit) {
         main.postDelayed({ if (!gone(c)) r() }, t(c, ms))
     }
 
-    // Steps for [wave]: each one sets a value on the view over [ms] milliseconds
-    private val ROT: (View, Float, Long) -> Unit = { v, x, ms -> v.animate().rotation(x).setDuration(ms).start() }
-    private val MOVE_X: (View, Float, Long) -> Unit = { v, x, ms -> v.animate().translationX(x).setDuration(ms).start() }
-    private val MOVE_Y: (View, Float, Long) -> Unit = { v, x, ms -> v.animate().translationY(x).setDuration(ms).start() }
-    private val SIZE: (View, Float, Long) -> Unit = { v, x, ms -> v.animate().scaleX(x).scaleY(x).setDuration(ms).start() }
-
-    /** Moves one property of [v] through [vals], one value every [step] ms (speed applied). */
-    private fun wave(c: Context, v: View, step: Long, vals: FloatArray, prop: (View, Float, Long) -> Unit) {
-        for ((i, x) in vals.withIndex()) at(c, i * step) { prop(v, x, t(c, step)) }
+    /** Starts a drawn animation on the overlay after [delay] ms. [end] runs when it is over. */
+    private fun anim(c: Context, L: FxLayer, ms: Long, delay: Long = 0L, draw: (Canvas, Float) -> Unit, end: (() -> Unit)? = null) {
+        val s = SystemClock.uptimeMillis() + t(c, delay)
+        L.add(FxAnim(s, s + t(c, ms), draw, end))
     }
 
-    // The text the view had before a story started, so it can be put back exactly
-    private fun orig(tv: TextView): CharSequence {
-        val t = tv.getTag(R.id.nt_alive)
-        if (t is CharSequence) return t
-        tv.setTag(R.id.nt_alive, tv.text)
-        return tv.text
+    private fun hide(v: View) { v.alpha = 0f }
+    private fun show(v: View) { v.alpha = 1f }
+
+    /** Where [v] is, in the overlay's coordinates. */
+    private fun rectIn(base: View, v: View): RectF {
+        val a = IntArray(2); val b = IntArray(2)
+        v.getLocationInWindow(a); base.getLocationInWindow(b)
+        val x = (a[0] - b[0]).toFloat(); val y = (a[1] - b[1]).toFloat()
+        return RectF(x, y, x + v.width, y + v.height)
     }
 
-    private fun restore(tv: TextView) {
-        (tv.getTag(R.id.nt_alive) as? CharSequence)?.let { tv.text = it }
-        tv.setTag(R.id.nt_alive, null)
-        calm(tv)
+    /** A picture of [v] as it looks now (its emoji, its colour, its size). */
+    private fun snap(v: View): Bitmap? {
+        if (v.width <= 0 || v.height <= 0) return null
+        val b = Bitmap.createBitmap(v.width, v.height, Bitmap.Config.ARGB_8888)
+        v.draw(Canvas(b))
+        return b
     }
 
-    private fun calm(v: View) {
-        v.animate().cancel()
-        v.rotation = 0f; v.translationX = 0f; v.translationY = 0f; v.scaleX = 1f; v.scaleY = 1f; v.alpha = 1f
+    /** Draws a picture turned by [deg], scaled by [scale] and faded by [alpha], around the centre of [r]. */
+    private fun drawSnap(cv: Canvas, bmp: Bitmap, r: RectF, deg: Float, scale: Float, alpha: Int = 255) {
+        val bp = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        bp.alpha = alpha.coerceIn(0, 255)
+        cv.save()
+        cv.translate(r.centerX(), r.centerY())
+        cv.rotate(deg)
+        cv.scale(scale, scale)
+        cv.drawBitmap(bmp, -bmp.width / 2f, -bmp.height / 2f, bp)
+        cv.restore()
     }
 
-    private fun bump(c: Context, v: View, to: Float = 1.25f) {
-        v.animate().scaleX(to).scaleY(to).setDuration(t(c, 90)).withEndAction {
-            v.animate().scaleX(1f).scaleY(1f).setDuration(t(c, 130)).start()
+    private fun paint(color: Int, alpha: Int = 255, style: Paint.Style = Paint.Style.FILL, w: Float = 0f): Paint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            this.color = Color.argb(alpha.coerceIn(0, 255), Color.red(color), Color.green(color), Color.blue(color))
+            this.style = style
+            strokeWidth = w
+            strokeCap = Paint.Cap.ROUND
+            strokeJoin = Paint.Join.ROUND
+        }
+
+    // easing curves
+    private fun seg(p: Float, a: Float, b: Float): Float = ((p - a) / (b - a)).coerceIn(0f, 1f)
+    private fun outCubic(p: Float): Float = 1f - (1f - p) * (1f - p) * (1f - p)
+    private fun inOutCubic(p: Float): Float = if (p < 0.5f) 4f * p * p * p else 1f - (-2f * p + 2f).let { it * it * it } / 2f
+    private fun backOut(p: Float): Float {
+        val c1 = 1.70158f
+        val c3 = c1 + 1f
+        val q = p - 1f
+        return 1f + c3 * q * q * q + c1 * q * q
+    }
+
+    /** A small pop of a plain view (count badge, pencil ink). */
+    private fun bumpView(c: Context, v: View, to: Float = 1.4f) {
+        v.animate().scaleX(to).scaleY(to).setDuration(t(c, 140)).setInterpolator(DecelerateInterpolator()).withEndAction {
+            v.animate().scaleX(1f).scaleY(1f).setDuration(t(c, 260)).setInterpolator(OvershootInterpolator(2f)).start()
         }.start()
     }
 
-    private fun popIn(c: Context, v: View) {
-        v.scaleX = 0.6f; v.scaleY = 0.6f
-        v.animate().scaleX(1f).scaleY(1f).setDuration(t(c, 320)).setInterpolator(OvershootInterpolator(3f)).start()
+    // ------------------------------------------------------------------ Note: a pen writes as you type, a stamp when saved
+    private class Ink(val color: Int) {
+        var len = 0f
+        var anim: FxAnim? = null
     }
+    private val inks = HashMap<TextView, Ink>()
 
-    private fun center(root: View, v: View): FloatArray {
-        val a = IntArray(2); val b = IntArray(2)
-        v.getLocationInWindow(a); root.getLocationInWindow(b)
-        return floatArrayOf(a[0] - b[0] + v.width / 2f, a[1] - b[1] + v.height / 2f)
-    }
-
-    /** A loose emoji floating above the panel, centred on (cx, cy). */
-    private fun ghost(c: Context, root: ViewGroup, text: String, sp: Float, cx: Float, cy: Float): TextView {
-        val g = TextView(c)
-        g.text = text
-        g.textSize = sp
-        root.addView(g, FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        g.measure(0, 0)
-        g.x = cx - g.measuredWidth / 2f
-        g.y = cy - g.measuredHeight / 2f
-        return g
-    }
-
-    // ------------------------------------------------------------------ Note: writing while you type, check when saved
-    private val writeEnd = HashMap<TextView, Long>()
-
-    /** Press Note and type: the icon writes. Call again on every key to keep it writing. */
+    /** Press Note and type: a pen draws a line under the word as you type. Call it on every key. */
     fun writing(ctx: Context, tv: TextView, label: String, ms: Long = 1800) {
-        val style = st(ctx, "note")
-        if (style == "off") return
-        val running = writeEnd.containsKey(tv)
-        writeEnd[tv] = SystemClock.uptimeMillis() + t(ctx, ms)
-        if (running) return
-        orig(tv)
-        val d = dpf(ctx, 1f)
-        var i = 0
-        val step = object : Runnable {
-            override fun run() {
-                val end = writeEnd[tv] ?: return
-                if (SystemClock.uptimeMillis() >= end) { writeEnd.remove(tv); restore(tv); return }
-                when (style) {
-                    "bounce" -> {
-                        val up = i % 2 == 0
-                        tv.text = (if (up) "📝" else "🖊️") + " " + label
-                        tv.translationY = if (up) 0f else -4f * d
-                        tv.rotation = if (up) -6f else 6f
-                    }
-                    "sparkle" -> {
-                        tv.text = (if (i % 2 == 0) "✍️" else "📝") + " " + label
-                        val root = tv.rootView as? ViewGroup
-                        if (i % 3 == 0 && root != null) {
-                            val c = center(root, tv)
-                            val g = ghost(ctx, root, "✨", 12f, c[0] + 14f * d, c[1] - 10f * d)
-                            g.animate().alpha(0f).y(g.y - 12f * d).setDuration(t(ctx, 420)).withEndAction { root.removeView(g) }.start()
-                        }
-                    }
-                    else -> {
-                        // the writing hand: travels along the line and bobs
-                        val s = Math.sin(i * 0.9).toFloat()
-                        tv.text = listOf("✍️", "✍️", "🖊️", "✍️")[i % 4] + " " + label
-                        tv.translationX = s * 3f * d
-                        tv.translationY = if (i % 2 == 0) 0f else d
-                        tv.rotation = s * 7f
-                    }
-                }
-                i++
-                main.postDelayed(this, t(ctx, 120))
-            }
-        }
-        main.post(step)
-    }
-
-    /** The note was saved: a check mark pops in, then the normal icon returns. */
-    fun saved(act: Activity, tv: TextView, label: String) {
-        val style = st(act, "note")
-        if (style == "off") return
-        writeEnd.remove(tv)
-        orig(tv)
-        calm(tv)
-        tv.text = "✅ " + label
-        popIn(act, tv)
-        val root = tv.rootView as? ViewGroup
-        if (style == "sparkle" && root != null) {
-            val c = center(root, tv)
-            val g = ghost(act, root, "✨", 16f, c[0], c[1] - 16f * dpf(act, 1f))
-            g.scaleX = 0.3f; g.scaleY = 0.3f
-            g.animate().scaleX(1.3f).scaleY(1.3f).alpha(0f).setDuration(t(act, 500)).withEndAction { root.removeView(g) }.start()
-        }
-        at(act, 900) { restore(tv) }
-    }
-
-    // ------------------------------------------------------------------ Clear all
-    fun clearAll(act: Activity, root: ViewGroup, tv: TextView, label: String, action: () -> Unit) {
-        when (st(act, "clear")) {
-            "off" -> action()
-            "broom" -> clearBroom(act, root, tv, label, action)
-            "poof" -> clearPoof(act, root, tv, label, action)
-            else -> clearBasket(act, root, tv, label, action)
-        }
-    }
-
-    /** Basket: the messages drop in, the basket tips over and empties, then a check mark. */
-    private fun clearBasket(act: Activity, root: ViewGroup, tv: TextView, label: String, action: () -> Unit) {
-        orig(tv)
-        calm(tv)
-        val d = dpf(act, 1f)
-        tv.text = "🧺 " + label
-        val c = center(root, tv)
-        val things = listOf("📨", "💬", "📩")
-        // 1. messages drop into the basket, it bumps each time
-        for ((i, e) in things.withIndex()) at(act, i * 230L) {
-            val g = ghost(act, root, e, 17f, c[0] - 14f * d + i * 14f * d, c[1] - 52f * d)
-            g.animate().y(c[1] - g.measuredHeight / 2f).alpha(0.35f).setDuration(t(act, 260)).setInterpolator(AccelerateInterpolator())
-                .withEndAction { root.removeView(g); bump(act, tv) }.start()
-        }
-        // 2. the basket tips over, everything pours out and the list clears
-        at(act, 950) {
-            tv.pivotX = tv.width / 2f; tv.pivotY = tv.height.toFloat()
-            tv.animate().rotation(-38f).setDuration(t(act, 220)).start()
-            for ((i, e) in things.withIndex()) {
-                val g = ghost(act, root, e, 15f, c[0] - 6f * d, c[1] - 4f * d)
-                g.animate().x(g.x - (30f + i * 14f) * d).y(g.y + (14f + i * 8f) * d).rotation(-50f - i * 25f).alpha(0f)
-                    .setDuration(t(act, 520)).setInterpolator(DecelerateInterpolator()).withEndAction { root.removeView(g) }.start()
-            }
-            action()
-        }
-        // 3. upright, empty, and a check mark pops in
-        at(act, 1350) {
-            tv.animate().rotation(0f).setDuration(t(act, 200)).start()
-            tv.text = "✅ " + label
-            popIn(act, tv)
-        }
-        at(act, 2100) { restore(tv) }
-    }
-
-    /** Broom: the label sweeps side to side and dust puffs out, then a check mark. */
-    private fun clearBroom(act: Activity, root: ViewGroup, tv: TextView, label: String, action: () -> Unit) {
-        orig(tv)
-        calm(tv)
-        val d = dpf(act, 1f)
-        val c = center(root, tv)
-        tv.text = "🧹 " + label
-        tv.pivotX = tv.width / 2f; tv.pivotY = tv.height.toFloat()
-        wave(act, tv, 110L, floatArrayOf(-20f, 20f, -20f, 20f, 0f), ROT)
-        for (i in 0..3) at(act, i * 120L) {
-            val g = ghost(act, root, if (i % 2 == 0) "🫧" else "✨", 14f, c[0] + (i * 6f - 9f) * d, c[1])
-            g.animate().y(g.y - 26f * d).alpha(0f).setDuration(t(act, 420)).withEndAction { root.removeView(g) }.start()
-        }
-        at(act, 600) {
-            action()
-            tv.text = "✅ " + label
-            popIn(act, tv)
-        }
-        at(act, 1300) { restore(tv) }
-    }
-
-    /** Poof: the basket shrinks, a little cloud bursts out, then it comes back with a check mark. */
-    private fun clearPoof(act: Activity, root: ViewGroup, tv: TextView, label: String, action: () -> Unit) {
-        orig(tv)
-        calm(tv)
-        val d = dpf(act, 1f)
-        val c = center(root, tv)
-        tv.text = "🧺 " + label
-        tv.animate().scaleX(0.3f).scaleY(0.3f).alpha(0.3f).setDuration(t(act, 180)).setInterpolator(AccelerateInterpolator()).start()
-        at(act, 200) {
-            val dirs = listOf(-26f to -12f, 0f to -28f, 26f to -12f)
-            for ((i, dxy) in dirs.withIndex()) {
-                val g = ghost(act, root, if (i == 1) "✨" else "💨", 16f, c[0], c[1])
-                g.animate().x(g.x + dxy.first * d).y(g.y + dxy.second * d).alpha(0f)
-                    .setDuration(t(act, 480)).setInterpolator(DecelerateInterpolator()).withEndAction { root.removeView(g) }.start()
-            }
-            action()
-            tv.text = "✅ " + label
-            tv.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(t(act, 200)).start()
-        }
-        at(act, 1100) { restore(tv) }
-    }
-
-    // ------------------------------------------------------------------ Gear: before Settings opens
-    fun gear(act: Activity, v: View, action: () -> Unit) {
-        when (st(act, "gear")) {
-            "off" -> action()
-            "turn" -> {
-                calm(v)
-                v.animate().rotation(180f).scaleX(1.1f).scaleY(1.1f).setDuration(t(act, 380)).setInterpolator(DecelerateInterpolator(1.4f))
-                    .withEndAction { calm(v); action() }.start()
-            }
-            "wobble" -> {
-                calm(v)
-                wave(act, v, 90L, floatArrayOf(-18f, 18f, -12f, 12f, -5f, 0f), ROT)
-                at(act, 6 * 90L) { calm(v); action() }
-            }
-            else -> {
-                calm(v)
-                v.animate().rotation(540f).scaleX(1.25f).scaleY(1.25f).setDuration(t(act, 650)).setInterpolator(DecelerateInterpolator(1.6f))
-                    .withEndAction { calm(v); action() }.start()
-            }
-        }
-    }
-
-    // ------------------------------------------------------------------ Refresh: while it refreshes
-    fun refresh(act: Activity, tv: TextView, action: () -> Unit) {
-        when (st(act, "refresh")) {
-            "off" -> action()
-            "pulse" -> {
-                calm(tv)
-                wave(act, tv, 160L, floatArrayOf(1.3f, 1f, 1.3f, 1f), SIZE)
-                at(act, 4 * 160L) { calm(tv); action(); popIn(act, tv) }
-            }
-            "one" -> {
-                calm(tv)
-                tv.animate().rotation(360f).setDuration(t(act, 450)).setInterpolator(DecelerateInterpolator(1.4f))
-                    .withEndAction { calm(tv); action(); popIn(act, tv) }.start()
-            }
-            else -> {
-                calm(tv)
-                tv.animate().rotation(720f).setDuration(t(act, 750)).setInterpolator(DecelerateInterpolator(1.4f))
-                    .withEndAction { calm(tv); action(); popIn(act, tv) }.start()
-            }
-        }
-    }
-
-    // ------------------------------------------------------------------ Mic: before the recorder opens
-    fun mic(act: Activity, root: ViewGroup, tv: TextView, action: () -> Unit) {
-        when (st(act, "mic")) {
-            "off" -> action()
-            "pulse" -> {
-                calm(tv)
-                wave(act, tv, 220L, floatArrayOf(1.35f, 1f, 1.35f, 1f), SIZE)
-                at(act, 4 * 220L) { calm(tv); action() }
-            }
-            "wave" -> {
-                calm(tv)
-                val d = dpf(act, 1f)
-                wave(act, tv, 120L, floatArrayOf(-4f * d, 4f * d, -4f * d, 4f * d, 0f), MOVE_Y)
-                at(act, 5 * 120L) { calm(tv); action() }
-            }
-            else -> redRings(act, root, tv, action)
-        }
-    }
-
-    /** Live red rings spreading out from the mic. */
-    private fun redRings(act: Activity, root: ViewGroup, tv: TextView, action: () -> Unit) {
-        calm(tv)
-        val d = dpf(act, 1f)
-        val c = center(root, tv)
-        bump(act, tv, 1.35f)
-        for (i in 0..2) at(act, i * 200L) {
-            val ring = View(act)
-            val g = GradientDrawable()
-            g.shape = GradientDrawable.OVAL
-            g.setStroke((2 * d).toInt().coerceAtLeast(2), Color.parseColor("#E53935"))
-            g.setColor(Color.TRANSPARENT)
-            ring.background = g
-            val sz = (34 * d).toInt()
-            root.addView(ring, FrameLayout.LayoutParams(sz, sz))
-            ring.x = c[0] - sz / 2f; ring.y = c[1] - sz / 2f
-            ring.scaleX = 0.4f; ring.scaleY = 0.4f; ring.alpha = 0.9f
-            ring.animate().scaleX(1.9f).scaleY(1.9f).alpha(0f).setDuration(t(act, 600)).setInterpolator(DecelerateInterpolator())
-                .withEndAction { root.removeView(ring) }.start()
-        }
-        at(act, 700) { action() }
-    }
-
-    // ------------------------------------------------------------------ Pencil: before the edit menu opens
-    fun pencil(act: Activity, root: ViewGroup, tv: TextView, action: () -> Unit) {
-        val style = st(act, "edit")
-        if (style == "off") { action(); return }
-        orig(tv)
-        calm(tv)
-        val d = dpf(act, 1f)
-        val c = center(root, tv)
-        if (style == "wiggle" || style == "sparkle") {
-            if (style == "sparkle") {
-                at(act, 60) {
-                    val g = ghost(act, root, "✨", 16f, c[0], c[1] - 18f * d)
-                    g.scaleX = 0.3f; g.scaleY = 0.3f
-                    g.animate().scaleX(1.3f).scaleY(1.3f).alpha(0f).y(g.y - 10f * d).setDuration(t(act, 500)).withEndAction { root.removeView(g) }.start()
-                }
-            }
-            wave(act, tv, 90L, floatArrayOf(-14f, 14f, -10f, 10f, 0f), ROT)
-            at(act, 6 * 90L) { restore(tv); action() }
+        val L = layer ?: return
+        if (st(ctx, "note") != "ink") return
+        val d = dp(ctx, 1f)
+        val now = SystemClock.uptimeMillis()
+        val old = inks[tv]
+        val live = old?.anim?.let { it.end > now } ?: false
+        if (old != null && live) {
+            old.len += 7f * d
+            if (old.len > tv.width.toFloat()) old.len = 7f * d   // start a new line of ink
+            old.anim?.end = now + t(ctx, ms)
             return
         }
-        // write: the pencil writes a line, then a sparkle
-        tv.text = "✏️"
-        val xs = floatArrayOf(-6f, 6f, -6f, 6f, 0f)
-        for ((i, x) in xs.withIndex()) at(act, i * 110L) {
-            tv.animate().translationX(x * d).rotation(if (i % 2 == 0) -22f else 12f).setDuration(t(act, 110)).start()
-        }
-        at(act, 580) {
-            val g = ghost(act, root, "✨", 16f, c[0], c[1] - 18f * d)
-            g.scaleX = 0.3f; g.scaleY = 0.3f
-            g.animate().scaleX(1.3f).scaleY(1.3f).alpha(0f).y(g.y - 10f * d).setDuration(t(act, 500)).withEndAction { root.removeView(g) }.start()
-        }
-        at(act, 700) { restore(tv); action() }
+        val ink = Ink(Prefs.accent(ctx))
+        ink.len = 7f * d
+        inks[tv] = ink
+        val r0 = rectIn(L, tv)
+        val a = FxAnim(now, now + t(ctx, ms), { cv, p -> drawInk(cv, ink, r0, d, p) }, null)
+        ink.anim = a
+        L.add(a)
     }
 
-    // ------------------------------------------------------------------ Inbox title: when a message arrives
-    fun mail(act: Activity, tv: TextView, label: String) {
-        val style = st(act, "title")
-        if (style == "off") return
-        orig(tv)
-        calm(tv)
-        val d = dpf(act, 1f)
-        when (style) {
-            "bounce" -> {
-                wave(act, tv, 90L, floatArrayOf(-10f * d, 0f, -6f * d, 0f), MOVE_Y)
-                at(act, 420) { restore(tv) }
-            }
-            "shake" -> {
-                wave(act, tv, 70L, floatArrayOf(-7f * d, 7f * d, -7f * d, 7f * d, 0f), MOVE_X)
-                at(act, 420) { restore(tv) }
-            }
-            else -> {
-                // the flag goes up
-                val frames = listOf("📪", "📫", "📬")
-                for ((i, e) in frames.withIndex()) at(act, i * 230L) {
-                    tv.text = Look.withEmoji(e, label)
-                    bump(act, tv, 1.18f)
-                }
-                at(act, 1100) { restore(tv) }
-            }
+    private fun drawInk(cv: Canvas, ink: Ink, r: RectF, d: Float, p: Float) {
+        val fade = 1f - seg(p, 0.82f, 1f)
+        val x0 = r.left
+        val y0 = r.bottom + 3f * d
+        fun waveY(x: Float) = y0 + sin((x - x0) / (3f * d)) * 1.6f * d
+        val path = Path()
+        path.moveTo(x0, y0)
+        var x = x0
+        while (x < x0 + ink.len) {
+            x = minOf(x + 2f * d, x0 + ink.len)
+            path.lineTo(x, waveY(x))
         }
+        val a = (210 * fade).toInt()
+        cv.drawPath(path, paint(ink.color, a, Paint.Style.STROKE, 1.6f * d))
+        // the pen at the end of the line
+        val tx = x0 + ink.len
+        val ty = waveY(tx)
+        cv.save()
+        cv.translate(tx, ty)
+        cv.rotate(-35f)
+        cv.drawRoundRect(RectF(-2.6f * d, -16f * d, 2.6f * d, 0f), 2.6f * d, 2.6f * d, paint(ink.color, (255 * fade).toInt()))
+        val nib = Path().apply { moveTo(-2.6f * d, -2f * d); lineTo(2.6f * d, -2f * d); lineTo(0f, 5f * d); close() }
+        cv.drawPath(nib, paint(ink.color, (255 * fade).toInt()))
+        cv.restore()
     }
 
-    // ------------------------------------------------------------------ Count badge: when a message arrives
-    fun badge(c: Context, v: View) {
-        when (st(c, "badge")) {
-            "off" -> Unit
-            "grow" -> v.animate().scaleX(1.2f).scaleY(1.2f).setDuration(t(c, 400)).withEndAction {
-                v.animate().scaleX(1f).scaleY(1f).setDuration(t(c, 400)).start()
+    /** The note was saved: a ring spreads out and a tick stamps in over the label. */
+    fun saved(act: Activity, tv: TextView, label: String) {
+        val L = layer ?: return
+        if (st(act, "note") == "off") return
+        val old = inks.remove(tv)
+        old?.anim?.end = SystemClock.uptimeMillis()
+        val d = dp(act, 1f)
+        val r = rectIn(L, tv)
+        val cx = r.centerX()
+        val cy = r.centerY()
+        val col = Prefs.accent(act)
+        hide(tv)
+        anim(act, L, 900, draw = { cv, p ->
+            val rp = seg(p, 0f, 0.7f)
+            cv.drawCircle(cx, cy, (12f + 30f * outCubic(rp)) * d, paint(col, (150 * (1f - rp)).toInt(), Paint.Style.STROKE, 2f * d))
+            val s = backOut(seg(p, 0f, 0.3f))
+            val fade = 1f - seg(p, 0.75f, 1f)
+            cv.drawCircle(cx, cy, 12f * d * s, paint(col, (255 * fade).toInt()))
+            cv.save()
+            cv.translate(cx, cy)
+            cv.scale(s, s)
+            val tick = Path().apply { moveTo(-5f * d, 0.5f * d); lineTo(-1.5f * d, 4f * d); lineTo(5f * d, -3.5f * d) }
+            cv.drawPath(tick, paint(Color.WHITE, (255 * fade).toInt(), Paint.Style.STROKE, 2.4f * d))
+            cv.restore()
+        }, end = { show(tv) })
+    }
+
+    // ------------------------------------------------------------------ Clear all: the messages go into the bin
+    fun clearAll(act: Activity, root: ViewGroup, tv: TextView, label: String, action: () -> Unit) {
+        val L = layer
+        val style = st(act, "clear")
+        if (L == null || style == "off") { action(); return }
+        if (style == "sweep") { clearSweep(act, L, tv, action); return }
+        val d = dp(act, 1f)
+        val r = rectIn(L, tv)
+        val cx = r.centerX()
+        val cy = r.centerY()
+        val ink = tv.currentTextColor
+        hide(tv)
+        // three messages fly into the bin, one after the other
+        for (i in 0..2) {
+            anim(act, L, 420, delay = 120L * i, draw = { cv, p ->
+                val e = p * p
+                val sx = cx + (i - 1) * 22f * d
+                val sy = cy - 46f * d
+                val x = sx + (cx - sx) * e
+                val y = sy + (cy - 2f * d - sy) * e
+                val s = 1f - 0.6f * p
+                val fade = 1f - seg(p, 0.8f, 1f)
+                cv.save()
+                cv.translate(x, y)
+                cv.scale(s, s)
+                cv.drawRoundRect(RectF(-6.5f * d, -4.5f * d, 6.5f * d, 4.5f * d), 2f * d, 2f * d, paint(ink, (255 * fade).toInt()))
+                cv.restore()
+            })
+        }
+        // the bin: the lid lifts, the bin bounces as they land, the lid closes
+        anim(act, L, 1100, draw = { cv, p ->
+            val lid = -32f * minOf(seg(p, 0.2f, 0.4f), 1f - seg(p, 0.75f, 0.9f))
+            val bounce = 1f + 0.12f * sin(seg(p, 0.5f, 0.9f) * PI_F)
+            cv.save()
+            cv.translate(cx, cy + 2f * d)
+            cv.scale(bounce, bounce)
+            val body = Path().apply {
+                moveTo(-6.5f * d, -3f * d); lineTo(6.5f * d, -3f * d); lineTo(5f * d, 8f * d); lineTo(-5f * d, 8f * d); close()
+            }
+            cv.drawPath(body, paint(ink, 230))
+            cv.save()
+            cv.translate(-8f * d, -3f * d)
+            cv.rotate(lid)
+            cv.drawRoundRect(RectF(0f, -3.2f * d, 16f * d, 0f), 1.5f * d, 1.5f * d, paint(ink))
+            cv.restore()
+            cv.restore()
+        }, end = { show(tv) })
+        // the list is cleared as the messages land
+        later(act, 620) { action() }
+    }
+
+    /** A soft band sweeps across the list and takes the messages with it. */
+    private fun clearSweep(act: Activity, L: FxLayer, tv: TextView, action: () -> Unit) {
+        val d = dp(act, 1f)
+        val r = rectIn(L, tv)
+        val col = tv.currentTextColor
+        val area = RectF(8f * d, r.bottom + 24f * d, L.width.toFloat() - 8f * d, L.height * 0.85f)
+        hide(tv)
+        anim(act, L, 760, draw = { cv, p ->
+            val x = area.left - 40f * d + (area.width() + 40f * d) * outCubic(seg(p, 0f, 0.6f))
+            val fade = 1f - seg(p, 0.6f, 1f)
+            cv.save()
+            cv.clipRect(area)
+            cv.drawRect(RectF(x - 70f * d, area.top, x, area.bottom), paint(col, (30 * fade).toInt()))
+            cv.drawRect(RectF(x - 1.5f * d, area.top, x, area.bottom), paint(col, (140 * fade).toInt()))
+            cv.restore()
+        }, end = { show(tv) })
+        later(act, 380) { action() }
+    }
+
+    // ------------------------------------------------------------------ Gear: one turn that settles
+    fun gear(act: Activity, v: View, action: () -> Unit) {
+        val L = layer
+        val style = st(act, "gear")
+        val bmp = if (L != null && style != "off") snap(v) else null
+        if (L == null || bmp == null) { action(); return }
+        val d = dp(act, 1f)
+        val r = rectIn(L, v)
+        val glow = Prefs.accent(act)
+        hide(v)
+        anim(act, L, 760, draw = { cv, p ->
+            val turn = if (style == "turn") 360f * backOut(p) else 360f * outCubic(p)
+            val s = 1f + 0.1f * sin(p * PI_F)
+            cv.drawCircle(r.centerX(), r.centerY(), r.width() / 2f + 6f * d, paint(glow, (70f * sin(p * PI_F)).toInt()))
+            drawSnap(cv, bmp, r, turn, s)
+        }, end = { show(v); action() })
+    }
+
+    // ------------------------------------------------------------------ Refresh: an arrow draws a loop
+    fun refresh(act: Activity, tv: TextView, action: () -> Unit) {
+        val L = layer
+        val style = st(act, "refresh")
+        val bmp = if (L != null && style != "off") snap(tv) else null
+        if (L == null || bmp == null) { action(); return }
+        val d = dp(act, 1f)
+        val r = rectIn(L, tv)
+        val col = Prefs.accent(act)
+        val rad = max(r.width(), r.height()) / 2f + 5f * d
+        hide(tv)
+        anim(act, L, 800, draw = { cv, p ->
+            if (style == "spin") {
+                drawSnap(cv, bmp, r, 360f * inOutCubic(p), 1f)
+            } else {
+                drawSnap(cv, bmp, r, 360f * inOutCubic(p), 1f)
+                val sweep = 360f * outCubic(seg(p, 0f, 0.85f))
+                val ring = RectF(r.centerX() - rad, r.centerY() - rad, r.centerX() + rad, r.centerY() + rad)
+                val a = (255 * (1f - seg(p, 0.8f, 1f))).toInt()
+                cv.drawArc(ring, -90f, sweep, false, paint(col, a, Paint.Style.STROKE, 2.2f * d))
+                // the arrowhead at the front of the loop
+                val ang = Math.toRadians((-90f + sweep).toDouble())
+                val tx = r.centerX() + rad * cos(ang).toFloat()
+                val ty = r.centerY() + rad * sin(ang).toFloat()
+                cv.save()
+                cv.translate(tx, ty)
+                cv.rotate(Math.toDegrees(ang).toFloat() + 90f)
+                val head = Path().apply { moveTo(6f * d, 0f); lineTo(-2f * d, -4.5f * d); lineTo(-2f * d, 4.5f * d); close() }
+                cv.drawPath(head, paint(col, a))
+                cv.restore()
+            }
+        }, end = { show(tv); action() })
+    }
+
+    // ------------------------------------------------------------------ Mic: sound bars while recording
+    fun mic(act: Activity, root: ViewGroup, tv: TextView, action: () -> Unit) {
+        val L = layer
+        val style = st(act, "mic")
+        if (L == null || style == "off") { action(); return }
+        val d = dp(act, 1f)
+        val r = rectIn(L, tv)
+        val cx = r.centerX()
+        val cy = r.centerY()
+        if (style == "rings") {
+            tv.animate().scaleX(1.12f).scaleY(1.12f).setDuration(t(act, 160)).withEndAction {
+                tv.animate().scaleX(1f).scaleY(1f).setDuration(t(act, 240)).start()
             }.start()
-            "wiggle" -> {
-                calm(v)
-                wave(c, v, 80L, floatArrayOf(-12f, 12f, -8f, 8f, 0f), ROT)
-            }
-            else -> bump(c, v, 1.5f)
+            anim(act, L, 800, draw = { cv, p ->
+                for (k in 0..1) {
+                    val rp = seg(p, k * 0.22f, k * 0.22f + 0.7f)
+                    if (rp > 0f) cv.drawCircle(cx, cy, (10f + 26f * outCubic(rp)) * d, paint(RED, (180 * (1f - rp)).toInt(), Paint.Style.STROKE, 2f * d))
+                }
+            })
+        } else {
+            // live audio: the icon turns into bars that move like a voice
+            hide(tv)
+            anim(act, L, 900, draw = { cv, p ->
+                val bw = 3f * d
+                val gap = 2.6f * d
+                val bars = 5
+                val total = bars * bw + (bars - 1) * gap
+                val env = max(sin(p * PI_F), 0.2f)
+                for (i in 0 until bars) {
+                    val level = 0.5f + 0.5f * sin(p * 14f + i * 1.1f)
+                    val h = (4f + 18f * level) * d * env
+                    val x = cx - total / 2f + i * (bw + gap)
+                    cv.drawRoundRect(RectF(x, cy - h / 2f, x + bw, cy + h / 2f), bw / 2f, bw / 2f, paint(RED))
+                }
+            }, end = { show(tv) })
+        }
+        later(act, 700) { action() }
+    }
+
+    // ------------------------------------------------------------------ Pencil: draws a trail, or tilts and taps
+    fun pencil(act: Activity, root: ViewGroup, tv: TextView, action: () -> Unit) {
+        val L = layer
+        val style = st(act, "edit")
+        val bmp = if (L != null && style != "off") snap(tv) else null
+        if (L == null || bmp == null) { action(); return }
+        val d = dp(act, 1f)
+        val r = rectIn(L, tv)
+        val col = Prefs.accent(act)
+        hide(tv)
+        if (style == "tilt") {
+            anim(act, L, 620, draw = { cv, p ->
+                val wob = sin(p * PI_F * 4f) * (1f - p) * 22f
+                drawSnap(cv, bmp, r, wob, 1f)
+                for (k in 0..2) {
+                    val a = seg(p, 0.15f + 0.15f * k, 0.45f + 0.15f * k) * (1f - seg(p, 0.75f, 1f))
+                    cv.drawCircle(r.right + (6f + 7f * k) * d, r.centerY(), 1.9f * d, paint(col, (255 * a).toInt()))
+                }
+            }, end = { show(tv); action() })
+        } else {
+            val x0 = r.left - 4f * d
+            val x1 = r.right + 26f * d
+            val y0 = r.bottom + 8f * d
+            fun waveY(u: Float) = y0 - sin(u * PI_F * 2f) * 4f * d
+            anim(act, L, 1000, draw = { cv, p ->
+                val e = inOutCubic(seg(p, 0f, 0.7f))
+                val fade = 1f - seg(p, 0.75f, 1f)
+                val trail = Path()
+                val steps = 24
+                for (k in 0..steps) {
+                    val u = e * k / steps
+                    val x = x0 + (x1 - x0) * u
+                    if (k == 0) trail.moveTo(x, waveY(u)) else trail.lineTo(x, waveY(u))
+                }
+                cv.drawPath(trail, paint(col, (200 * fade).toInt(), Paint.Style.STROKE, 1.6f * d))
+                // the pencil rides the tip of the trail
+                val tipX = x0 + (x1 - x0) * e
+                val tipY = waveY(e)
+                val at = RectF(tipX - r.width() / 2f, tipY - r.height() / 2f, tipX + r.width() / 2f, tipY + r.height() / 2f)
+                val pa = (255 * (1f - seg(p, 0.85f, 1f))).toInt()
+                drawSnap(cv, bmp, at, -35f * (1f - seg(p, 0.85f, 1f)), 1f, pa)
+            }, end = { show(tv); action() })
         }
     }
 
-    // ------------------------------------------------------------------ Panel opens: the header icons come in one by one
-    fun open(c: Context, header: ViewGroup) {
+    // ------------------------------------------------------------------ Inbox title: an envelope drops into the title
+    fun mail(act: Activity, tv: TextView, label: String) {
+        val L = layer
+        val style = st(act, "title")
+        if (L == null || style == "off") return
+        val d = dp(act, 1f)
+        if (style == "bounce") {
+            tv.animate().translationY(-5f * d).setDuration(t(act, 120)).withEndAction {
+                tv.animate().translationY(0f).setDuration(t(act, 380)).setInterpolator(OvershootInterpolator(2.5f)).start()
+            }.start()
+            return
+        }
+        val r = rectIn(L, tv)
+        val col = Prefs.accent(act)
+        val ex = r.right + 10f * d
+        val ey = r.centerY()
+        anim(act, L, 900, draw = { cv, p ->
+            val drop = -26f * d * (1f - backOut(seg(p, 0f, 0.4f)))
+            val fade = 1f - seg(p, 0.7f, 1f)
+            val box = RectF(ex, ey - 5.5f * d + drop, ex + 15f * d, ey + 5.5f * d + drop)
+            cv.drawRoundRect(box, 2f * d, 2f * d, paint(col, (255 * fade).toInt()))
+            val flap = Path().apply { moveTo(box.left, box.top); lineTo(box.centerX(), box.centerY() + 0.5f * d); lineTo(box.right, box.top) }
+            cv.drawPath(flap, paint(Color.WHITE, (255 * fade).toInt(), Paint.Style.STROKE, 1.4f * d))
+        })
+        tv.animate().translationY(-3f * d).setDuration(t(act, 150)).withEndAction {
+            tv.animate().translationY(0f).setDuration(t(act, 300)).setInterpolator(OvershootInterpolator(2f)).start()
+        }.start()
+    }
+
+    // ------------------------------------------------------------------ Count badge: the number rolls up
+    /** [prev] is the number before this message arrived. */
+    fun badge(c: Context, v: TextView, prev: String) {
+        val L = layer
+        val style = st(c, "badge")
+        if (style == "off") return
+        val next = v.text.toString()
+        if (L == null || style == "pop" || prev.toIntOrNull() == null || next.toIntOrNull() == null) {
+            bumpView(c, v, 1.5f)
+            return
+        }
+        val d = dp(c, 1f)
+        val r = rectIn(L, v)
+        val col = Prefs.accent(c)
+        val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textSize = v.textSize
+            typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.CENTER
+        }
+        hide(v)
+        anim(c, L, 480, draw = { cv, p ->
+            val fm = tp.fontMetrics
+            val base = r.centerY() - (fm.ascent + fm.descent) / 2f
+            val h = r.height()
+            cv.save()
+            cv.clipRect(r)
+            cv.drawRoundRect(r, 10f * d, 10f * d, paint(col))
+            cv.drawText(prev, r.centerX(), base - h * outCubic(seg(p, 0f, 0.55f)), tp)
+            cv.drawText(next, r.centerX(), base + h * (1f - outCubic(seg(p, 0.25f, 1f))), tp)
+            cv.restore()
+        }, end = { show(v) })
+    }
+
+    // ------------------------------------------------------------------ Panel opens: the sheet rises, the header follows
+    fun open(c: Context, sheet: View, header: ViewGroup) {
         val style = st(c, "open")
         if (style == "off") return
-        val d = dpf(c, 1f)
+        val d = dp(c, 1f)
+        if (style == "fade") {
+            sheet.alpha = 0f
+            sheet.animate().alpha(1f).setDuration(t(c, 260)).start()
+        } else {
+            sheet.translationY = 60f * d
+            sheet.alpha = 0f
+            sheet.animate().translationY(0f).alpha(1f).setDuration(t(c, 460)).setInterpolator(OvershootInterpolator(0.8f)).start()
+        }
         val views = (0 until header.childCount).map { header.getChildAt(it) }.filter { it.visibility == View.VISIBLE }
         for ((i, v) in views.withIndex()) {
-            when (style) {
-                "slide" -> { v.translationY = -18f * d; v.alpha = 0f }
-                "fade" -> { v.alpha = 0f }
-                else -> { v.scaleX = 0.4f; v.scaleY = 0.4f }
-            }
-            val a = v.animate().setStartDelay(t(c, i * 90L)).setDuration(t(c, 320))
-            when (style) {
-                "slide" -> a.translationY(0f).alpha(1f).setInterpolator(DecelerateInterpolator())
-                "fade" -> a.alpha(1f)
-                else -> a.scaleX(1f).scaleY(1f).setInterpolator(OvershootInterpolator(3f))
-            }.start()
+            v.alpha = 0f
+            v.animate().alpha(1f).setStartDelay(t(c, 120L + i * 60L)).setDuration(t(c, 240)).start()
         }
     }
 
-    // ------------------------------------------------------------------ New message tile: comes in
+    // ------------------------------------------------------------------ New message: slides in with a highlight
     fun newRow(c: Context, v: View) {
-        val d = dpf(c, 1f)
-        when (st(c, "row")) {
-            "off" -> Unit
-            "fade" -> { v.alpha = 0f; v.animate().alpha(1f).setDuration(t(c, 420)).start() }
-            "drop" -> {
-                v.alpha = 0f; v.translationY = -26f * d
-                v.animate().alpha(1f).translationY(0f).setDuration(t(c, 420)).setInterpolator(DecelerateInterpolator()).start()
-            }
-            else -> {
-                v.alpha = 0f; v.translationX = 90f * d
-                v.animate().alpha(1f).translationX(0f).setDuration(t(c, 380)).setInterpolator(DecelerateInterpolator()).start()
-            }
+        val style = st(c, "row")
+        if (style == "off") return
+        val d = dp(c, 1f)
+        v.alpha = 0f
+        if (style == "fade") {
+            v.animate().alpha(1f).setDuration(t(c, 420)).start()
+            return
+        }
+        v.translationX = 56f * d
+        v.animate().alpha(1f).translationX(0f).setDuration(t(c, 460)).setInterpolator(OvershootInterpolator(1.1f)).start()
+        val L = layer ?: return
+        v.post {
+            val r = rectIn(L, v)
+            val col = Prefs.accent(c)
+            anim(c, L, 900, draw = { cv, p ->
+                val fade = 1f - seg(p, 0.1f, 1f)
+                cv.drawRoundRect(RectF(r.left - 2f * d, r.top - 2f * d, r.right + 2f * d, r.bottom + 2f * d), 14f * d, 14f * d,
+                    paint(col, (200 * fade).toInt(), Paint.Style.STROKE, 2f * d))
+            })
         }
     }
 }

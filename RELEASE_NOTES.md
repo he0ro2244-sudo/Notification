@@ -1,5 +1,21 @@
 # Release notes
 
+## 1.1.46
+- **Panel animations rebuilt from scratch.** They are now drawn on an overlay over the panel and tied to what each part does:
+  - **Note:** a pen writes a line under the word as you type; a ring and a tick stamp in when saved.
+  - **Clear all:** the messages drop into the bin, the lid lifts and the bin bounces (or a soft band sweeps the list).
+  - **Gear:** one smooth turn that settles (or turns and overshoots), with a soft glow.
+  - **Refresh:** an arrow draws a full loop (or a smooth turn).
+  - **Mic:** live sound bars move like a voice while the recorder opens (or red rings and a pulse).
+  - **Pencil:** draws a trail and rides it (or tilts with ink dots).
+  - **Inbox title:** an envelope drops into the title (or a bounce).
+  - **Count badge:** the number rolls up to the new count (or a pop).
+  - **Panel opening:** the sheet rises with a spring and the header follows (or a fade).
+  - **New message tile:** slides in with a highlight (or a fade).
+- The icons keep the emoji and colour you chose; the animation draws on top.
+- Settings > Animation: the style names changed to match. Speed and the switches are the same.
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
 ## 1.1.45
 - **Animation: one section for everything that moves in the panel.** Settings > Show / hide parts no longer has the Alive icons block; the new **Animation** section has it all:
   - **Style for each part** (or Off): Note (writing hand, pen bounce, sparkle), Clear all (basket, broom, poof), gear (big spin, small turn, wobble), refresh (two turns, one turn, pulse), mic (red rings, pulse, wave), pencil (write a line, wiggle, sparkle), Inbox title (flag up, bounce, shake), count badge (pop, grow, wiggle), panel opening (header icons pop in turn, slide down, fade in), new message tile (slide in, fade in, drop in).

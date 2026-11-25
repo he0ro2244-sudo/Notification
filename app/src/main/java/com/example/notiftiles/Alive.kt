@@ -151,26 +151,26 @@ object Alive {
     class Elem(val key: String, val label: String, val styles: List<Pair<String, String>>)
 
     val ELEMENTS: List<Elem> = listOf(
-        Elem("note", "Note icon (while you type, and when saved)",
-            listOf("hand" to "Writing hand", "bounce" to "Pen bounce", "sparkle" to "Sparkle")),
+        Elem("note", "Note (the pen writes as you type)",
+            listOf("ink" to "Pen writes", "ripple" to "Stamp only")),
         Elem("clear", "Clear all",
-            listOf("basket" to "Basket", "broom" to "Broom", "poof" to "Poof")),
+            listOf("bin" to "Messages drop into the bin", "sweep" to "Band sweeps the list")),
         Elem("gear", "Gear (before Settings opens)",
-            listOf("spin" to "Big spin", "turn" to "Small turn", "wobble" to "Wobble")),
+            listOf("spin" to "One smooth turn", "turn" to "Turn and settle")),
         Elem("refresh", "Refresh",
-            listOf("turns" to "Two turns", "one" to "One turn", "pulse" to "Pulse")),
+            listOf("arc" to "Arrow draws a loop", "spin" to "Smooth turn")),
         Elem("mic", "Mic (before the recorder opens)",
-            listOf("rings" to "Red rings", "pulse" to "Pulse", "wave" to "Wave")),
+            listOf("bars" to "Live sound bars", "rings" to "Rings and pulse")),
         Elem("edit", "Pencil (before the edit menu opens)",
-            listOf("write" to "Write a line", "wiggle" to "Wiggle", "sparkle" to "Sparkle")),
+            listOf("trail" to "Pencil draws a trail", "tilt" to "Tilt and dots")),
         Elem("title", "Inbox title (when a message arrives)",
-            listOf("flag" to "Flag up", "bounce" to "Bounce", "shake" to "Shake")),
+            listOf("envelope" to "Envelope drops in", "bounce" to "Bounce")),
         Elem("badge", "Count badge (when a message arrives)",
-            listOf("pop" to "Pop", "grow" to "Grow", "wiggle" to "Wiggle")),
-        Elem("open", "Panel opens (header icons)",
-            listOf("pop" to "Pop in turn", "slide" to "Slide down", "fade" to "Fade in")),
+            listOf("roll" to "Number rolls up", "pop" to "Pop")),
+        Elem("open", "Panel opens",
+            listOf("rise" to "Sheet rises", "fade" to "Fade in")),
         Elem("row", "New message tile (when it arrives)",
-            listOf("slide" to "Slide in", "fade" to "Fade in", "drop" to "Drop in")),
+            listOf("slide" to "Slide in with highlight", "fade" to "Fade in")),
     )
 
     /** The style picked for [key] in Settings, or the default one when nothing was picked. */
