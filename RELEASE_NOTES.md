@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.1.45
+- **Animation: one section for everything that moves in the panel.** Settings > Show / hide parts no longer has the Alive icons block; the new **Animation** section has it all:
+  - **Style for each part** (or Off): Note (writing hand, pen bounce, sparkle), Clear all (basket, broom, poof), gear (big spin, small turn, wobble), refresh (two turns, one turn, pulse), mic (red rings, pulse, wave), pencil (write a line, wiggle, sparkle), Inbox title (flag up, bounce, shake), count badge (pop, grow, wiggle), panel opening (header icons pop in turn, slide down, fade in), new message tile (slide in, fade in, drop in).
+  - **Speed** for all of them: Slow, Normal, Fast.
+  - Switches: Animation (master), Panel animations, Widget: icons move when something happens.
+- The widget is unchanged.
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
 ## 1.1.44
 - **Every panel icon has its own animation story** (press the icon):
   - **Note**: becomes a writing hand (✍️ 🖊️) that travels along the line while you type, and a ✅ pops in when the note is saved.

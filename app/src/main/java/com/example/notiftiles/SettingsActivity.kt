@@ -726,17 +726,26 @@ class SettingsActivity : Activity() {
         for ((k, label) in Prefs.SHOW_ITEMS) {
             col.addView(toggleRaw(label, Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); applyLook() })
         }
-        col.addView(title("Alive icons", 16f, 16))
-        col.addView(hint("Every icon has its own little story and moves only when something happens. Panel (press the icon): Note becomes a writing hand while you type and a check mark when saved; Clear all fills a basket with the messages, tips it over, empties it and shows a check mark; the gear spins up and slows down before Settings opens; refresh turns twice; the mic sends out red rings; the pencil writes a line and sparkles; the mail box flag goes up when a message arrives. Widget: the same things happen on the widget icons for a second or two (gear spins when you come back from Settings, refresh turns while refreshing, writing hand while you type a note, red mic while recording, broom on Clear all, mail flag on a new message). Icons also change with the Inbox (📬 → 📭, 🔔 → 🔕, 🧹 → ✅ while it is empty; your own \"when empty\" emoji wins)."))
-        col.addView(toggleRaw("Alive icons (master switch)", Prefs.aliveOn(this)) { Prefs.setAliveOn(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
-        col.addView(toggleRaw("Widget: icons move when something happens", Prefs.aliveWave(this)) { Prefs.setAliveWave(this, it) })
-        col.addView(toggleRaw("Panel: icons move when you tap them", Prefs.alivePanel(this)) { Prefs.setAlivePanel(this, it) })
+        col.addView(hint("Icons also change with the Inbox (📬 → 📭, 🔔 → 🔕, 🧹 → ✅ while it is empty; your own when-empty emoji wins). How the icons and the panel animate is in the Animation section below."))
         col.addView(title("Only when there are messages", 16f, 16))
         col.addView(hint("A part set here shows while the Inbox has messages and goes away when it is empty (after Clear all, Read all or Mark as read). It comes back with the next message. The count badge already works this way. The Move screen always shows every part, so you can still place it."))
         for ((k, label) in Prefs.HIDE_EMPTY_PARTS) {
             col.addView(toggleRaw(label, Prefs.hideWhenEmpty(this, k)) { Prefs.setHideWhenEmpty(this, k, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
         }
 
+        }
+
+        section("Animation", "Every animation in the panel: style, speed, on or off") {
+        col.addView(hint("Pick a style for each part, or Off. The speed applies to all of them. Press an icon in the panel to see its animation. Widget icons have their own switch."))
+        col.addView(toggleRaw("Animation (master switch)", Prefs.aliveOn(this)) { Prefs.setAliveOn(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
+        col.addView(toggleRaw("Panel animations", Prefs.alivePanel(this)) { Prefs.setAlivePanel(this, it) })
+        col.addView(toggleRaw("Widget: icons move when something happens", Prefs.aliveWave(this)) { Prefs.setAliveWave(this, it) })
+        col.addView(title("Speed", 16f, 16))
+        col.addView(choiceRow(listOf("0" to "Slow", "1" to "Normal", "2" to "Fast"), Prefs.animSpeed(this).toString(), false) { Prefs.setAnimSpeed(this, it.toInt()); rebuild() })
+        for (e in Alive.ELEMENTS) {
+            col.addView(title(e.label, 15f, 16))
+            col.addView(choiceRow(e.styles + listOf("off" to "Off"), Alive.chosen(this, e.key), false) { Prefs.setAnimStyle(this, e.key, it); rebuild() })
+        }
         }
 
         section("Fast dial", "Contacts, calling and the + circles") {

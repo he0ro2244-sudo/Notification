@@ -198,5 +198,5 @@ Does the same as Pencil > Reset: puts the widget back to the standard layout and
 - **Everything is messy**: Pencil > Reset (you can undo it).
 
 
-## Alive icons
-Settings > Show / hide parts > Alive icons. Every icon has its own little story and moves only when something happens. In the panel, press: Note (a writing hand while you type, a check mark when saved), Clear all (a basket catches the messages, tips over, empties, check mark), the gear (spins before Settings opens), refresh (turns twice), the mic (red rings), the pencil (writes a line, sparkle). The mail box flag goes up when a message arrives. The widget icons react too for a second or two: gear after Settings, refresh while refreshing, writing hand while you type a note, red mic while recording, broom on Clear all, mail flag on a new message. Icons also change with the Inbox (📬 → 📭, 🔔 → 🔕, 🧹 → ✅ while it is empty; your own "when empty" emoji wins). Switches: Alive icons, Widget, Panel.
+## Animation
+Settings > Animation: one section for everything that moves in the panel. For each part pick a style, or Off: Note, Clear all, the gear, refresh, the mic, the pencil, the Inbox title, the count badge, the panel opening (the header icons), and a new message tile. Speed (Slow, Normal, Fast) applies to all of them. The switches at the top are: Animation (master), Panel animations, and Widget: icons move when something happens. Icons also change with the Inbox (📬 → 📭, 🔔 → 🔕, 🧹 → ✅ while it is empty; your own "when empty" emoji wins).

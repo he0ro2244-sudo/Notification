@@ -1268,6 +1268,12 @@ object Prefs {
     /** Alive icons in the panel: the icons move when you tap them (on = default). */
     fun alivePanel(c: Context): Boolean = sp(c).getBoolean("alive_panel", true)
     fun setAlivePanel(c: Context, v: Boolean) = sp(c).edit().putBoolean("alive_panel", v).apply()
+    /** Animation: the style picked for one panel part (see Alive.ELEMENTS). Empty = the default style. */
+    fun animStyle(c: Context, key: String): String = sp(c).getString("anim_$key", "") ?: ""
+    fun setAnimStyle(c: Context, key: String, v: String) = sp(c).edit().putString("anim_$key", v).apply()
+    /** Animation speed: 0 = Slow, 1 = Normal (default), 2 = Fast. */
+    fun animSpeed(c: Context): Int = sp(c).getInt("anim_speed", 1)
+    fun setAnimSpeed(c: Context, v: Int) = sp(c).edit().putInt("anim_speed", v).apply()
 
     // The icon to show while the inbox is empty, for icons that have a "nothing here" look
     private val ALIVE_EMPTY = mapOf(

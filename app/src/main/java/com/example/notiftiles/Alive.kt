@@ -1,8 +1,5 @@
 package com.example.notiftiles
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
-import android.animation.ObjectAnimator
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
@@ -11,21 +8,15 @@ import android.graphics.Canvas
 import android.os.Handler
 import android.os.Looper
 import android.os.PowerManager
-import android.view.View
-import android.view.animation.DecelerateInterpolator
-import android.view.animation.LinearInterpolator
 
 /**
- * Alive icons: an icon moves when something happens that it stands for, and is still the rest of the time.
- *  - gear spins when you come back from Settings (and when tapped in the panel)
- *  - refresh turns while the widget refreshes
- *  - note shows a writing hand while you type a note
- *  - mic pulses (red) while recording
- *  - broom sweeps when you clear the inbox
- *  - mail box: the flag goes up when a new message arrives
- *  - pencil wiggles when its menu opens
+ * Alive icons: the widget icons move when something happens that they stand for, and are still the rest of the time.
+ *  - gear spins when you come back from Settings, refresh turns while the widget refreshes, note shows a writing hand
+ *    while you type, mic pulses (red) while recording, broom sweeps when you clear the inbox, mail flag goes up on a
+ *    new message, pencil wiggles when its menu opens.
  * Widget icons cannot run a real animation, so for a second or two they are redrawn about 7 times a second (only the
- * icons that are moving); then one last redraw puts them back. Panel icons use real animations.
+ * icons that are moving); then one last redraw puts them back.
+ * The panel's animations (styles, speed, on or off) are in Settings > Animation and played by PanelFx.
  */
 object Alive {
     private val main = Handler(Looper.getMainLooper())
@@ -155,51 +146,47 @@ object Alive {
         if (more) go(ctx, "inbox", 1500)
     }
 
-    // ---------------------------------------------------------------- panel: real animations on tap
-    private fun anim(v: View, prop: String, vararg values: Float, ms: Long, linear: Boolean = false, after: (() -> Unit)? = null) {
-        val an = ObjectAnimator.ofFloat(v, prop, *values)
-        an.duration = ms
-        an.interpolator = if (linear) LinearInterpolator() else DecelerateInterpolator()
-        if (after != null) an.addListener(object : AnimatorListenerAdapter() {
-            override fun onAnimationEnd(a: Animator) { after() }
-        })
-        an.start()
+    // ---------------------------------------------------------------- Animation settings (one section in Settings)
+    /** One part of the panel that can animate. [styles] are the choices; the first one is the default. */
+    class Elem(val key: String, val label: String, val styles: List<Pair<String, String>>)
+
+    val ELEMENTS: List<Elem> = listOf(
+        Elem("note", "Note icon (while you type, and when saved)",
+            listOf("hand" to "Writing hand", "bounce" to "Pen bounce", "sparkle" to "Sparkle")),
+        Elem("clear", "Clear all",
+            listOf("basket" to "Basket", "broom" to "Broom", "poof" to "Poof")),
+        Elem("gear", "Gear (before Settings opens)",
+            listOf("spin" to "Big spin", "turn" to "Small turn", "wobble" to "Wobble")),
+        Elem("refresh", "Refresh",
+            listOf("turns" to "Two turns", "one" to "One turn", "pulse" to "Pulse")),
+        Elem("mic", "Mic (before the recorder opens)",
+            listOf("rings" to "Red rings", "pulse" to "Pulse", "wave" to "Wave")),
+        Elem("edit", "Pencil (before the edit menu opens)",
+            listOf("write" to "Write a line", "wiggle" to "Wiggle", "sparkle" to "Sparkle")),
+        Elem("title", "Inbox title (when a message arrives)",
+            listOf("flag" to "Flag up", "bounce" to "Bounce", "shake" to "Shake")),
+        Elem("badge", "Count badge (when a message arrives)",
+            listOf("pop" to "Pop", "grow" to "Grow", "wiggle" to "Wiggle")),
+        Elem("open", "Panel opens (header icons)",
+            listOf("pop" to "Pop in turn", "slide" to "Slide down", "fade" to "Fade in")),
+        Elem("row", "New message tile (when it arrives)",
+            listOf("slide" to "Slide in", "fade" to "Fade in", "drop" to "Drop in")),
+    )
+
+    /** The style picked for [key] in Settings, or the default one when nothing was picked. */
+    fun chosen(c: Context, key: String): String {
+        val e = ELEMENTS.firstOrNull { it.key == key } ?: return "off"
+        val s = Prefs.animStyle(c, key)
+        return if (s == "off" || e.styles.any { it.first == s }) s else e.styles[0].first
     }
 
-    private fun on(c: Context) = Prefs.aliveOn(c) && Prefs.alivePanel(c)
+    /** The style the panel plays for [key]: "off" when Animation or Panel animations are switched off. */
+    fun style(c: Context, key: String): String =
+        if (!Prefs.aliveOn(c) || !Prefs.alivePanel(c)) "off" else chosen(c, key)
 
-    /** A tap on a panel icon: the icon does its move, then [action] runs (at once when Alive icons are off). */
-    fun tap(ctx: Context, v: View, kind: String, action: () -> Unit) {
-        if (!on(ctx)) { action(); return }
-        v.animate().cancel()
-        val done = { v.rotation = 0f; v.scaleX = 1f; v.scaleY = 1f; action() }
-        when (kind) {
-            "gear" -> anim(v, "rotation", 0f, 540f, ms = 520) { done() }
-            "refresh" -> anim(v, "rotation", 0f, 360f, ms = 450) { done() }
-            "clear" -> { v.post { v.pivotX = v.width / 2f; v.pivotY = v.height.toFloat() }
-                anim(v, "rotation", 0f, -20f, 20f, -20f, 20f, 0f, ms = 520, linear = true) { done() } }
-            "edit" -> anim(v, "rotation", 0f, -25f, 25f, -15f, 0f, ms = 420, linear = true) { done() }
-            "mic" -> { anim(v, "scaleX", 1f, 1.35f, 1f, ms = 360) { done() }; anim(v, "scaleY", 1f, 1.35f, 1f, ms = 360) }
-            else -> action()
-        }
-    }
-
-    /** A little wiggle (e.g. the note icon while a note is typed, a badge when a message arrives). */
-    fun wiggle(ctx: Context, v: View) {
-        if (!on(ctx) || v.rotation != 0f) return
-        anim(v, "rotation", 0f, -12f, 12f, -8f, 0f, ms = 300, linear = true)
-    }
-
-    /** A little pop (e.g. the count badge when a message arrives). */
-    fun pop(ctx: Context, v: View) {
-        if (!on(ctx)) return
-        anim(v, "scaleX", 1f, 1.5f, 1f, ms = 380)
-        anim(v, "scaleY", 1f, 1.5f, 1f, ms = 380)
-    }
-
-    /** The mail box on the Inbox title: the flag goes up when a message arrives. */
-    fun bounce(ctx: Context, v: View) {
-        if (!on(ctx)) return
-        anim(v, "translationY", 0f, -10f * ctx.resources.displayMetrics.density, 0f, ms = 420)
+    /** How long a panel animation takes: Slow is longer, Fast is shorter, Normal is as designed. */
+    fun t(c: Context, ms: Long): Long {
+        val f = when (Prefs.animSpeed(c)) { 0 -> 1.6f; 2 -> 0.6f; else -> 1f }
+        return (ms * f).toLong().coerceAtLeast(1L)
     }
 }

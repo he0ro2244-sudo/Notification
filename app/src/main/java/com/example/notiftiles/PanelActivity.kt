@@ -35,6 +35,7 @@ class PanelActivity : Activity() {
     private lateinit var titleView: TextView
     private val aliveViews = HashMap<String, View>()
     private var lastCount = -1
+    private var arrived = false
     private lateinit var fxRoot: FrameLayout
     private var expanded: String? = null
     private var dark = false
@@ -247,6 +248,7 @@ class PanelActivity : Activity() {
         header.addView(gear, LinearLayout.LayoutParams(gsz + dp(6), gsz + dp(4)))
         aliveViews["gear"] = gear
         sheet.addView(header)
+        PanelFx.open(this, header)
         val scroll = ScrollView(this)
         list = LinearLayout(this)
         list.orientation = LinearLayout.VERTICAL
@@ -389,6 +391,7 @@ class PanelActivity : Activity() {
 
     private fun refresh() {
         refreshInner()
+        if (arrived) { arrived = false; list.getChildAt(0)?.let { PanelFx.newRow(this, it) } }
         Look.applyTree(list, this)
         lastSig = screenSig()
     }
@@ -399,7 +402,8 @@ class PanelActivity : Activity() {
         val items = if (svc == null) emptyList() else Feed.items(this, true)
         val notes = Prefs.notes(this)
         badge.text = items.size.toString()
-        if (lastCount in 0 until items.size) { Alive.pop(this, badge); PanelFx.mail(this, titleView, "Inbox") }
+        arrived = lastCount in 0 until items.size
+        if (arrived) { PanelFx.badge(this, badge); PanelFx.mail(this, titleView, "Inbox") }
         lastCount = items.size
         badge.visibility = if (items.isEmpty() || !Prefs.showItem(this, "p_badge")) View.GONE else View.VISIBLE
 
