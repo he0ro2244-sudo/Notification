@@ -234,3 +234,7 @@ Pencil > Fix layout: circles and buttons at the top, Inbox / Clear all / count o
 
 ## Auto-fix after every move, pinned Fix layout (1.1.33)
 In Move, the switch *Auto-fix after every move* (on by default) separates items that end up on top of each other and keeps the line *Messages start here* below an item you drop on it. The Fix layout and Done buttons stay at the bottom of the screen. Fix layout now lines each row up on the middle of the circles and keeps the same space between rows.
+
+
+## Alive icons
+Settings > Show / hide parts > Alive icons. The icons react to the Inbox: while it is empty 📬 turns into 📭, 🔔 into 🔕, 🧹 into ✅ and so on (your own "when empty" emoji always wins). When a new message arrives the widget icons blink one after another, and in the panel the icons pop when it opens while the Inbox title breathes as long as there are messages. Three switches: Alive icons, Widget blink, Panel animation.

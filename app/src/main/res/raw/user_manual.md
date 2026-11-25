@@ -196,3 +196,7 @@ Does the same as Pencil > Reset: puts the widget back to the standard layout and
 - **Where to? or Exit navigation does nothing**: check the Accessibility helper is ON, then use the Self-check in Where to? settings.
 - **Recorder only opens the recorder app**: turn the helper ON, or use "Helper OFF: record inside this app".
 - **Everything is messy**: Pencil > Reset (you can undo it).
+
+
+## Alive icons
+Settings > Show / hide parts > Alive icons. The icons react to the Inbox: while it is empty 📬 turns into 📭, 🔔 into 🔕, 🧹 into ✅ and so on (your own "when empty" emoji always wins). When a new message arrives the widget icons blink one after another, and in the panel the icons pop when it opens while the Inbox title breathes as long as there are messages. Three switches: Alive icons, Widget blink, Panel animation.

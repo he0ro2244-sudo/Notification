@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.1.40
+- **Alive icons.** Settings > Show / hide parts > *Alive icons* (on by default, three switches).
+- **Icons change with the Inbox.** More icons now look different while the Inbox is empty: 📥 ✉️ 📨 📩 💌 📧 → 📭, 🔔 → 🔕, 💬 → 💤, 🧹 🗑️ 🧼 🪄 → ✅, 🎙️ → 🎤, 📝 → 📓 (and 📬 → 📭, 📫 → 📪 as before). Your own *when empty* emoji always wins.
+- **Widget: icons blink one after another when a new message arrives** (title, count, mic, + Note, Clear all, refresh, pencil, gear). A widget cannot run a real animation, so this is a few quick redraws that only change the opacity; the widget looks normal again afterwards.
+- **Panel: real animation.** The header icons pop one after another when the panel opens, and the Inbox title breathes slowly while there are messages (it stays still when the Inbox is empty).
+- Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.39
 - **Icons that change with the inbox.** The Inbox icon 📬 (mail in the box) now turns into 📭 (empty box) by itself while there are no messages, and back to 📬 with the next one (📫 turns into 📪). Works in the widget and in the panel.
 - **Your own icon for the empty state.** Emoji icons (pencil menu or Settings) has new lines: *Inbox title when empty*, *Clear all when empty*, *Mic when empty* and *Notes when empty*. Pick any emoji; "Normal icon" means the same as the full one.

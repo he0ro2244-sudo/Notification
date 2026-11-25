@@ -105,6 +105,7 @@ class NotifListener : NotificationListenerService() {
     private fun changed() {
         onChange?.invoke()
         refreshWidget()
+        handler.postDelayed({ try { Alive.onMessages(applicationContext) } catch (e: Exception) { } }, 900)
         // The system can still list a just-removed notification for a moment: count again shortly after.
         handler.postDelayed({
             onChange?.invoke()

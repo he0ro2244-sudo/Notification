@@ -32,6 +32,8 @@ class PanelActivity : Activity() {
     private lateinit var list: LinearLayout
     private lateinit var badge: TextView
     private lateinit var back: TextView
+    private lateinit var titleView: TextView
+    private var aliveIcons: List<View> = emptyList()
     private var expanded: String? = null
     private var dark = false
 
@@ -120,6 +122,7 @@ class PanelActivity : Activity() {
         header.addView(back)
 
         val title = TextView(this)
+        titleView = title
         val noMsgs = Feed.items(this, true).isEmpty()
         title.text = Look.inboxLabel(this, noMsgs)
         title.textSize = 20f
@@ -221,6 +224,9 @@ class PanelActivity : Activity() {
         }
         header.addView(gear, LinearLayout.LayoutParams(gsz + dp(6), gsz + dp(4)))
         sheet.addView(header)
+        // Alive icons: the header icons that pop when the panel opens
+        aliveIcons = (0 until header.childCount).map { header.getChildAt(it) }
+            .filter { (it is TextView || it is ImageView) && it !== back && it !== titleView }
 
         val scroll = ScrollView(this)
         list = LinearLayout(this)
@@ -298,12 +304,16 @@ class PanelActivity : Activity() {
         Access.rebindIfNeeded(this)
         NotifListener.onChange = { runOnUiThread { if (!hasDraft() && screenSig() != lastSig) refresh() } }
         refresh()
+        // Alive icons: the title breathes while there are messages, the other icons pop once
+        if (Feed.items(this, true).isNotEmpty()) Alive.breathe(this, titleView) else Alive.stop(titleView)
+        Alive.pop(this, aliveIcons)
     }
 
     override fun onPause() {
         super.onPause()
         finishViewing()
         NotifListener.onChange = null
+        Alive.stop(titleView)
     }
 
     private fun hasDraft(): Boolean {

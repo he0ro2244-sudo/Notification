@@ -1252,8 +1252,31 @@ object Prefs {
         if (!empty) return base
         val e = emojiOf(c, k + "_e")
         if (e.isNotEmpty()) return e
-        return when (base) { "📬" -> "📭"; "📫" -> "📪"; else -> base }
+        if (base == "📬") return "📭"
+        if (base == "📫") return "📪"
+        // Alive icons: more icons that look different while there is nothing to do (switch in Settings > Alive icons)
+        if (aliveOn(c)) ALIVE_EMPTY[base]?.let { return it }
+        return base
     }
+
+    /** Alive icons: icons change with the inbox and move a little (on = default). */
+    fun aliveOn(c: Context): Boolean = sp(c).getBoolean("alive_on", true)
+    fun setAliveOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("alive_on", v).apply()
+    /** Alive icons: the widget icons blink one after another when a new message arrives (on = default). */
+    fun aliveWave(c: Context): Boolean = sp(c).getBoolean("alive_wave", true)
+    fun setAliveWave(c: Context, v: Boolean) = sp(c).edit().putBoolean("alive_wave", v).apply()
+    /** Alive icons in the panel: pop when it opens, breathe while there are messages (on = default). */
+    fun alivePanel(c: Context): Boolean = sp(c).getBoolean("alive_panel", true)
+    fun setAlivePanel(c: Context, v: Boolean) = sp(c).edit().putBoolean("alive_panel", v).apply()
+
+    // The icon to show while the inbox is empty, for icons that have a "nothing here" look
+    private val ALIVE_EMPTY = mapOf(
+        "📥" to "📭", "📨" to "📭", "📩" to "📭", "✉️" to "📭", "💌" to "📭", "📧" to "📭",
+        "🔔" to "🔕", "💬" to "💤", "🗨️" to "💤", "📱" to "😴",
+        "🧹" to "✅", "🗑️" to "✅", "🧼" to "✅", "🧽" to "✅", "🪄" to "✅", "🧻" to "✅", "🚮" to "✅",
+        "🎙️" to "🎤", "🔴" to "⏺️",
+        "📝" to "📓", "🗒️" to "📓", "✍️" to "📓"
+    )
     fun setEmojiOf(c: Context, k: String, v: String) = sp(c).edit().putString("look_emoji_$k", v.trim().take(8)).apply()
     // Message tiles in the panel: corner roundness (-1 = as designed), border style (0 solid, 1 dashed, 2 dotted),
     // own fill colour (0 = each app's colour) and how solid the fill is (100 = as designed)

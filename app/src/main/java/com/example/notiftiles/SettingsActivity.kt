@@ -724,6 +724,11 @@ class SettingsActivity : Activity() {
         for ((k, label) in Prefs.SHOW_ITEMS) {
             col.addView(toggleRaw(label, Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); applyLook() })
         }
+        col.addView(title("Alive icons", 16f, 16))
+        col.addView(hint("Icons that react. They change with the Inbox (📬 → 📭, 🔔 → 🔕, 🧹 → ✅ while it is empty; your own \"when empty\" emoji always wins), the widget icons blink one after another when a new message arrives, and in the panel the icons pop when it opens while the Inbox title breathes as long as there are messages. The widget cannot run real animations, so its blink is a few quick redraws that change only the opacity."))
+        col.addView(toggleRaw("Alive icons (change with the Inbox)", Prefs.aliveOn(this)) { Prefs.setAliveOn(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
+        col.addView(toggleRaw("Widget: icons blink one after another on a new message", Prefs.aliveWave(this)) { Prefs.setAliveWave(this, it) })
+        col.addView(toggleRaw("Panel: icons pop and the title breathes", Prefs.alivePanel(this)) { Prefs.setAlivePanel(this, it) })
         col.addView(title("Only when there are messages", 16f, 16))
         col.addView(hint("A part set here shows while the Inbox has messages and goes away when it is empty (after Clear all, Read all or Mark as read). It comes back with the next message. The count badge already works this way. The Move screen always shows every part, so you can still place it."))
         for ((k, label) in Prefs.HIDE_EMPTY_PARTS) {
