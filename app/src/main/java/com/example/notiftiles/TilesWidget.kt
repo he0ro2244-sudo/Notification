@@ -571,6 +571,7 @@ class TilesWidget : AppWidgetProvider() {
             )
             rv.setTextColor(R.id.empty_txt, Prefs.partColor(ctx, "empty").let { if (it != 0) it else sub })
             rv.setViewVisibility(R.id.wrefresh, if (Prefs.refreshShow(ctx)) android.view.View.VISIBLE else android.view.View.GONE)
+            rv.setInt(R.id.empty, "setGravity", if (Prefs.refreshTop(ctx)) (android.view.Gravity.TOP or android.view.Gravity.CENTER_HORIZONTAL) else android.view.Gravity.CENTER)
             val rc = Prefs.partColor(ctx, "refresh").let { if (it != 0) it else if (ic != 0) ic else Feed.alpha(sub, 0x99) }
             rv.setInt(R.id.wrefresh, "setColorFilter", rc)
             rv.setTextColor(R.id.wupdated, Prefs.partColor(ctx, "updated").let { if (it != 0) it else Feed.alpha(sub, 0x99) })

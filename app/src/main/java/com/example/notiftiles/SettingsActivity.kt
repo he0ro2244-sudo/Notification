@@ -551,6 +551,7 @@ class SettingsActivity : Activity() {
         col.addView(seekRange("Clock / weather / date circles", Prefs.topSize(this), 36, 72, " dp") { Prefs.setTopSize(this, it) })
         col.addView(seekRange("Widget settings icon", Prefs.gearSize(this), 14, 40, " dp") { Prefs.setGearSize(this, it) })
         col.addView(toggleRaw("Refresh icon (centre of the widget)", Prefs.refreshShow(this)) { Prefs.setRefreshShow(this, it); applyLook() })
+        col.addView(toggleRaw("Refresh icon at the top, right under the buttons (off: middle of the widget)", Prefs.refreshTop(this)) { Prefs.setRefreshTop(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
         col.addView(seekRange("Widget refresh icon", Prefs.refreshSize(this), 10, 32, " dp") { Prefs.setRefreshSize(this, it) })
         col.addView(seekRange("Widget mic icon", Prefs.micSize(this), 14, 40, " dp") { Prefs.setMicSize(this, it) })
         col.addView(toggleRaw("3D icons (widget mic, settings, refresh)", Prefs.icons3d(this)) { Prefs.setIcons3d(this, it); applyLook() })

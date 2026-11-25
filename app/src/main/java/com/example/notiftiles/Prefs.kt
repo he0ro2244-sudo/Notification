@@ -1047,6 +1047,9 @@ object Prefs {
     /** The bottom popup closes after Clear all / Read all instead of staying open (empty). */
     fun closeAfterClear(c: Context): Boolean = sp(c).getBoolean("close_after_clear", true)
     fun setCloseAfterClear(c: Context, v: Boolean) = sp(c).edit().putBoolean("close_after_clear", v).apply()
+    /** The refresh icon (and the Updated line) sit right under the buttons instead of the middle of the widget. */
+    fun refreshTop(c: Context): Boolean = sp(c).getBoolean("look_refresh_top", false)
+    fun setRefreshTop(c: Context, v: Boolean) = sp(c).edit().putBoolean("look_refresh_top", v).apply()
     fun clearMode(c: Context): Int = sp(c).getInt("look_clearmode", 0)
     fun setClearMode(c: Context, v: Int) = sp(c).edit().putInt("look_clearmode", v).apply()
 

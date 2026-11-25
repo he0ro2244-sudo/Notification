@@ -41,7 +41,7 @@ class EditMenuActivity : Activity() {
         col.addView(choice("Move", "Press any item of the widget (clock, date, weather, Where to?, each fast-dial circle, each shortcut circle, title, count, mic, + Note, Clear all, pencil, gear) and drag it to any place. No rows.") {
             startActivity(Intent(this, MoveActivity::class.java))
         })
-        col.addView(choice("Fix layout", "One tap after you delete or add items: closes the gaps, lines the circles and buttons up in rows again and moves the messages up. Undo is in Move.") {
+        col.addView(choice("Fix layout", "One tap after you delete or add items: closes the gaps: circles and buttons in rows at the top, Inbox and Clear all on the last line just above the messages, and the refresh icon right under them. Undo is in Move.") {
             startActivity(Intent(this, MoveActivity::class.java).putExtra("auto_tidy", true).putExtra("fix_all", true))
         })
         col.addView(choice("Arrange & resize", "Order of the sections, sizes, colours and what is shown.") {

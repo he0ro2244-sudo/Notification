@@ -400,44 +400,49 @@ class MoveActivity : Activity() {
         val full = if (optW > 0f) optW else widthDp.toFloat()
         val gap = Prefs.freeGap(this).toFloat().coerceAtLeast(6f)
         fun cy(k: String) = places.getValue(k).y + sz.getValue(k).second / 2f
-        // rows as they are now (items whose middles are within 20dp), each row left to right
-        val rows = ArrayList<MutableList<String>>()
-        for (k in group.sortedBy { cy(it) }) {
-            val row = rows.lastOrNull()
-            if (row != null && kotlin.math.abs(cy(k) - row.map { cy(it) }.average().toFloat()) <= 20f) row.add(k) else rows.add(mutableListOf(k))
-        }
-        val order = rows.flatMap { r -> r.sortedBy { places.getValue(it).x } }
+        // Order: shortcut circles (left to right), then + Note, mic, pencil, gear; Inbox, Clear all and the count always go last,
+        // on their own line just above the messages.
+        val bottomKeys = listOf("title", "clear", "count").filter { it in group }
+        val buttonKeys = listOf("note", "mic", "edit", "gear").filter { it in group }
+        val circles = group.filter { it.startsWith("q") }.sortedBy { places.getValue(it).x }
+        val rest = group.filter { it !in bottomKeys && it !in buttonKeys && it !in circles }
+        val main = circles + buttonKeys + rest
         val topBottom = places.keys.filter { it in sz && it in topKeys && it != "merge" }.maxOfOrNull { places.getValue(it).y + sz.getValue(it).second } ?: 0f
         val left = group.minOf { places.getValue(it).x }.coerceIn(0f, 16f)
         var y = maxOf(group.minOf { places.getValue(it).y }, topBottom + 4f)
         val out = LinkedHashMap(places)
-        var i = 0
         var bottom = y
-        while (i < order.size) {
-            val line = ArrayList<String>()
-            var x = left
+        fun flow(order: List<String>) {
+            var i = 0
             while (i < order.size) {
-                val w = sz.getValue(order[i]).first
-                if (line.isNotEmpty() && x + w > full) break
-                line.add(order[i])
-                x += w + gap
-                i++
+                val line = ArrayList<String>()
+                var x = left
+                while (i < order.size) {
+                    val w = sz.getValue(order[i]).first
+                    if (line.isNotEmpty() && x + w > full) break
+                    line.add(order[i])
+                    x += w + gap
+                    i++
+                }
+                val rowH = line.maxOf { sz.getValue(it).second }
+                var px = left
+                for (k in line) {
+                    val (w, h) = sz.getValue(k)
+                    val p = places.getValue(k)
+                    out[k] = Prefs.FreePos(px, y + (rowH - h) / 2f, p.w)
+                    px += w + gap
+                }
+                y += rowH + 4f
+                bottom = y
             }
-            val rowH = line.maxOf { sz.getValue(it).second }
-            var px = left
-            for (k in line) {
-                val (w, h) = sz.getValue(k)
-                val p = places.getValue(k)
-                out[k] = Prefs.FreePos(px, y + (rowH - h) / 2f, p.w)
-                px += w + gap
-            }
-            y += rowH + 4f
-            bottom = y
         }
+        flow(main)
+        flow(bottomKeys)
         Prefs.saveFreePrev(this)
         Prefs.setFreePos(this, out)
         Prefs.setFreeRefW(this, optW)
         Prefs.setFreeGridTop(this, bottom + 4f)
+        Prefs.setRefreshTop(this, true) // the refresh icon sits right under the items, not in the middle
         TilesWidget.rebuildAll(applicationContext)
         holder.post {
             render()

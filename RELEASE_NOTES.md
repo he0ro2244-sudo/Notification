@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.32
+- **Fix layout now puts things where you want them.** Shortcut circles first, then + Note, mic, pencil and gear on the same rows (a new line only when a row is full); **Inbox, Clear all and the count always go on the last line, just above the messages**. The line *Messages start here* moves to sit right under them.
+- **Refresh icon ("Reset" icon with the Updated line) can sit at the top.** New switch in Settings > Show / hide parts: *Refresh icon at the top, right under the buttons (off: middle of the widget)*. Fix layout turns it on. It is the icon shown when there are no new messages.
+- Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.31
 - **One-tap Fix layout in the pencil menu.** After you delete or add items, pencil > **Fix layout** lays out everything below the clock and fast-dial rows again (shortcut circles, title, count, mic, + Note, Clear all, pencil, gear): in reading order, side by side with a small gap, a new line only when a row is full. Gaps left by deleted items close, and the line *Messages start here* moves to sit just under them. Move opens for about a second and closes; Undo in Move takes it back. The same is in Move as *Fix layout: close gaps and line everything up*. It works in the free layout (after you moved an item).
 - **The bottom popup closes after Clear all / Read all** instead of staying open and empty. Switch in Settings > Counts & clearing: *Close the bottom popup after Clear all / Read all* (on by default).
