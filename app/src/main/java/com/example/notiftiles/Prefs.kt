@@ -333,6 +333,11 @@ object Prefs {
         listPut(c, rKey(scope), emptyList())
     }
 
+    /** Forgets every undo and redo step of [scope]. The widget itself stays exactly as it is now. */
+    fun clearHistory(c: Context, scope: String) {
+        sp(c).edit().remove(uKey(scope)).remove(rKey(scope)).apply()
+    }
+
     fun undoSteps(c: Context, scope: String): Int = listGet(c, uKey(scope)).size
     fun redoSteps(c: Context, scope: String): Int = listGet(c, rKey(scope)).size
     fun hasUndo(c: Context, scope: String): Boolean = undoSteps(c, scope) > 0

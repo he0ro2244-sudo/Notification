@@ -1,5 +1,14 @@
 # Release notes
 
+## 1.1.35
+- **Clear the undo history.** ☰ History (Settings, Arrange & resize, Move and the pencil menu) has a new **Clear history** button. It asks first, then deletes the undo and redo steps of that list; the widget stays as it is.
+- Includes 1.1.33 and 1.1.34. Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
+## 1.1.34
+- **The pencil menu scrolls.** Emoji icons, Reset and the Undo bar were cut off below the screen when the cards got longer; now the list scrolls.
+- **Fix layout button pinned at the bottom of the pencil menu**, always on screen.
+- Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
 ## 1.1.33
 - **Auto-fix after every move (Move screen).** When you let go of an item, the widget checks by itself: items that now sit on top of each other are separated (the one that moved last gives way), and if the item lands on the line *Messages start here*, that line moves down below it. One Undo takes back the move and the fix together. Switch: *Auto-fix after every move* at the top of Move (on by default).
 - **A Fix layout button that always stays on screen.** The bottom bar of Move (Fix layout, Done) no longer scrolls away.

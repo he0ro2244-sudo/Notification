@@ -172,7 +172,22 @@ class UndoBar(private val c: android.app.Activity, private val scope: String, pr
                 if (lines[which].startsWith("——")) return@setItems
                 done(acts[which](), "Done")
             }
+            .setNeutralButton("Clear history") { _, _ -> confirmClear() }
             .setNegativeButton("Close", null)
+            .show()
+    }
+
+    /** Deletes the list of steps only; nothing on the widget changes. */
+    private fun confirmClear() {
+        android.app.AlertDialog.Builder(c)
+            .setMessage("Clear the undo history? The widget stays as it is now, but you can no longer go back to earlier steps.")
+            .setPositiveButton("Clear") { _, _ ->
+                Prefs.clearHistory(c, scope)
+                tracker.resync()
+                android.widget.Toast.makeText(c, "History cleared", android.widget.Toast.LENGTH_SHORT).show()
+                refresh()
+            }
+            .setNegativeButton("Cancel", null)
             .show()
     }
 

@@ -72,7 +72,23 @@ class EditMenuActivity : Activity() {
         // Undo / Redo / History for what is done with the pencil (Settings keeps its own separate list)
         val bar = UndoBar(this, Prefs.SCOPE_PENCIL, ChangeTracker(this, Prefs.SCOPE_PENCIL)) { recreate() }
         col.addView(bar.view, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
-        setContentView(col)
+
+        // The list scrolls (Emoji icons, Reset and Undo were cut off below the screen); Fix layout stays pinned at the bottom
+        val scroll = android.widget.ScrollView(this)
+        scroll.addView(col)
+        val page = LinearLayout(this)
+        page.orientation = LinearLayout.VERTICAL
+        page.addView(scroll, LinearLayout.LayoutParams(MATCH, 0, 1f))
+        val pinned = android.widget.Button(this)
+        pinned.text = "Fix layout"
+        pinned.isAllCaps = false
+        pinned.setOnClickListener {
+            startActivity(Intent(this, MoveActivity::class.java).putExtra("auto_tidy", true).putExtra("fix_all", true))
+        }
+        val barLp = LinearLayout.LayoutParams(MATCH, WRAP)
+        barLp.setMargins(dp(16), dp(6), dp(16), dp(10))
+        page.addView(pinned, barLp)
+        setContentView(page)
     }
 
     private fun showThemes() {
