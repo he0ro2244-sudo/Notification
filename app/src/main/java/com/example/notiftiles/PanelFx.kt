@@ -166,7 +166,7 @@ object PanelFx {
     private val inks = HashMap<TextView, Ink>()
 
     /** Press Note and type: a pen draws a line under the word as you type. Call it on every key. */
-    fun writing(ctx: Context, tv: TextView, label: String, ms: Long = 1800) {
+    fun writing(ctx: Context, tv: TextView, label: String, ms: Long = 1200) {
         val L = layer ?: return
         if (st(ctx, "note") != "ink") return
         val d = dp(ctx, 1f)
@@ -176,14 +176,14 @@ object PanelFx {
         if (old != null && live) {
             old.len += 7f * d
             if (old.len > tv.width.toFloat()) old.len = 7f * d   // start a new line of ink
-            old.anim?.end = now + t(ctx, ms)
+            old.anim?.end = now + ms
             return
         }
         val ink = Ink(Prefs.accent(ctx))
         ink.len = 7f * d
         inks[tv] = ink
         val r0 = rectIn(L, tv)
-        val a = FxAnim(now, now + t(ctx, ms), { cv, p -> drawInk(cv, ink, r0, d, p) }, null)
+        val a = FxAnim(now, now + ms, { cv, p -> drawInk(cv, ink, r0, d, p) }, null)
         ink.anim = a
         L.add(a)
     }
@@ -511,19 +511,49 @@ object PanelFx {
     }
 
     // ------------------------------------------------------------------ Panel opens: the sheet rises, the scrim fades in, the header follows
-    fun open(c: Context, sheet: View, header: ViewGroup, root: View? = null) {
+    /** Moves the scale pivot of [sheet] to the tapped point [o] (screen coordinates); the middle when unknown. */
+    private fun pivotAt(sheet: View, o: android.graphics.Rect?) {
+        val loc = IntArray(2); sheet.getLocationOnScreen(loc)
+        val px = if (o != null) o.exactCenterX() - loc[0] else sheet.width / 2f
+        val py = if (o != null) o.exactCenterY() - loc[1] else sheet.height / 2f
+        sheet.pivotX = px.coerceIn(0f, sheet.width.toFloat())
+        sheet.pivotY = py.coerceIn(0f, sheet.height.toFloat())
+    }
+
+    fun open(c: Context, sheet: View, header: ViewGroup, root: View? = null, origin: android.graphics.Rect? = null) {
         val style = st(c, "open")
         if (style == "off") return
         val d = dp(c, 1f)
-        if (style == "fade") {
-            sheet.alpha = 0f
-            sheet.animate().alpha(1f).setDuration(t(c, 260)).start()
-        } else {
-            sheet.alpha = 0f
-            sheet.post {
-                sheet.translationY = sheet.height + 24f * d
-                sheet.alpha = 1f
-                sheet.animate().translationY(0f).setDuration(t(c, 520)).setInterpolator(OvershootInterpolator(0.9f)).start()
+        sheet.alpha = 0f
+        sheet.post {
+            pivotAt(sheet, origin)
+            when (style) {
+                "slide" -> {
+                    sheet.translationY = 56f * d
+                    sheet.alpha = 0f
+                    sheet.animate().translationY(0f).alpha(1f).setDuration(t(c, 380))
+                        .setInterpolator(android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f)).start()
+                }
+                "circle" -> {
+                    sheet.alpha = 1f
+                    val cx = sheet.pivotX.toInt(); val cy = sheet.pivotY.toInt()
+                    val r = Math.hypot(maxOf(cx, sheet.width - cx).toDouble(), maxOf(cy, sheet.height - cy).toDouble()).toFloat()
+                    try {
+                        android.view.ViewAnimationUtils.createCircularReveal(sheet, cx, cy, 0f, r).apply {
+                            duration = t(c, 420); interpolator = android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f)
+                        }.start()
+                    } catch (e: Exception) { sheet.alpha = 1f }
+                }
+                "zoom" -> {
+                    sheet.scaleX = 0.9f; sheet.scaleY = 0.9f; sheet.alpha = 0f
+                    sheet.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(t(c, 400))
+                        .setInterpolator(DecelerateInterpolator(1.6f)).start()
+                }
+                else -> { // spring
+                    sheet.scaleX = 0.86f; sheet.scaleY = 0.86f; sheet.alpha = 0f
+                    sheet.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(t(c, 380))
+                        .setInterpolator(OvershootInterpolator(1.1f)).start()
+                }
             }
         }
         root?.background?.let { bg ->
@@ -556,7 +586,7 @@ object PanelFx {
             if (style != "off") when (ev.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     if (style == "dim") view.animate().setStartDelay(0).alpha(0.6f).setDuration(t(c, 90)).start()
-                    else view.animate().setStartDelay(0).scaleX(0.93f).scaleY(0.93f).setDuration(t(c, 110)).setInterpolator(DecelerateInterpolator()).start()
+                    else view.animate().setStartDelay(0).scaleX(0.92f).scaleY(0.92f).setDuration(t(c, 110)).setInterpolator(DecelerateInterpolator()).start()
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     if (style == "dim") view.animate().setStartDelay(0).alpha(1f).setDuration(t(c, 200)).start()
@@ -610,7 +640,7 @@ object PanelFx {
 
     // ------------------------------------------------------------------ Panel closes
     /** Closes the panel with the chosen style, then runs [done] (finish). */
-    fun close(c: Context, sheet: View, root: View, from: Float = 0f, done: () -> Unit) {
+    fun close(c: Context, sheet: View, root: View, from: Float = 0f, origin: android.graphics.Rect? = null, done: () -> Unit) {
         val style = st(c, "close")
         if (style == "off") { done(); return }
         val d = dp(c, 1f)
@@ -622,11 +652,28 @@ object PanelFx {
             va.addUpdateListener { root.setBackgroundColor(Color.argb(it.animatedValue as Int, Color.red(col), Color.green(col), Color.blue(col))) }
             va.start()
         }
+        val fso = android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f)
+        val open = st(c, "open")
         if (style == "fade") {
             sheet.animate().alpha(0f).setDuration(t(c, 200)).withEndAction { done() }.start()
-        } else {
+        } else if (from > 0f || open == "off") {
             sheet.animate().translationY(sheet.height + 40f * d).alpha(0.4f)
                 .setDuration(t(c, 260)).setInterpolator(android.view.animation.AccelerateInterpolator(1.3f)).withEndAction { done() }.start()
+        } else when (open) {
+            "slide" -> sheet.animate().translationY(56f * d).alpha(0f).setDuration(t(c, 260)).setInterpolator(fso).withEndAction { done() }.start()
+            "circle" -> try {
+                pivotAt(sheet, origin)
+                val cx = sheet.pivotX.toInt(); val cy = sheet.pivotY.toInt()
+                val r = Math.hypot(maxOf(cx, sheet.width - cx).toDouble(), maxOf(cy, sheet.height - cy).toDouble()).toFloat()
+                android.view.ViewAnimationUtils.createCircularReveal(sheet, cx, cy, r, 0f).apply {
+                    duration = t(c, 300); interpolator = fso
+                    addListener(object : android.animation.AnimatorListenerAdapter() {
+                        override fun onAnimationEnd(a: android.animation.Animator) { sheet.visibility = View.INVISIBLE; done() }
+                    })
+                }.start()
+            } catch (e: Exception) { done() }
+            "zoom" -> { pivotAt(sheet, origin); sheet.animate().scaleX(0.92f).scaleY(0.92f).alpha(0f).setDuration(t(c, 240)).setInterpolator(DecelerateInterpolator()).withEndAction { done() }.start() }
+            else -> { pivotAt(sheet, origin); sheet.animate().scaleX(0.86f).scaleY(0.86f).alpha(0f).setDuration(t(c, 240)).setInterpolator(android.view.animation.AccelerateInterpolator(1.2f)).withEndAction { done() }.start() }
         }
     }
 

@@ -266,7 +266,7 @@ class PanelActivity : Activity() {
         setContentView(root)
         Look.applyTree(root, this)
         PanelFx.pressAll(this, header)
-        PanelFx.open(this, sheet, header, root)
+        PanelFx.open(this, sheet, header, root, intent?.sourceBounds)
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -334,7 +334,7 @@ class PanelActivity : Activity() {
     private fun dismissPanel(from: Float = 0f) {
         if (closing) return
         closing = true
-        PanelFx.close(this, sheetView, fxRoot, from) { finish() }
+        PanelFx.close(this, sheetView, fxRoot, from, intent?.sourceBounds) { finish() }
     }
 
     override fun onResume() {

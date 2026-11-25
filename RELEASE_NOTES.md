@@ -1,5 +1,13 @@
 # Release notes
 
+## 1.1.48
+- **Panel animations (Settings > Animation):** four launcher-style choices plus Off. They open from the tapped widget spot when Android gives it, and close the same way: **Spring scale & fade** (0.86 to 1.0 with a gentle overshoot, default), **Slide & card rise**, **Circle reveal**, **Zoom & parallax** (the background dims while the panel scales in).
+- **Speed** is now Slow 1.5x, Normal 1x, Fast 0.65x.
+- **Touch feedback** squishes to 0.92 and springs back.
+- **Pen writes** keeps writing for 1.2 seconds after each key, whatever the Speed.
+- **Live preview demo:** tapping any animation choice (or Speed) plays a 1.5 second demo in the preview area at the top.
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
 ## 1.1.47
 - **The whole panel feels alive** (Snapchat / WhatsApp style):
   - **Touch feedback:** every tile and button squishes under your finger and bounces back (or a soft dim).

@@ -741,10 +741,10 @@ class SettingsActivity : Activity() {
         col.addView(toggleRaw("Panel animations", Prefs.alivePanel(this)) { Prefs.setAlivePanel(this, it) })
         col.addView(toggleRaw("Widget: icons move when something happens", Prefs.aliveWave(this)) { Prefs.setAliveWave(this, it) })
         col.addView(title("Speed", 16f, 16))
-        col.addView(choiceRow(listOf("0" to "Slow", "1" to "Normal", "2" to "Fast"), Prefs.animSpeed(this).toString(), false) { Prefs.setAnimSpeed(this, it.toInt()); rebuild() })
+        col.addView(choiceRow(listOf("0" to "Slow", "1" to "Normal", "2" to "Fast"), Prefs.animSpeed(this).toString(), false) { Prefs.setAnimSpeed(this, it.toInt()); rebuild(); live.demo("open", Alive.chosen(this, "open")) })
         for (e in Alive.ELEMENTS) {
             col.addView(title(e.label, 15f, 16))
-            col.addView(choiceRow(e.styles + listOf("off" to "Off"), Alive.chosen(this, e.key), false) { Prefs.setAnimStyle(this, e.key, it); rebuild() })
+            col.addView(choiceRow(e.styles + listOf("off" to "Off"), Alive.chosen(this, e.key), false) { Prefs.setAnimStyle(this, e.key, it); rebuild(); live.demo(e.key, it) })
         }
         }
 

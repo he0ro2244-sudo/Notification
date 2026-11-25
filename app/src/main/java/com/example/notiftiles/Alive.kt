@@ -151,6 +151,8 @@ object Alive {
     class Elem(val key: String, val label: String, val styles: List<Pair<String, String>>)
 
     val ELEMENTS: List<Elem> = listOf(
+        Elem("open", "Panel animations (how the panel opens and closes)",
+            listOf("spring" to "Spring scale & fade", "slide" to "Slide & card rise", "circle" to "Circle reveal", "zoom" to "Zoom & parallax")),
         Elem("note", "Note (the pen writes as you type)",
             listOf("ink" to "Pen writes", "ripple" to "Stamp only")),
         Elem("clear", "Clear all",
@@ -167,8 +169,6 @@ object Alive {
             listOf("envelope" to "Envelope drops in", "bounce" to "Bounce")),
         Elem("badge", "Count badge (when a message arrives)",
             listOf("roll" to "Number rolls up", "pop" to "Pop")),
-        Elem("open", "Panel opens",
-            listOf("rise" to "Sheet rises", "fade" to "Fade in")),
         Elem("row", "New message tile (when it arrives)",
             listOf("slide" to "Slide in with highlight", "fade" to "Fade in")),
         Elem("press", "Touch feedback (tiles and buttons)",
@@ -176,7 +176,7 @@ object Alive {
         Elem("list", "Tiles appear (panel opens, page or message changes)",
             listOf("cascade" to "Rise one by one", "fade" to "Fade in")),
         Elem("close", "Panel closes (swipe down or tap outside)",
-            listOf("drop" to "Sheet follows your finger and drops", "fade" to "Fade out")),
+            listOf("drop" to "Mirror the open style (follows your finger)", "fade" to "Fade out")),
     )
 
     /** The style picked for [key] in Settings, or the default one when nothing was picked. */
@@ -192,7 +192,7 @@ object Alive {
 
     /** How long a panel animation takes: Slow is longer, Fast is shorter, Normal is as designed. */
     fun t(c: Context, ms: Long): Long {
-        val f = when (Prefs.animSpeed(c)) { 0 -> 1.6f; 2 -> 0.6f; else -> 1f }
+        val f = when (Prefs.animSpeed(c)) { 0 -> 1.5f; 2 -> 0.65f; else -> 1f }
         return (ms * f).toLong().coerceAtLeast(1L)
     }
 }
