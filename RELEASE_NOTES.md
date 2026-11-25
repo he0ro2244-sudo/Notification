@@ -1,5 +1,23 @@
 # Release notes
 
+## 1.1.42
+- **Alive icons, done properly: an icon moves when something happens that it stands for, and is still the rest of the time.** (1.1.41 kept every icon moving all the time; that is gone.)
+- **Widget:**
+  - **Gear** spins and slows down when you come back from Settings.
+  - **Refresh** turns while the widget refreshes (weather and counts) and stops when it is done.
+  - **Note** shows a writing hand (✍️ 📝 🖊️) while you type a note.
+  - **Mic** pulses (red) while recording.
+  - **Clear all** shows the broom sweeping (🧹 🧼 🫧 ✨) when you clear the inbox.
+  - **Mail box**: the flag goes up (📪 📫 📬) when a new message arrives.
+  - **Pencil** wiggles when its menu opens.
+- **Panel (real animation):** tap the gear and it spins before Settings opens; the broom swings before Clear all; refresh turns; the pencil wiggles; the mic pulses; the Note icon wiggles while you type; the count badge pops and the Inbox title bounces when a message arrives.
+- Icons still change with the Inbox (📬 → 📭, 🔔 → 🔕, 🧹 → ✅ while it is empty).
+- **Settings > Show / hide parts > Alive icons:** master switch, *Widget: icons move when something happens*, *Panel: icons move when you tap them*.
+- Nothing else changed. Not compiled or tested here: please let the GitHub build run and try it.
+
+## 1.1.41
+- (Replaced by 1.1.42: icons that moved all the time.)
+
 ## 1.1.40
 - **Alive icons.** Settings > Show / hide parts > *Alive icons* (on by default, three switches).
 - **Icons change with the Inbox.** More icons now look different while the Inbox is empty: 📥 ✉️ 📨 📩 💌 📧 → 📭, 🔔 → 🔕, 💬 → 💤, 🧹 🗑️ 🧼 🪄 → ✅, 🎙️ → 🎤, 📝 → 📓 (and 📬 → 📭, 📫 → 📪 as before). Your own *when empty* emoji always wins.

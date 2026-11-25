@@ -100,6 +100,7 @@ class RecordService : Service() {
             r.start()
             rec = r
             startedAt = SystemClock.elapsedRealtime()
+            Alive.go(this, "mic", 1500)
             announce(true)
             toast("● Recording started. The mic on the widget is now a red stop square: tap it to stop and save.")
             true

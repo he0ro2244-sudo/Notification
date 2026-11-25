@@ -78,6 +78,12 @@ class SettingsActivity : Activity() {
         applyFilter()
     }
 
+    // Alive icons: the widget's gear spins when you leave Settings (you land on the widget)
+    override fun onPause() {
+        super.onPause()
+        Alive.go(this, "gear", 1800)
+    }
+
     // Settings' own undo list (the pencil screens keep a separate one): every change made here can be taken back one step at a time
     private lateinit var tracker: ChangeTracker
     private lateinit var undoBar: UndoBar
@@ -725,10 +731,10 @@ class SettingsActivity : Activity() {
             col.addView(toggleRaw(label, Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); applyLook() })
         }
         col.addView(title("Alive icons", 16f, 16))
-        col.addView(hint("Icons that react. They change with the Inbox (📬 → 📭, 🔔 → 🔕, 🧹 → ✅ while it is empty; your own \"when empty\" emoji always wins), the widget icons blink one after another when a new message arrives, and in the panel the icons pop when it opens while the Inbox title breathes as long as there are messages. The widget cannot run real animations, so its blink is a few quick redraws that change only the opacity."))
-        col.addView(toggleRaw("Alive icons (change with the Inbox)", Prefs.aliveOn(this)) { Prefs.setAliveOn(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
-        col.addView(toggleRaw("Widget: icons blink one after another on a new message", Prefs.aliveWave(this)) { Prefs.setAliveWave(this, it) })
-        col.addView(toggleRaw("Panel: icons pop and the title breathes", Prefs.alivePanel(this)) { Prefs.setAlivePanel(this, it) })
+        col.addView(hint("An icon moves when something happens that it stands for, and is still the rest of the time. Widget: the gear spins when you come back from Settings, the refresh icon turns while it refreshes, the Note icon shows a writing hand while you type a note, the mic pulses red while recording, the broom sweeps on Clear all, the mail box flag goes up when a message arrives and the pencil wiggles when its menu opens. Panel: the gear, refresh, broom, pencil and mic move when you tap them, and the Note icon wiggles while you type. Icons also change with the Inbox (📬 → 📭, 🔔 → 🔕, 🧹 → ✅ while it is empty; your own \"when empty\" emoji wins)."))
+        col.addView(toggleRaw("Alive icons (master switch)", Prefs.aliveOn(this)) { Prefs.setAliveOn(this, it); TilesWidget.rebuildAll(applicationContext); applyLook() })
+        col.addView(toggleRaw("Widget: icons move when something happens", Prefs.aliveWave(this)) { Prefs.setAliveWave(this, it) })
+        col.addView(toggleRaw("Panel: icons move when you tap them", Prefs.alivePanel(this)) { Prefs.setAlivePanel(this, it) })
         col.addView(title("Only when there are messages", 16f, 16))
         col.addView(hint("A part set here shows while the Inbox has messages and goes away when it is empty (after Clear all, Read all or Mark as read). It comes back with the next message. The count badge already works this way. The Move screen always shows every part, so you can still place it."))
         for ((k, label) in Prefs.HIDE_EMPTY_PARTS) {

@@ -19,6 +19,7 @@ class TilesWidget : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         if (intent.action == ACTION_CLEAR) {
+            Alive.go(context, "clear", 1500)
             if (Prefs.clearMode(context) == 1) {
                 Extras.markAllRead(context)
             } else {
@@ -47,6 +48,7 @@ class TilesWidget : AppWidgetProvider() {
             for (id in ids) mgr.updateAppWidget(id, build(context, id))
             refresh(context)
             android.widget.Toast.makeText(context, "Refreshing…", android.widget.Toast.LENGTH_SHORT).show()
+            Alive.go(context, "refresh", 10000)
             fetchWeatherAsync(context, true)
         }
     }
@@ -85,6 +87,7 @@ class TilesWidget : AppWidgetProvider() {
                     }
                 }
             } finally {
+                Alive.end(app, "refresh")
                 pr.finish()
             }
         }.start()
@@ -456,6 +459,100 @@ class TilesWidget : AppWidgetProvider() {
                 rv.setTextViewText(R.id.wupdated, "")
                 rv.setViewVisibility(R.id.wupdated, android.view.View.GONE)
             }
+        }
+
+        /** The colour the widget uses for secondary text and icons (same choice as in build). */
+        private fun aliveSub(ctx: Context): Int {
+            val custom = Prefs.widgetBg(ctx)
+            val lightText = custom != 0 && android.graphics.Color.luminance(custom) < 0.5f
+            val darkText = custom != 0 && !lightText
+            val ov = Prefs.textColor(ctx)
+            return if (ov != 0) Feed.alpha(ov, 0xB3) else if (lightText) 0xFFB4B4BC.toInt() else if (darkText) 0xFF55555C.toInt() else ctx.getColor(R.color.nt_sub)
+        }
+
+        /**
+         * One picture of the icons that are moving (Alive icons), as a partial update that holds only those icons.
+         * [act] = events that are running now (kind to how far), [rest] = events that just ended: those icons are
+         * drawn in their normal look again.
+         */
+        fun aliveFrame(ctx: Context, act: Map<String, Alive.Ev>, rest: Set<String>): RemoteViews {
+            val rv = RemoteViews(ctx.packageName, R.layout.widget_tiles)
+            val noMsg = Feed.items(ctx).isEmpty()
+            val hsc = bs(ctx, "head")
+            val ic = Prefs.iconColor(ctx)
+            val sub = aliveSub(ctx)
+            fun col(part: String, fallback: Int) = Prefs.partColor(ctx, part).let { if (it != 0) it else if (ic != 0) ic else fallback }
+            fun ease(x: Float) = 1f - (1f - x) * (1f - x) * (1f - x)
+
+            fun pic(id: Int, e: String, res: Int, color: Int, dp: Float, deg: Float, scale: Float) {
+                val bmp = if (e.isNotEmpty()) Look.emojiBitmap(ctx, e, dp)?.let { Alive.xform(it, deg, scale) }
+                else Alive.glyph(ctx, res, color, dp)?.let { Alive.xform(it, deg, scale) }
+                if (bmp != null) {
+                    rv.setImageViewBitmap(id, bmp)
+                    rv.setInt(id, "setColorFilter", 0)
+                }
+            }
+
+            // Mail box (Inbox title): the flag goes up when a message arrives
+            (act["inbox"] ?: if ("inbox" in rest) Alive.Ev(-1, 0f) else null)?.let { ev ->
+                if (Prefs.showItem(ctx, "w_title")) {
+                    val base = Prefs.emojiFor(ctx, "inbox", noMsg)
+                    val e = if (ev.f < 0) base else Alive.mailPose(base, ev.f)
+                    txt(rv, ctx, R.id.hdr_title, Look.withEmoji(e, "Inbox"), 16f * hsc * isc(ctx, "w_title") * psc(ctx, "title"), true)
+                }
+            }
+            // Note: a writing hand while a note is typed
+            (act["note"] ?: if ("note" in rest) Alive.Ev(-1, 0f) else null)?.let { ev ->
+                if (Prefs.showItem(ctx, "w_note")) {
+                    val base = Prefs.emojiFor(ctx, "note", noMsg)
+                    val e = if (ev.f < 0) base else Alive.writePose(base, ev.f)
+                    txt(rv, ctx, R.id.wnote, if (e.isEmpty()) "+ Note" else "$e Note", 13f * hsc * isc(ctx, "w_note") * psc(ctx, "note"), true)
+                }
+            }
+            // Clear all: the broom sweeps
+            (act["clear"] ?: if ("clear" in rest) Alive.Ev(-1, 0f) else null)?.let { ev ->
+                if (Prefs.showItem(ctx, "w_clear")) {
+                    val base = Prefs.emojiFor(ctx, "clear", noMsg)
+                    val e = if (ev.f < 0) base else Alive.sweepPose(base, ev.f)
+                    txt(rv, ctx, R.id.wclear, Look.withEmoji(e, if (Prefs.clearMode(ctx) == 1) "Read all" else "Clear all"), 13f * hsc * isc(ctx, "w_clear") * psc(ctx, "clear"), false)
+                }
+            }
+            // Pencil: wiggles when its menu opens
+            (act["edit"] ?: if ("edit" in rest) Alive.Ev(-1, 0f) else null)?.let { ev ->
+                if (Prefs.editBtn(ctx)) {
+                    val base = Prefs.emojiOf(ctx, "edit").ifEmpty { "✎" }
+                    rv.setTextViewText(R.id.wedit, if (ev.f < 0) base else Alive.sw(base, ev.f / 2))
+                    rv.setFloat(R.id.wedit, "setAlpha", if (ev.f >= 0 && !Alive.has(base)) floatArrayOf(1f, 0.6f)[ev.f % 2] else 1f)
+                }
+            }
+            // Mic: red and pulsing while recording
+            (act["mic"] ?: if ("mic" in rest) Alive.Ev(-1, 0f) else null)?.let { ev ->
+                if (Prefs.showItem(ctx, "w_mic")) {
+                    val sz = Prefs.micSize(ctx).toFloat() * hsc * isc(ctx, "w_mic")
+                    val rec = RecordService.running()
+                    val pulse = if (ev.f < 0) 1f else floatArrayOf(1f, 1.14f, 1.22f, 1.14f)[ev.f % 4]
+                    if (rec) pic(R.id.wmic, "", R.drawable.ic_stop, 0xFFE53935.toInt(), sz, 0f, pulse)
+                    else {
+                        val base = Prefs.emojiFor(ctx, "mic", noMsg)
+                        pic(R.id.wmic, if (ev.f < 0) base else Alive.sw(base, ev.f / 2), R.drawable.ic_mic, col("mic", Prefs.accent(ctx)), sz, 0f, pulse)
+                    }
+                }
+            }
+            // Gear: spins (and slows down) when you come back from Settings
+            (act["gear"] ?: if ("gear" in rest) Alive.Ev(-1, 0f) else null)?.let { ev ->
+                if (Prefs.showItem(ctx, "w_gear")) {
+                    val sz = Prefs.gearSize(ctx).toFloat() * hsc * isc(ctx, "w_gear")
+                    pic(R.id.wset, Prefs.emojiOf(ctx, "gear"), R.drawable.ic_gear, col("gear", sub), sz, if (ev.f < 0) 0f else 720f * ease(ev.p) % 360f, 1f)
+                }
+            }
+            // Refresh: turns while the widget refreshes
+            (act["refresh"] ?: if ("refresh" in rest) Alive.Ev(-1, 0f) else null)?.let { ev ->
+                if (Prefs.refreshShow(ctx)) {
+                    val sz = Prefs.refreshSize(ctx).toFloat() * isc(ctx, "w_refresh")
+                    pic(R.id.wrefresh, Prefs.emojiOf(ctx, "reset"), R.drawable.ic_refresh, col("refresh", Feed.alpha(sub, 0x99)), sz, if (ev.f < 0) 0f else (ev.f * 40f) % 360f, 1f)
+                }
+            }
+            return rv
         }
 
         /** Full redraw of every widget (not a partial update), for switches that must take effect at once. */

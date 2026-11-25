@@ -33,7 +33,8 @@ class PanelActivity : Activity() {
     private lateinit var badge: TextView
     private lateinit var back: TextView
     private lateinit var titleView: TextView
-    private var aliveIcons: List<View> = emptyList()
+    private val aliveViews = HashMap<String, View>()
+    private var lastCount = -1
     private var expanded: String? = null
     private var dark = false
 
@@ -123,6 +124,7 @@ class PanelActivity : Activity() {
 
         val title = TextView(this)
         titleView = title
+        aliveViews["title"] = title
         val noMsgs = Feed.items(this, true).isEmpty()
         title.text = Look.inboxLabel(this, noMsgs)
         title.textSize = 20f
@@ -142,6 +144,7 @@ class PanelActivity : Activity() {
         val blp = LinearLayout.LayoutParams(WRAP, WRAP)
         blp.marginStart = dp(8)
         header.addView(badge, blp)
+        aliveViews["badge"] = badge
 
         header.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
 
@@ -156,11 +159,14 @@ class PanelActivity : Activity() {
         addNote.setPadding(dp(8), dp(6), dp(8), dp(6))
         addNote.visibility = if (Prefs.showItem(this, "p_note")) View.VISIBLE else View.GONE
         addNote.setOnClickListener {
+            Alive.go(this, "note", 2000)
+            Alive.wiggle(this, addNote)
             if (openNotesDirect()) return@setOnClickListener
             expanded = "note:new"
             refresh()
         }
         header.addView(addNote)
+        aliveViews["note"] = addNote
 
         val clear = TextView(this)
         clear.text = Look.withEmoji(Prefs.emojiFor(this, "clear", noMsgs), if (Prefs.clearMode(this) == 1) "Read all" else "Clear all")
@@ -170,16 +176,20 @@ class PanelActivity : Activity() {
         clear.setPadding(dp(8), dp(6), dp(8), dp(6))
         clear.visibility = if (Prefs.showItem(this, "p_clear")) View.VISIBLE else View.GONE
         clear.setOnClickListener {
-            if (Prefs.clearMode(this) == 1) {
-                Extras.markAllRead(this)
-                TilesWidget.refresh(applicationContext)
-                refresh()
-            } else {
-                clearAll()
+            Alive.go(this, "clear", 1500)
+            Alive.tap(this, clear, "clear") {
+                if (Prefs.clearMode(this) == 1) {
+                    Extras.markAllRead(this)
+                    TilesWidget.refresh(applicationContext)
+                    refresh()
+                } else {
+                    clearAll()
+                }
+                if (Prefs.closeAfterClear(this)) finish()
             }
-            if (Prefs.closeAfterClear(this)) finish()
         }
         header.addView(clear)
+        aliveViews["clear"] = clear
 
         // Extra header buttons (hidden until switched on in Settings > Show / hide parts)
         fun extraBtn(key: String, show: String, glyph: String, emojiKey: String, onTap: () -> Unit) {
@@ -190,8 +200,9 @@ class PanelActivity : Activity() {
             b.setTextColor(if (Prefs.iconColor(this) != 0) Prefs.iconColor(this) else cSub)
             b.setPadding(dp(8), dp(4), dp(8), dp(4))
             b.visibility = if (Prefs.showItem(this, show)) View.VISIBLE else View.GONE
-            b.setOnClickListener { onTap() }
+            b.setOnClickListener { Alive.tap(this, b, key) { onTap() } }
             header.addView(b)
+            aliveViews[key] = b
         }
         extraBtn("mic", "p_mic", "🎤", "mic") {
             startActivity(Intent(this, RecordActivity::class.java))
@@ -219,15 +230,14 @@ class PanelActivity : Activity() {
         gear.setPadding(dp(4), dp(2), dp(2), dp(2))
         gear.visibility = if (Prefs.showItem(this, "p_gear")) View.VISIBLE else View.GONE
         gear.setOnClickListener {
-            startActivity(Intent(this, SettingsActivity::class.java))
-            finish()
+            Alive.tap(this, gear, "gear") {
+                startActivity(Intent(this, SettingsActivity::class.java))
+                finish()
+            }
         }
         header.addView(gear, LinearLayout.LayoutParams(gsz + dp(6), gsz + dp(4)))
+        aliveViews["gear"] = gear
         sheet.addView(header)
-        // Alive icons: the header icons that pop when the panel opens
-        aliveIcons = (0 until header.childCount).map { header.getChildAt(it) }
-            .filter { (it is TextView || it is ImageView) && it !== back && it !== titleView }
-
         val scroll = ScrollView(this)
         list = LinearLayout(this)
         list.orientation = LinearLayout.VERTICAL
@@ -304,16 +314,13 @@ class PanelActivity : Activity() {
         Access.rebindIfNeeded(this)
         NotifListener.onChange = { runOnUiThread { if (!hasDraft() && screenSig() != lastSig) refresh() } }
         refresh()
-        // Alive icons: the title breathes while there are messages, the other icons pop once
-        if (Feed.items(this, true).isNotEmpty()) Alive.breathe(this, titleView) else Alive.stop(titleView)
-        Alive.pop(this, aliveIcons)
+
     }
 
     override fun onPause() {
         super.onPause()
         finishViewing()
         NotifListener.onChange = null
-        Alive.stop(titleView)
     }
 
     private fun hasDraft(): Boolean {
@@ -383,6 +390,8 @@ class PanelActivity : Activity() {
         val items = if (svc == null) emptyList() else Feed.items(this, true)
         val notes = Prefs.notes(this)
         badge.text = items.size.toString()
+        if (lastCount in 0 until items.size) { Alive.pop(this, badge); Alive.bounce(this, titleView) }
+        lastCount = items.size
         badge.visibility = if (items.isEmpty() || !Prefs.showItem(this, "p_badge")) View.GONE else View.VISIBLE
 
         val key = expanded
@@ -731,6 +740,15 @@ class PanelActivity : Activity() {
         et.setTextColor(fg)
         et.textSize = 15f
         et.setTag(R.id.nt_grp, "text")
+        // Alive icons: the Note icon writes while you type (here and on the widget)
+        et.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {}
+            override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) {
+                Alive.go(this@PanelActivity, "note", 2200)
+                aliveViews["note"]?.let { Alive.wiggle(this@PanelActivity, it) }
+            }
+        })
         et.minLines = 4
         et.gravity = Gravity.TOP or Gravity.START
         et.background = rounded(if (dark) 0x33FFFFFF else 0xAAFFFFFF.toInt(), 12)

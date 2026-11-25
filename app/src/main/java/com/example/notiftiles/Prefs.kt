@@ -1262,10 +1262,10 @@ object Prefs {
     /** Alive icons: icons change with the inbox and move a little (on = default). */
     fun aliveOn(c: Context): Boolean = sp(c).getBoolean("alive_on", true)
     fun setAliveOn(c: Context, v: Boolean) = sp(c).edit().putBoolean("alive_on", v).apply()
-    /** Alive icons: the widget icons blink one after another when a new message arrives (on = default). */
+    /** Alive icons: the widget icons move when something happens (on = default). */
     fun aliveWave(c: Context): Boolean = sp(c).getBoolean("alive_wave", true)
     fun setAliveWave(c: Context, v: Boolean) = sp(c).edit().putBoolean("alive_wave", v).apply()
-    /** Alive icons in the panel: pop when it opens, breathe while there are messages (on = default). */
+    /** Alive icons in the panel: the icons move when you tap them (on = default). */
     fun alivePanel(c: Context): Boolean = sp(c).getBoolean("alive_panel", true)
     fun setAlivePanel(c: Context, v: Boolean) = sp(c).edit().putBoolean("alive_panel", v).apply()
 

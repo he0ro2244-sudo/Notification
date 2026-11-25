@@ -21,6 +21,7 @@ class EditMenuActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Alive.go(this, "edit", 1300)
         val col = LinearLayout(this)
         col.orientation = LinearLayout.VERTICAL
         col.setPadding(dp(16), dp(24), dp(16), dp(24))
