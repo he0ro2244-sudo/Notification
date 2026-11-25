@@ -361,6 +361,11 @@ class MoveActivity : Activity() {
         holder.post { render() }
     }
 
+    // Opened by itself after something was switched on: close again once the overlaps are fixed
+    private fun closeIfAuto() {
+        if (intent.getBooleanExtra("auto_tidy", false)) holder.postDelayed({ if (!isFinishing) finish() }, 900)
+    }
+
     private class Box(val key: String, var x: Float, var y: Float, val w: Float, val h: Float)
 
     /**

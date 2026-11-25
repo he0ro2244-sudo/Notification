@@ -1,5 +1,8 @@
 # Release notes
 
+## 1.1.29
+- Fixes the 1.1.28 build error (a helper that closes the automatic Move screen had been removed by mistake). No other change.
+
 ## 1.1.28
 - **Smarter overlap fix: keeps things on their row.** In 1.1.27 an item that overlapped another (for example + Note on the + Add circle) was pushed down to a new line even when the row had room for it. Now, in this order: (1) it goes to a free gap on its own row, the one closest to where it was, including the end of the row; (2) if there is no gap, the items of that row are packed side by side in their order with the moved item last, when they all fit; (3) only then does it go to the right of what it overlaps or to the next line.
 - Nothing existing was changed. Not compiled or tested here: please let the GitHub build run and try it.
