@@ -38,7 +38,7 @@ object Helper {
     private val CHANGE_WORDS = setOf("change", "set", "make", "use", "replace", "pick")
 
     /** The first emoji in the text, or null. */
-    private fun firstEmoji(input: String): String? {
+    fun firstEmoji(input: String): String? {
         var i = 0
         while (i < input.length) {
             val cp = input.codePointAt(i)
@@ -68,12 +68,59 @@ object Helper {
         }
     }
 
+    private val ARTICLES = setOf("the", "my", "a", "an", "this", "that", "all", "its", "your")
+
+    /**
+     * A command sentence, as (mode, target, value). Modes: "set" (change X to Y, turn X on), "copy" (match X with Y, make X like Y).
+     * Returns null when the sentence is not a command of that shape.
+     */
+    fun parseSentence(input: String): Triple<String, String, String>? {
+        val t = input.lowercase().replace(Regex("[^a-z0-9 ]+"), " ").replace(Regex("\\s+"), " ").trim()
+        fun clean(s: String): String = s.split(" ").filter { it.isNotEmpty() && it !in ARTICLES }.joinToString(" ")
+        Regex("^(?:make|match)\\s+(.+?)\\s+(?:like|same as|as)\\s+(.+)$").find(t)?.let {
+            return Triple("copy", clean(it.groupValues[1]), clean(it.groupValues[2]))
+        }
+        Regex("^match\\s+(.+?)\\s+(?:with|to)\\s+(.+)$").find(t)?.let {
+            return Triple("copy", clean(it.groupValues[1]), clean(it.groupValues[2]))
+        }
+        Regex("^(?:turn|switch)\\s+(.+?)\\s+(on|off)$").find(t)?.let {
+            return Triple("set", clean(it.groupValues[1]), it.groupValues[2])
+        }
+        Regex("^(?:change|set|make|put|switch|use|turn)\\s+(.+?)\\s+(?:to|into|as)\\s+(.+)$").find(t)?.let {
+            return Triple("set", clean(it.groupValues[1]), clean(it.groupValues[2]))
+        }
+        Regex("^(.+?)\\s+(?:to|into)\\s+(.+)$").find(t)?.let {
+            return Triple("set", clean(it.groupValues[1]), clean(it.groupValues[2]))
+        }
+        return null
+    }
+
+    private val COLOURS = mapOf(
+        "red" to 0xFFE53935.toInt(), "orange" to 0xFFFB8C00.toInt(), "yellow" to 0xFFFDD835.toInt(),
+        "green" to 0xFF43A047.toInt(), "blue" to 0xFF1E88E5.toInt(), "navy" to 0xFF1A237E.toInt(),
+        "purple" to 0xFF8E24AA.toInt(), "violet" to 0xFF7C3AED.toInt(), "pink" to 0xFFEC407A.toInt(),
+        "black" to 0xFF000000.toInt(), "white" to 0xFFFFFFFF.toInt(), "grey" to 0xFF9E9E9E.toInt(),
+        "gray" to 0xFF9E9E9E.toInt(), "brown" to 0xFF6D4C41.toInt(), "teal" to 0xFF00897B.toInt(),
+        "cyan" to 0xFF00ACC1.toInt(), "gold" to 0xFFFFD700.toInt(), "silver" to 0xFFC0C0C0.toInt(),
+        "lime" to 0xFF84CC16.toInt(), "indigo" to 0xFF3F51B5.toInt(), "maroon" to 0xFF800000.toInt(),
+        "beige" to 0xFFF5F5DC.toInt(), "mint" to 0xFF98FF98.toInt(), "peach" to 0xFFFFCBA4.toInt(),
+        "coral" to 0xFFFF7F50.toInt(), "turquoise" to 0xFF40E0D0.toInt()
+    )
+
+    /** The colour for a colour word, or null. */
+    fun colourOf(word: String): Int? = COLOURS[word.lowercase()]
+
+    /** Buttons that do something to your settings or data (reset, delete, ...) are never pressed by a sentence. */
+    fun isDestructive(label: String): Boolean =
+        listOf("reset", "delete", "clear", "remove", "forget", "restore", "rebuild", "logout", "sign", "backup", "import", "export", "erase", "undo")
+            .any { label.lowercase().contains(it) }
+
     private fun hasAny(words: List<String>, set: Set<String>): Boolean = words.any { set.contains(it) }
 
     private fun redraw(c: Context) = TilesWidget.rebuildAll(c.applicationContext)
 
     /** The label of the Settings row that best matches the words of [t] (from [labels], the texts on the Settings screen), or null. */
-    private fun bestLabel(t: String, labels: List<String>): String? {
+    fun bestLabel(t: String, labels: List<String>): String? {
         val keys = t.split(Regex("[^a-z]+")).filter { it.length >= 3 && it !in STOP }
         if (keys.isEmpty()) return null
         var best: String? = null

@@ -30,6 +30,10 @@ class SettingsActivity : Activity() {
 
     private lateinit var scroll: ScrollView
     private lateinit var col: LinearLayout
+    private var helperBox: EditText? = null
+    /** What the helper changed last, so "it" and "that" can mean it. */
+    private var lastTarget: String? = null
+    private val REQ_VOICE = 4711
     private lateinit var live: LivePreview
     private var scrimView: View? = null
     private var sheetView: View? = null
@@ -463,9 +467,23 @@ class SettingsActivity : Activity() {
             val box = EditText(this)
             box.hint = "e.g. make the widget more transparent"
             box.isSingleLine = true
+            helperBox = box
             col.addView(box, LinearLayout.LayoutParams(MATCH, WRAP))
+            col.addView(smallBtn("🎤 Speak a change") { startVoice() })
             col.addView(smallBtn("Make this change") {
-                val input = box.text.toString()
+                val raw = box.text.toString()
+                // "it" and "that" mean the setting changed last
+                val input = lastTarget?.let { t -> raw.replace(Regex("\\b(it|that)\\b", RegexOption.IGNORE_CASE), t) } ?: raw
+                val inWords = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }
+                if (inWords.contains("undo") || inWords.contains("redo")) {
+                    val undoIt = inWords.contains("undo")
+                    tracker.flush()
+                    val ok = if (undoIt) tracker.undo(1) else tracker.redo(1)
+                    applyLook()
+                    rebuild()
+                    Toast.makeText(this, if (ok) (if (undoIt) "Undone." else "Redone.") else (if (undoIt) "Nothing to undo." else "Nothing to redo."), Toast.LENGTH_SHORT).show()
+                    return@smallBtn
+                }
                 // Every text on the Settings screen, so the helper can find any setting by its name
                 val labels = ArrayList<String>()
                 fun collect(v: View) {
@@ -473,6 +491,29 @@ class SettingsActivity : Activity() {
                     if (v is ViewGroup) for (i in 0 until v.childCount) collect(v.getChildAt(i))
                 }
                 collect(col)
+                // Layout sentences: gaps, sizes, rows, merging, show / hide
+                val lay = LayoutHelper.handle(this, input)
+                if (lay != null) {
+                    Toast.makeText(this, lay.message, Toast.LENGTH_LONG).show()
+                    if (lay.changed) {
+                        LayoutHelper.itemOf(input)?.let { lastTarget = it }
+                        rebuild()
+                    }
+                    return@smallBtn
+                }
+                // "change X to Y", "match X with Y", "turn X on": done on the screen's own controls first
+                var note: String? = null
+                val cmd = Helper.parseSentence(input)
+                if (cmd != null && Helper.firstEmoji(input) == null) {
+                    val res = sentenceCommand(cmd.first, cmd.second, cmd.third, labels)
+                    if (res.first) {
+                        lastTarget = cmd.second
+                        Toast.makeText(this, res.second, Toast.LENGTH_LONG).show()
+                        rebuild()
+                        return@smallBtn
+                    }
+                    note = res.second
+                }
                 val r = Helper.handle(this, input, labels)
                 val slot = r.openSlot
                 val row = r.rowLabel
@@ -483,12 +524,13 @@ class SettingsActivity : Activity() {
                             Toast.makeText(this, "Changed: $row", Toast.LENGTH_LONG).show()
                             rebuild()
                         } else {
-                            Toast.makeText(this, "Shown below: $row. Change it there.", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this, note ?: "Shown below: $row. Change it there.", Toast.LENGTH_LONG).show()
                             searchBox.setText(row)
                         }
                     }
                     else -> {
-                        Toast.makeText(this, r.message, Toast.LENGTH_LONG).show()
+                        val text = if (r.changed) r.message else (note ?: r.message)
+                        Toast.makeText(this, text, Toast.LENGTH_LONG).show()
                         if (r.changed) rebuild() else searchBox.setText(r.search)
                     }
                 }
@@ -1531,6 +1573,159 @@ class SettingsActivity : Activity() {
         return hs
     }
 
+    /** The controls of one Settings row: the switch, the number box, the choice buttons and the colour swatches next to its name. */
+    private class RowControls(
+        val switch: android.widget.CompoundButton?, val number: EditText?,
+        val choices: List<Button>, val swatches: List<TextView>
+    )
+
+    /** Opens the phone's speech input; the words go into the helper box. */
+    private fun startVoice() {
+        val i = Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+        i.putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Say the change")
+        try {
+            startActivityForResult(i, REQ_VOICE)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Voice input is not available on this phone.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun rowControls(row: View): RowControls {
+        val sw = ArrayList<android.widget.CompoundButton>()
+        val nums = ArrayList<EditText>()
+        val choices = ArrayList<Button>()
+        val swatches = ArrayList<TextView>()
+        fun scan(v: View, inSwatchRow: Boolean) {
+            when {
+                v is android.widget.CompoundButton -> sw.add(v)
+                v is EditText -> if ((v.inputType and android.text.InputType.TYPE_CLASS_NUMBER) != 0) nums.add(v)
+                v is Button -> choices.add(v)
+                v is TextView && inSwatchRow && v.tag is Int -> swatches.add(v)
+            }
+            if (v is ViewGroup) {
+                val next = inSwatchRow || v is HorizontalScrollView
+                for (i in 0 until v.childCount) scan(v.getChildAt(i), next)
+            }
+        }
+        if (row is android.widget.CompoundButton) sw.add(row)
+        val p = row.parent as? ViewGroup
+        if (p != null) {
+            var idx = -1
+            for (i in 0 until p.childCount) if (p.getChildAt(i) === row) idx = i
+            var j = idx + 1
+            // The controls sit in the next few views, up to the next bold title
+            while (idx >= 0 && j < p.childCount && j <= idx + 3) {
+                val sib = p.getChildAt(j)
+                if (sib is TextView && sib !is Button && sib.typeface?.style == Typeface.BOLD) break
+                scan(sib, false)
+                j++
+            }
+        }
+        return RowControls(sw.firstOrNull(), nums.firstOrNull(), choices, swatches)
+    }
+
+    private fun nearestSwatch(list: List<TextView>, argb: Int): TextView? {
+        var best: TextView? = null
+        var bestD = Long.MAX_VALUE
+        for (v in list) {
+            val c = v.tag as? Int ?: continue
+            if (c == 0) continue
+            val dr = ((c shr 16) and 0xFF) - ((argb shr 16) and 0xFF)
+            val dg = ((c shr 8) and 0xFF) - ((argb shr 8) and 0xFF)
+            val db = (c and 0xFF) - (argb and 0xFF)
+            val d = (dr * dr + dg * dg + db * db).toLong()
+            if (d < bestD) {
+                bestD = d
+                best = v
+            }
+        }
+        return best
+    }
+
+    /** Runs a command sentence on the Settings controls. Returns (done, message). */
+    private fun sentenceCommand(mode: String, target: String, value: String, labels: List<String>): Pair<Boolean, String> {
+        val tl = Helper.bestLabel(target, labels) ?: return Pair(false, "I could not find a setting called \"$target\".")
+        val row = findLabel(col, tl) ?: return Pair(false, "I could not find \"$tl\" on this screen.")
+        val rc = rowControls(row)
+        // A colour row (with a colour picker) takes a colour name straight to its own setter
+        if (mode == "set") {
+            val cb = (row.parent as? View)?.tag as? ((Int) -> Unit)
+            if (cb != null) {
+                val argb = if (value == "auto") 0 else value.split(" ").firstNotNullOfOrNull { Helper.colourOf(it) }
+                if (argb != null) {
+                    cb(argb)
+                    return Pair(true, "\"$tl\" is now $value.")
+                }
+                return Pair(false, "Say a colour name such as red, blue or green for \"$tl\".")
+            }
+        }
+        if (mode == "copy") {
+            val vl = Helper.bestLabel(value, labels) ?: return Pair(false, "I could not find a setting called \"$value\".")
+            val vrow = findLabel(col, vl) ?: return Pair(false, "I could not find \"$vl\" on this screen.")
+            val vc = rowControls(vrow)
+            val vsw = vc.switch
+            if (vsw != null) {
+                val s = rc.switch ?: return Pair(false, "\"$tl\" is not a switch, so it cannot match \"$vl\".")
+                s.isChecked = vsw.isChecked
+                return Pair(true, "\"$tl\" now matches \"$vl\".")
+            }
+            val vnum = vc.number
+            if (vnum != null) {
+                val n = rc.number ?: return Pair(false, "\"$tl\" has no number box, so it cannot match \"$vl\".")
+                n.setText(vnum.text.toString())
+                return Pair(true, "\"$tl\" now matches \"$vl\".")
+            }
+            val sel = vc.choices.firstOrNull { it.text.toString().startsWith("✓") }
+            if (sel != null) {
+                val name = sel.text.toString().removePrefix("✓ ").trim()
+                val b = rc.choices.firstOrNull { it.text.toString().removePrefix("✓ ").trim().equals(name, true) && !Helper.isDestructive(name) }
+                    ?: return Pair(false, "\"$tl\" has no \"$name\" choice.")
+                b.performClick()
+                return Pair(true, "\"$tl\" now matches \"$vl\" ($name).")
+            }
+            return Pair(false, "\"$vl\" has no value I can copy. Colours cannot be copied yet.")
+        }
+        // mode "set": on, off, a number, a choice name, or a colour
+        val sw = rc.switch
+        if (sw != null && (value == "on" || value == "off")) {
+            sw.isChecked = value == "on"
+            return Pair(true, "\"$tl\" is now $value.")
+        }
+        val num = rc.number
+        val n = Helper.numberIn(value)
+        if (num != null && n != null) {
+            num.setText(n.toString())
+            return Pair(true, "\"$tl\" is now $n.")
+        }
+        val btn = rc.choices.firstOrNull { b ->
+            val bt = b.text.toString().removePrefix("✓ ").trim().lowercase()
+            bt.isNotEmpty() && !Helper.isDestructive(bt) && (value == bt || value.split(" ").contains(bt))
+        }
+        if (btn != null) {
+            btn.performClick()
+            return Pair(true, "\"$tl\" is now ${btn.text.toString().removePrefix("✓ ").trim()}.")
+        }
+        if (rc.swatches.isNotEmpty()) {
+            if (value == "auto") {
+                val auto = rc.swatches.firstOrNull { it.text.toString() == "Auto" }
+                if (auto != null) {
+                    auto.performClick()
+                    return Pair(true, "\"$tl\" is now automatic.")
+                }
+            }
+            val argb = value.split(" ").firstNotNullOfOrNull { Helper.colourOf(it) }
+            if (argb != null) {
+                val pick = nearestSwatch(rc.swatches, argb)
+                if (pick != null) {
+                    pick.performClick()
+                    return Pair(true, "\"$tl\" is now $value.")
+                }
+            }
+        }
+        return Pair(false, "I could not set \"$tl\" to \"$value\". It is shown below, so you can set it there.")
+    }
+
     /** The view whose first line of text is [label] (a setting's name on the Settings screen), or null. */
     private fun findLabel(v: View, label: String): View? {
         if (v is TextView && v !is EditText && v.text.lineSequence().firstOrNull()?.trim() == label) return v
@@ -1673,6 +1868,13 @@ class SettingsActivity : Activity() {
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_VOICE && resultCode == RESULT_OK) {
+            val heard = data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (heard != null) {
+                helperBox?.setText(heard)
+                Toast.makeText(this, "Heard: $heard. Press Make this change.", Toast.LENGTH_LONG).show()
+            }
+        }
         val uri = data?.data
         if (requestCode == 110 && resultCode == RESULT_OK && uri != null) {
             Thread {
@@ -2029,6 +2231,7 @@ class SettingsActivity : Activity() {
         dot.background = d
         row.addView(dot, LinearLayout.LayoutParams(dp(44), dp(44)))
         row.setOnClickListener { ColorPicker.show(this, label, current, true) { v -> onPick(v) } }
+        row.tag = onPick
         return row
     }
 
@@ -2064,6 +2267,7 @@ class SettingsActivity : Activity() {
             val tv = TextView(this)
             tv.gravity = Gravity.CENTER
             tv.textSize = 11f
+            tv.tag = color
             val d = GradientDrawable()
             d.shape = GradientDrawable.OVAL
             if (color == 0) {

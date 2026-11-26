@@ -1,5 +1,19 @@
 # Release notes
 
+## 1.1.71
+- **Speak a change:** the "🎤 Speak a change" button puts what you say into the helper box.
+- **Undo and redo by sentence:** say "undo" or "redo".
+- **"It" and "that"** mean the setting changed last: "make it bigger", "change it to red".
+- **Colour rows** (with a colour picker) take a colour name: "make the accent red".
+- **Order inside a row:** "move the clock before the weather", "after", "left of", "right of".
+- **Free moves:** "move the clock left", "right", "up" or "down" nudges its saved place (needs a place from dragging it once in Move).
+
+## 1.1.70
+- **Layout by sentence:** "row gap 10", "free gap bigger", "clock width 150", "make the weather taller", "move the date to the top row", "move the mic to the bottom row", "merge the clock and the date", "split the top items", "hide the weather", "show the title". Free drag positions are not changed by sentences.
+
+## 1.1.69
+- **Sentence commands on every Settings control:** "change X to Y", "match X with Y" (or "make X like Y") and "turn X on / off". It works on switches (on/off), number boxes (a number), choice lists such as fonts (the choice name) and colour rows that have a palette (a colour name such as "red", or "auto"). Destructive buttons such as reset or delete are never pressed by a sentence. Colour rows that open the colour picker cannot be set by sentence yet.
+
 ## 1.1.68
 - **The helper changes a setting directly when it can:** for a setting named in your sentence, a switch is turned on or off ("turn on the clock", "hide the weather") and a number box takes the number you say ("gap 12"). When it cannot, it shows the setting and says where it is. Choice lists such as fonts are only shown for now.
 
