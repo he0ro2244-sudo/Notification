@@ -815,7 +815,8 @@ class TilesWidget : AppWidgetProvider() {
                     val bgc = if (dc != 0) dc else st.bg(dark)
                     val letterC = Prefs.partColor(ctx, "dialletter")
                     val fgc = if (letterC != 0) letterC else if (dc != 0) Look.contrast(dc) else st.fg(dark)
-                    val icon = if (q != null) appIconBitmap(ctx, q.pkg) else null
+                    val icon = if (q == null) null else if (q.type == "pic") PinnedPic.thumb(ctx, q.target) else appIconBitmap(ctx, q.pkg)
+                    val isPic = q?.type == "pic"
                     val initial = if (q == null) "+" else if (icon != null) "" else q.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "•"
                     txt(rv, ctx, Q_CIRCLE[i], initial, 18f * isc(ctx, "q$i") * psc(ctx, "quickletter"), true)
                     rv.setTextColor(Q_CIRCLE[i], fgc)
@@ -825,8 +826,9 @@ class TilesWidget : AppWidgetProvider() {
                     rv.setViewLayoutHeight(Q_CIRCLE[i], qh, TypedValue.COMPLEX_UNIT_DIP)
                     if (icon != null) {
                         rv.setImageViewBitmap(Q_ICON[i], icon)
-                        rv.setViewLayoutWidth(Q_ICON[i], qm * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
-                        rv.setViewLayoutHeight(Q_ICON[i], qm * 0.62f, TypedValue.COMPLEX_UNIT_DIP)
+                        val iconSize = if (isPic) qm * 0.94f else qm * 0.62f   // a pinned picture fills its circle
+                        rv.setViewLayoutWidth(Q_ICON[i], iconSize, TypedValue.COMPLEX_UNIT_DIP)
+                        rv.setViewLayoutHeight(Q_ICON[i], iconSize, TypedValue.COMPLEX_UNIT_DIP)
                         rv.setViewVisibility(Q_ICON[i], View.VISIBLE)
                     } else {
                         rv.setViewVisibility(Q_ICON[i], View.GONE)

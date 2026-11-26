@@ -737,6 +737,11 @@ class SettingsActivity : Activity() {
 
         section("Animation", "Every animation in the panel: style, speed, on or off") {
         col.addView(hint("Pick a style for each part, or Off. The speed applies to all of them. Press an icon in the panel to see its animation. Widget icons have their own switch."))
+        col.addView(Button(this).apply {
+            isAllCaps = false
+            text = "🎞️  Open the animation picker (tabs + live preview)"
+            setOnClickListener { AnimPicker.show(this@SettingsActivity, { k, st -> if (Prefs.aliveOn(this@SettingsActivity)) live.demo(k, st) }, { rebuild() }) }
+        })
         col.addView(toggleRaw("Animation (master switch)", Prefs.aliveOn(this)) { Prefs.setAliveOn(this, it); TilesWidget.rebuildAll(applicationContext); applyLook(); if (it) live.demo("open", Alive.chosen(this, "open")) })
         col.addView(toggleRaw("Panel animations", Prefs.alivePanel(this)) { Prefs.setAlivePanel(this, it); if (it) live.demo("open", Alive.chosen(this, "open")) })
         col.addView(toggleRaw("Widget: icons move when something happens", Prefs.aliveWave(this)) { Prefs.setAliveWave(this, it) })
@@ -802,7 +807,7 @@ class SettingsActivity : Activity() {
             row.orientation = LinearLayout.HORIZONTAL
             row.gravity = Gravity.CENTER_VERTICAL
             val label = TextView(this)
-            label.text = "${i + 1}.  " + (if (q == null) "Empty" else q.name + "  (" + (when (q.type) { "app" -> "app"; "act" -> "screen"; else -> "shortcut" }) + ")")
+            label.text = "${i + 1}.  " + (if (q == null) "Empty" else q.name + "  (" + (when (q.type) { "app" -> "app"; "act" -> "screen"; "pic" -> "pinned pic"; else -> "shortcut" }) + ")")
             label.textSize = 15f
             row.addView(label, LinearLayout.LayoutParams(0, WRAP, 1f))
             val ch = Button(this)
@@ -818,6 +823,7 @@ class SettingsActivity : Activity() {
                 cl.text = "Clear"
                 cl.setOnClickListener {
                     Prefs.clearQuick(this, i)
+                    PinnedPic.cleanUp(this)
                     applyLook()
                     rebuild()
                 }
@@ -907,7 +913,7 @@ class SettingsActivity : Activity() {
                 r.orientation = LinearLayout.HORIZONTAL
                 r.gravity = Gravity.CENTER_VERTICAL
                 val nm = TextView(this)
-                nm.text = sc.name + "  (" + (if (sc.type == "app") "app" else if (sc.type == "act") "screen" else "shortcut") + ")"
+                nm.text = sc.name + "  (" + (if (sc.type == "app") "app" else if (sc.type == "act") "screen" else if (sc.type == "pic") "pinned pic" else "shortcut") + ")"
                 r.addView(nm, LinearLayout.LayoutParams(0, WRAP, 1f))
                 r.addView(moveButton("Remove", true) { Prefs.removeAppShortcut(this, p, si); rebuild() })
                 col.addView(r)

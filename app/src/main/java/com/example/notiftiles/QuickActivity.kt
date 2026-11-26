@@ -50,8 +50,13 @@ class QuickActivity : Activity() {
     private fun chooseKind() {
         AlertDialog.Builder(this)
             .setTitle(if (forPkg.isNotEmpty()) "Add a shortcut for " + Feed.label(this, forPkg) else "Add to shortcuts row")
-            .setItems(arrayOf("App", "Activity (a screen inside an app)", "Shortcut (like Camera, New post...)", "Type my own link", "Voice assistant (Gemini: start talking)")) { _, w ->
+            .setItems(
+                (listOf("App", "Activity (a screen inside an app)", "Shortcut (like Camera, New post...)", "Type my own link", "Voice assistant (Gemini: start talking)") +
+                    // Pinned pic lives in the shortcuts row only (not on an app's card)
+                    (if (forPkg.isEmpty()) listOf("Pinned pic (press it to see your picture)") else emptyList())).toTypedArray()
+            ) { _, w ->
                 when (w) {
+                    5 -> pickPic()
                     4 -> pickVoice()
                     0 -> pickApp { pkg -> nameIt(Feed.label(this, pkg)) { n -> save(Quick("app", n, pkg, "")) } }
                     1 -> pickApp { pkg -> pickActivity(pkg) }
@@ -61,6 +66,18 @@ class QuickActivity : Activity() {
             }
             .setOnCancelListener { finish() }
             .show()
+    }
+
+    /** Pinned pic: choose a picture; pressing the circle shows it full screen. */
+    private fun pickPic() {
+        try {
+            startActivityForResult(
+                Intent(Intent.ACTION_GET_CONTENT).setType("image/*").addCategory(Intent.CATEGORY_OPENABLE), REQ_PIC
+            )
+        } catch (e: Exception) {
+            toast("No gallery or file app found to pick a picture")
+            finish()
+        }
     }
 
     /** Voice assistant: opens the phone's assistant (Gemini when it is the default assistant) ready to talk. */
@@ -618,6 +635,14 @@ class QuickActivity : Activity() {
     @Suppress("DEPRECATION")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_PIC) {
+            val uri = if (resultCode == RESULT_OK) data?.data else null
+            if (uri == null) { finish(); return }
+            val id = PinnedPic.save(this, uri)
+            if (id == null) { toast("Could not read that picture"); finish(); return }
+            nameIt("Pic") { n -> save(Quick("pic", n, "", id)) }
+            return
+        }
         if (requestCode != REQ_SC) { finish(); return }
         val sc: Intent? = if (resultCode == RESULT_OK) data?.getParcelableExtra(Intent.EXTRA_SHORTCUT_INTENT) else null
         if (sc == null) {
@@ -653,6 +678,7 @@ class QuickActivity : Activity() {
         }
         Prefs.setQuick(this, slot, q)
         Prefs.setQuickOn(this, true)
+        PinnedPic.cleanUp(this)
         // Free layout: the next empty + circle would appear by itself and crowd the row, so it stays hidden
         if (Prefs.freeOn(this) && Prefs.keepPlusHidden(this)) Prefs.setQuickAdd(this, false)
         toast("Saved: " + q.name)
@@ -662,6 +688,7 @@ class QuickActivity : Activity() {
 
     companion object {
         private const val REQ_SC = 1
+        private const val REQ_PIC = 2
         private val linkCache = HashMap<String, List<FoundLink>>()
         private val QUICK_WORDS = listOf("camera", "create", "compose", "new", "post", "story", "reel", "scan", "qr", "record", "capture", "upload", "search", "inbox", "direct", "message", "chat", "write", "note", "call", "voice", "send")
 
@@ -682,6 +709,7 @@ class QuickActivity : Activity() {
                 val i: Intent = when (q.type) {
                     "app" -> ctx.packageManager.getLaunchIntentForPackage(q.pkg) ?: throw IllegalStateException("app gone")
                     "act" -> Intent().setComponent(ComponentName(q.pkg, q.target))
+                    "pic" -> Intent(ctx, PinnedPicActivity::class.java).putExtra("id", q.target)
                     else -> chainIntent(ctx, q)
                 }
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

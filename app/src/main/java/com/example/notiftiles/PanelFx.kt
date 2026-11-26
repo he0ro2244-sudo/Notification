@@ -36,13 +36,18 @@ class FxLayer(c: Context) : View(c) {
     private val anims = ArrayList<FxAnim>()
     private var running = false
 
+    private val finished = ArrayList<FxAnim>()   // reused every frame (no new list per frame)
+
     private val tick = object : Runnable {
         override fun run() {
             val now = SystemClock.uptimeMillis()
-            val done = anims.filter { now >= it.end }
-            anims.removeAll(done)
+            finished.clear()
+            for (i in anims.indices) if (now >= anims[i].end) finished.add(anims[i])
+            if (finished.isNotEmpty()) anims.removeAll(finished)
             invalidate()
-            for (a in done) a.onEnd?.invoke()
+            // onEnd may start new animations, so run it on a copy-free index loop over what finished
+            var k = 0
+            while (k < finished.size) { finished[k].onEnd?.invoke(); k++ }
             if (anims.isNotEmpty()) postOnAnimation(this) else running = false
         }
     }
@@ -57,7 +62,10 @@ class FxLayer(c: Context) : View(c) {
 
     override fun onDraw(cv: Canvas) {
         val now = SystemClock.uptimeMillis()
-        for (a in anims.toList()) {
+        var i = 0
+        while (i < anims.size) {
+            val a = anims[i]
+            i++
             if (now < a.start) continue
             val p = ((now - a.start).toFloat() / (a.end - a.start).coerceAtLeast(1L)).coerceIn(0f, 1f)
             a.draw(cv, p)
@@ -120,8 +128,9 @@ object PanelFx {
     }
 
     /** Draws a picture turned by [deg], scaled by [scale] and faded by [alpha], around the centre of [r]. */
+    private val snapPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private fun drawSnap(cv: Canvas, bmp: Bitmap, r: RectF, deg: Float, scale: Float, alpha: Int = 255) {
-        val bp = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        val bp = snapPaint
         bp.alpha = alpha.coerceIn(0, 255)
         cv.save()
         cv.translate(r.centerX(), r.centerY())
@@ -131,8 +140,10 @@ object PanelFx {
         cv.restore()
     }
 
+    // One Paint reused for every shape (every call draws with it straight away), so a frame allocates nothing
+    private val shapePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND }
     private fun paint(color: Int, alpha: Int = 255, style: Paint.Style = Paint.Style.FILL, w: Float = 0f): Paint =
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        shapePaint.apply {
             this.color = Color.argb(alpha.coerceIn(0, 255), Color.red(color), Color.green(color), Color.blue(color))
             this.style = style
             strokeWidth = w
@@ -315,6 +326,7 @@ object PanelFx {
     fun gear(act: Activity, v: View, action: () -> Unit) {
         val L = layer
         val style = st(act, "gear")
+        if (FxStyles.isNew("gear", style)) { FxStyles.play(act, v, "gear", style) { if (!gone(act)) action() }; return }
         val bmp = if (L != null && style != "off") snap(v) else null
         if (L == null || bmp == null) { action(); return }
         val d = dp(act, 1f)
@@ -333,6 +345,7 @@ object PanelFx {
     fun refresh(act: Activity, tv: TextView, action: () -> Unit) {
         val L = layer
         val style = st(act, "refresh")
+        if (FxStyles.isNew("refresh", style)) { FxStyles.play(act, tv, "refresh", style) { if (!gone(act)) action() }; return }
         val bmp = if (L != null && style != "off") snap(tv) else null
         if (L == null || bmp == null) { action(); return }
         val d = dp(act, 1f)
@@ -367,6 +380,7 @@ object PanelFx {
     fun mic(act: Activity, root: ViewGroup, tv: TextView, action: () -> Unit) {
         val L = layer
         val style = st(act, "mic")
+        if (FxStyles.isNew("mic", style)) { FxStyles.play(act, tv, "mic", style); later(act, 700) { action() }; return }
         if (L == null || style == "off") { action(); return }
         val d = dp(act, 1f)
         val r = rectIn(L, tv)
@@ -451,6 +465,7 @@ object PanelFx {
     fun mail(act: Activity, tv: TextView, label: String) {
         val L = layer
         val style = st(act, "title")
+        if (style != "off" && FxStyles.isNew("title", style)) { FxStyles.play(act, tv, "title", style); return }
         if (L == null || style == "off") return
         val d = dp(act, 1f)
         if (style == "bounce") {
@@ -482,6 +497,7 @@ object PanelFx {
         val L = layer
         val style = st(c, "badge")
         if (style == "off") return
+        if (FxStyles.isNew("badge", style)) { FxStyles.play(c, v, "badge", style); return }
         val next = v.text.toString()
         if (L == null || style == "pop" || prev.toIntOrNull() == null || next.toIntOrNull() == null) {
             bumpView(c, v, 1.5f)
@@ -527,6 +543,7 @@ object PanelFx {
         sheet.alpha = 0f
         sheet.post {
             pivotAt(sheet, origin)
+            if (FxStyles.open(c, sheet, style)) return@post
             when (style) {
                 "slide" -> {
                     sheet.translationY = 56f * d
@@ -594,11 +611,13 @@ object PanelFx {
             val style = st(c, "press")
             if (style != "off") when (ev.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    if (style == "dim") view.animate().setStartDelay(0).alpha(0.6f).setDuration(t(c, 90)).start()
+                    if (FxStyles.isNew("press", style)) FxStyles.play(c, view, "press", style)
+                    else if (style == "dim") view.animate().setStartDelay(0).alpha(0.6f).setDuration(t(c, 90)).start()
                     else view.animate().setStartDelay(0).scaleX(0.92f).scaleY(0.92f).setDuration(t(c, 110)).setInterpolator(DecelerateInterpolator()).start()
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (style == "dim") view.animate().setStartDelay(0).alpha(1f).setDuration(t(c, 200)).start()
+                    if (FxStyles.isNew("press", style)) FxStyles.release(c, view)
+                    else if (style == "dim") view.animate().setStartDelay(0).alpha(1f).setDuration(t(c, 200)).start()
                     else view.animate().setStartDelay(0).scaleX(1f).scaleY(1f).setDuration(t(c, 380)).setInterpolator(OvershootInterpolator(3f)).start()
                 }
             }
@@ -623,6 +642,7 @@ object PanelFx {
             val delay = t(c, 40L + i * 55L)
             v.animate().cancel()
             v.alpha = 0f
+            if (FxStyles.listIn(c, v, style, delay)) continue
             if (style == "fade") {
                 v.animate().alpha(1f).setStartDelay(delay).setDuration(t(c, 260)).start()
             } else {
@@ -668,6 +688,8 @@ object PanelFx {
         } else if (from > 0f || open == "off") {
             sheet.animate().translationY(sheet.height + 40f * d).alpha(0.4f)
                 .setDuration(t(c, 260)).setInterpolator(android.view.animation.AccelerateInterpolator(1.3f)).withEndAction { done() }.start()
+        } else if (FxStyles.close(c, sheet, open, done)) {
+            // closed with the mirror of the new open style
         } else when (open) {
             "slide" -> sheet.animate().translationY(56f * d).alpha(0f).setDuration(t(c, 260)).setInterpolator(fso).withEndAction { done() }.start()
             "circle" -> try {
@@ -752,6 +774,7 @@ object PanelFx {
             v.animate().alpha(1f).setDuration(t(c, 420)).start()
             return
         }
+        if (FxStyles.isNew("row", style)) { FxStyles.play(c, v, "row", style); return }
         v.translationX = 56f * d
         v.animate().alpha(1f).translationX(0f).setDuration(t(c, 460)).setInterpolator(OvershootInterpolator(1.1f)).start()
         val L = layer ?: return

@@ -168,13 +168,31 @@ class LivePreview(private val act: Activity) {
         val cardView = FrameLayout(act).apply {
             background = android.graphics.drawable.GradientDrawable().apply { cornerRadius = dp(16f).toFloat(); setColor(accent and 0x00FFFFFF or 0x66000000) }
         }
-        when (key) {
+        if (key != "open" && FxStyles.isNew(key, style)) {
+            if (key == "list") {
+                // three tiles come in one after another
+                val colv = LinearLayout(act).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER }
+                put(colv, dp(150f), dp(100f))
+                for (i in 0 until 3) {
+                    val tile = View(act).apply { background = cardView.background.constantState?.newDrawable()?.mutate() ; alpha = 0f }
+                    colv.addView(tile, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(24f)).apply { setMargins(0, dp(3f), 0, dp(3f)) })
+                    FxStyles.listIn(act, tile, style, T(i * 110L))
+                }
+            } else {
+                put(icon, dp(60f), dp(60f))
+                icon.post {
+                    FxStyles.play(act, icon, key, style)
+                    if (key == "press") handler.postDelayed({ if (demoing) FxStyles.release(act, icon) }, 500)
+                }
+            }
+        } else when (key) {
             "open", "close" -> {
                 val card = cardView; put(card, dp(150f), dp(84f))
                 val s = if (key == "close") Alive.chosen(act, "open") else style
                 card.post {
                     card.pivotX = card.width * 0.5f; card.pivotY = card.height * 0.5f
                     when (s) {
+                        "flip", "drop", "unfold" -> FxStyles.open(act, card, s)
                         "slide" -> { card.translationY = dp(40f).toFloat(); card.alpha = 0f; card.animate().translationY(0f).alpha(1f).setDuration(T(380)).setInterpolator(fso).start() }
                         "circle" -> { try { android.view.ViewAnimationUtils.createCircularReveal(card, card.width / 2, card.height / 2, 0f, card.width * 0.6f).setDuration(T(420)).start() } catch (e: Exception) { } }
                         "zoom" -> { card.scaleX = 0.9f; card.scaleY = 0.9f; card.alpha = 0f; box.setBackgroundColor(0x44000000); card.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(T(400)).setInterpolator(android.view.animation.DecelerateInterpolator(1.6f)).start() }

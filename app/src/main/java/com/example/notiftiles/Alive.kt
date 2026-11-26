@@ -150,7 +150,9 @@ object Alive {
     /** One part of the panel that can animate. [styles] are the choices; the first one is the default. */
     class Elem(val key: String, val label: String, val styles: List<Pair<String, String>>)
 
-    val ELEMENTS: List<Elem> = listOf(
+    val ELEMENTS: List<Elem> = BASE_ELEMENTS.map { e -> Elem(e.key, e.label, e.styles + (FxStyles.NEW[e.key] ?: emptyList())) }
+
+    private val BASE_ELEMENTS: List<Elem> get() = listOf(
         Elem("open", "Panel animations (how the panel opens and closes)",
             listOf("spring" to "Spring scale & fade", "slide" to "Slide & card rise", "circle" to "Circle reveal", "zoom" to "Zoom & parallax")),
         Elem("note", "Note (the pen writes as you type)",

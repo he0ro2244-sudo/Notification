@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.1.50
+- **Pinned pic (new shortcut):** in the shortcuts row, tap the Add circle (or Pick in Settings) and choose **Pinned pic**. Pick a picture and give it a name. The circle shows a small round copy of it; press it and the picture opens full screen (tap to close, pinch to zoom). The picture is copied into the app, so it still works if you move or delete the original. Clearing or changing the circle removes the stored copy.
+- **Animation picker (Settings > Animation > Open the animation picker):** a panel like the keyboard's emoji panel. Tabs along the bottom (Panel, Touch, Messages, Notes), a grid of styles above; tap one to choose it and see it play in the live preview. The old list of choices is still there and works as before.
+- **New animation styles** (added after the old ones, so nothing you chose changes): panel open Flip up, Drop in with a bounce, Unfold from the top (closing mirrors them); gear Wobble, Hop and half turn; refresh Pulse and turn, Flip over; mic Red dot blinks; Inbox title and count badge Shake, Flip; new message tile Pop in, Drop from the top; touch Grow a little, Tilt; tiles appear Slide in, Zoom in.
+- **Performance:** the animation overlay no longer builds new lists or paint objects on every frame, and the widget decodes a pinned picture once (it keeps a small cached copy).
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
 ## 1.1.49
 - **Zoom & Parallax** now has real depth: the background dims deeper while the panel scales in, and the list trails the panel slightly.
 - **Pen writes:** the pen tilts back and forth as it scribbles, and fades away smoothly when you stop typing.
