@@ -48,7 +48,7 @@ class LivePreview(private val act: Activity) {
     private var fullH = 0
     private var miniH = 0
     private var sFull = 1f
-    private var sMini = 0.26f
+    private var sMini = 1f
 
     /** True while the preview is resizing: the scroll listener must not react to scroll changes caused by the resize. */
     fun isSettling(): Boolean = android.os.SystemClock.uptimeMillis() < settleUntil
@@ -95,9 +95,12 @@ class LivePreview(private val act: Activity) {
         val v = contentView ?: return
         val s = sFull + (sMini - sFull) * f
         v.scaleX = s; v.scaleY = s
+        val h = (fullH + (miniH - fullH) * f).toInt()
+        v.translationY = -(fullH - h).toFloat()   // slides up out of view
         val bp = box.layoutParams
-        bp.height = (fullH + (miniH - fullH) * f).toInt()
+        bp.height = h
         box.layoutParams = bp
+        box.visibility = if (h <= 0) View.GONE else View.VISIBLE
     }
     private val root = LinearLayout(act)
     private val bar = TextView(act)
@@ -163,7 +166,7 @@ class LivePreview(private val act: Activity) {
     private fun updateBar() {
         val name = when (mode) { 0 -> "off"; 1 -> "small"; 2 -> "medium"; else -> "full size" }
         bar.text = if (mode == 0) "Live preview: off  (tap to show it)"
-        else if (mini) "Live preview: shrunk while you scroll  (tap to change the size)"
+        else if (mini) "Live preview: hidden while you scroll  (tap to change the size)"
         else "Live preview: $name  (tap to change the size)"
     }
 
@@ -204,7 +207,7 @@ class LivePreview(private val act: Activity) {
             val hMin = opt.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
             val heightDp = (if (hMax > 0) hMax else hMin).coerceAtLeast(260)
             sFull = when (mode) { 1 -> 0.5f; 2 -> 0.75f; else -> 1f }
-            sMini = 0.26f
+            sMini = sFull   // hidden, not scaled: it just slides away
             view.findViewById<View>(R.id.grid)?.visibility = View.INVISIBLE
             view.pivotX = dp(widthDp.toFloat()) / 2f
             view.pivotY = 0f
@@ -212,7 +215,7 @@ class LivePreview(private val act: Activity) {
             contentView = view
             // Never take more than about a third of the screen: a tall widget is cropped, its top part is what you edit
             fullH = minOf(dp(heightDp * sFull), Math.round(dm.heightPixels * 0.36f))
-            miniH = minOf(dp(heightDp * sMini), dp(96f))
+            miniH = 0   // scrolled down: hidden completely
             box.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, fullH)
             applyFrac(frac)   // keeps a running shrink/grow going instead of jumping
         } catch (e: Throwable) {

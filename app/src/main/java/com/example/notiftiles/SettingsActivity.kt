@@ -493,7 +493,7 @@ class SettingsActivity : Activity() {
         col.addView(title("Corners of section bars", 16f, 16))
         col.addView(choiceRow(listOf("0" to "Square", "6" to "Slight", "-1" to "Normal", "18" to "Round", "30" to "Pill"),
             SettingsTheme.radius(this).toString(), false) { SettingsTheme.setRadius(this, it.toInt()); rebuild() })
-        col.addView(toggleRaw("Shrink the live preview while I scroll down the settings", live.autoShrink()) { live.setAutoShrink(it) })
+        col.addView(toggleRaw("Hide the live preview while I scroll down the settings", live.autoShrink()) { live.setAutoShrink(it) })
         col.addView(smallBtn("Reset the Settings screen look") { SettingsTheme.reset(this); restyle() })
         }
 
