@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.20
+Version 1.1.63
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -65,7 +65,7 @@ Open it with the gear on the widget or from the Notif Tiles app (Look & colors).
 ## 5. LOOK
 ### Themes & accent colour
 - **Themes**: ready-made looks. Picking one sets colours for the whole widget and panel.
-- **Accent colour**: colour of buttons and the count badge.
+- **Accent colour**: the main highlight colour. It colours buttons, the count badge (the number bubble with your unread count), selected items, the move bar, and the glow and ink in the panel animations. Settings buttons and switches use it only in *Match my panel theme* mode, or when you set *Buttons, switches and sliders* yourself. Themes set it too.
 - **Icons & Clear all colour**: mic, settings and refresh icons. A colour picked for one part under "Text colour per part" still wins.
 - **Auto theme (day / night)**: switches theme by itself at the times you set, one small alarm per change.
 - **Settings screen look**: the Settings screen has its own look, apart from the panel and widget. Pick Follow phone, Light, Dark, AMOLED black or Match my panel theme, then set your own background, text, button / switch and section-bar colours, text size, font and corner roundness. Reset puts it back. The live preview at the top shrinks while you scroll down the settings and grows again when you scroll up or change a setting; a switch in the same section turns that off.
@@ -199,5 +199,50 @@ Does the same as Pencil > Reset: puts the widget back to the standard layout and
 - **Everything is messy**: Pencil > Reset (you can undo it).
 
 
+## Emoji icons, Settings and Inbox (1.1.21)
+Settings > LOOK > *Choose emoji icons...* (or pencil > *Emoji icons*) lists seven places: Notes, Mic, Reset, Clear all, Pencil, Settings (gear) and the Inbox title. Tap a place, then tap an emoji or type / paste your own and press *Use my emoji*. *Normal icon* puts the standard icon back. The red stop icon still shows while recording.
+
+## Message tiles in the panel (1.1.21)
+Settings > LOOK > Shapes & borders > *Message tiles in the panel*: corner roundness, tile colour, fill solidity and border style (Solid, Dashed, Dotted). Border thickness and colour are under *Borders > Message tiles*. *Message tiles back to as designed* undoes all of these.
+
+
+## Showing or hiding things in the panel (1.1.24)
+Settings > WIDGET AND PANEL > Show / hide parts > *Widget header, tiles and panel*: each part of the bottom popup header (Back, Inbox title, count badge, mic, + Note, Clear all, pencil, refresh, settings icon) and of the panel tiles (app icon, count, title, text) has its own switch. Mic, pencil and refresh start hidden. Sizes and colours are in Text size per part / Text colours. The phone's Back button closes the panel; Settings > MESSAGES can make it go to the tiles first.
+
+
+## Fix overlapping items, voice assistant shortcut (1.1.26)
+Move > *Tidy up: fix overlapping items (smart)* moves items that sit on top of each other (for example a new shortcut circle on top of + Note) to the right or the next line. It also runs once by itself when you open Move after adding a shortcut circle. Undo is in Move. Add to shortcuts row > *Voice assistant (Gemini: start talking)* opens the phone's voice assistant.
+
+
+## Automatic overlap fix (1.1.27)
+With the free layout on, switching an item back on (for example the + Add circle) briefly opens Move, which moves overlapping items apart and closes by itself.
+
+
+## How the overlap fix chooses a place (1.1.28)
+An item on top of another goes first to a free gap on its own row (the closest one, the end of the row included); if there is none, the row is packed side by side with the moved item last; only if the row is full does it go to the next line.
+
+
+## Voice assistant choices, + circle, wrapped items (1.1.30)
+Add to shortcuts row > Voice assistant: *Gemini: talk* or *Google voice search*. In the free layout, choosing a shortcut hides the + circle (Settings > Shortcuts row has the switches). The overlap fix lines wrapped items up on a new line under the full row.
+
+
+## Fix layout, popup after Clear all (1.1.31)
+Pencil > Fix layout closes the gaps and lines the circles and buttons up again (free layout). Settings > Counts & clearing can close the bottom popup after Clear all.
+
+
+## Fix layout order and refresh icon position (1.1.32)
+Pencil > Fix layout: circles and buttons at the top, Inbox / Clear all / count on the last line above the messages, refresh icon right under them. Settings > Show / hide parts has the switch for the refresh icon position.
+
+## Auto-fix after every move, pinned Fix layout (1.1.33)
+In Move, the switch *Auto-fix after every move* (on by default) separates items that end up on top of each other and keeps the line *Messages start here* below an item you drop on it. The Fix layout and Done buttons stay at the bottom of the screen. Fix layout now lines each row up on the middle of the circles and keeps the same space between rows.
+
+
 ## Animation
-Settings > Animation: one section for everything that moves in the panel. For each part pick a style, or Off: Note, Clear all, the gear, refresh, the mic, the pencil, the Inbox title, the count badge, the panel opening, a new message tile, touch feedback on tiles and buttons, how tiles appear, and how the panel closes (swipe the sheet down to close it). Speed (Slow, Normal, Fast) applies to all of them. The switches at the top are: Animation (master), Panel animations, and Widget: icons move when something happens. Icons also change with the Inbox (📬 → 📭, 🔔 → 🔕, 🧹 → ✅ while it is empty; your own "when empty" emoji wins). **Animation picker**: the button at the top of this section opens a panel like the emoji keyboard (tabs at the bottom, styles above); tap a style to choose it and see it in the live preview. New styles: Flip up, Drop in, Unfold (panel), Wobble and Hop (gear), Pulse and Flip (refresh), Blink (mic), Shake and Flip (title, badge), Pop and Drop (new message), Grow and Tilt (touch), Slide and Zoom (tiles appear).
+Settings > Animation: one section for everything that moves in the panel. For each part pick a style, or Off: Note, Clear all, the gear, refresh, the mic, the pencil, the Inbox title, the count badge, the panel opening, a new message tile, touch feedback on tiles and buttons, how tiles appear, and how the panel closes (swipe the sheet down to close it). Speed (Slow, Normal, Fast) applies to all of them. The switches at the top are: Animation (master), Panel animations, and Widget: icons move when something happens. The mail icon changes with the Inbox (📬 → 📭 while it is empty). Your own emoji is shown as you picked it; set a separate one under "when empty" to change it. **Animation picker**: the button at the top of this section opens a panel like the emoji keyboard (tabs at the bottom, styles above); tap a style to choose it and see it in the live preview. New styles: Flip up, Drop in, Unfold (panel), Wobble and Hop (gear), Pulse and Flip (refresh), Blink (mic), Shake and Flip (title, badge), Pop and Drop (new message), Grow and Tilt (touch), Slide and Zoom (tiles appear).
+
+
+## Search, number boxes, 30 themes (1.1.63)
+- **Search the manual**: type in the *Search the manual* box at the top of the manual (bottom of Settings). Only the matching lines show, with their heading.
+- **Number boxes on sliders**: every slider in Settings has a box beside it. Type a number to move the slider, or drag the slider to change the number.
+- **8 new themes** (30 in all): Ember, Plum, Olive, Teal, Peach, Paper, Ink and Synthwave. They are at the end of the theme list.
+- **Your emoji icon is shown as you picked it.** Only the mail icon changes while the inbox is empty.

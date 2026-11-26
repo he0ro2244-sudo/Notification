@@ -1,6 +1,10 @@
 # Release notes
 
 ## 1.1.63
+- **Search the manual:** a search box at the top of the manual shows only the matching lines.
+- **Number boxes on sliders:** every Settings slider has a box beside it. Type a number or drag the slider.
+- **8 new themes** (30 in all), see the entry above.
+- **The in-app manual is up to date** (it was an old copy).
 - **Your emoji icon is shown as you picked it.** While the inbox was empty, some emoji (📝, 🎙️, 🧹, 📥 and others) were swapped for another one; now only 📬 → 📭 changes. Set a separate emoji under "when empty" to change it.
 - **8 new themes** (30 in all): Ember, Plum, Olive, Teal, Peach, Paper, Ink and Synthwave. They are added at the end of the list, so a saved day / night theme still points to the same theme.
 

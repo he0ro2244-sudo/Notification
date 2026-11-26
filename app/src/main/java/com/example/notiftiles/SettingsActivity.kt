@@ -1500,12 +1500,38 @@ class SettingsActivity : Activity() {
         t.text = "$label: $value$unit"
         t.setPadding(0, dp(8), 0, 0)
         box.addView(t)
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER_VERTICAL
         val sb = SeekBar(this)
         sb.max = max - min
         sb.progress = (value - min).coerceIn(0, max - min)
+        // A number box beside the slider: type a value (it moves the slider) or drag the slider (it fills the box)
+        val num = EditText(this)
+        num.setSingleLine(true)
+        num.inputType = android.text.InputType.TYPE_CLASS_NUMBER
+        num.gravity = Gravity.CENTER
+        num.setText(value.toString())
+        num.setSelectAllOnFocus(true)
+        var typing = false
+        num.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val v = s?.toString()?.toIntOrNull() ?: return
+                if (v < min || v > max || v == sb.progress + min) return
+                typing = true
+                sb.progress = v - min
+                typing = false
+                t.text = "$label: $v$unit"
+                onChange(v)
+                TilesWidget.refresh(applicationContext)
+            }
+        })
         sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
                 t.text = "$label: ${p + min}$unit"
+                if (!typing && num.text.toString() != (p + min).toString()) num.setText((p + min).toString())
                 if (fromUser) onChange(p + min)
             }
 
@@ -1515,7 +1541,9 @@ class SettingsActivity : Activity() {
                 TilesWidget.refresh(applicationContext)
             }
         })
-        box.addView(sb)
+        row.addView(sb, LinearLayout.LayoutParams(0, WRAP, 1f))
+        row.addView(num, LinearLayout.LayoutParams(dp(72), WRAP))
+        box.addView(row)
         return box
     }
 
@@ -2012,29 +2040,6 @@ class SettingsActivity : Activity() {
         return row
     }
 
-    private fun seek(label: String, value: Int, onChange: (Int) -> Unit): View {
-        val box = LinearLayout(this)
-        box.orientation = LinearLayout.VERTICAL
-        val t = TextView(this)
-        t.text = "$label: $value%"
-        t.setPadding(0, dp(8), 0, 0)
-        box.addView(t)
-        val sb = SeekBar(this)
-        sb.max = 100
-        sb.progress = value
-        sb.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(s: SeekBar, p: Int, fromUser: Boolean) {
-                t.text = "$label: $p%"
-                if (fromUser) onChange(p)
-            }
-
-            override fun onStartTrackingTouch(s: SeekBar) {}
-
-            override fun onStopTrackingTouch(s: SeekBar) {
-                TilesWidget.refresh(applicationContext)
-            }
-        })
-        box.addView(sb)
-        return box
-    }
+    private fun seek(label: String, value: Int, onChange: (Int) -> Unit): View =
+        seekRange(label, value, 0, 100, "%", onChange)
 }
