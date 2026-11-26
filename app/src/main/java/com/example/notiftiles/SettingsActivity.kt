@@ -106,7 +106,7 @@ class SettingsActivity : Activity() {
             // The preview resizing moves the list too (it is clamped at the bottom): that is not the finger, so it is ignored
             if (live.isSettling() || editing) { travel = 0; return@setOnScrollChangeListener }
             val dy = y - oldY
-            if (y < dp(40)) { travel = 0; live.shrink(false); return@setOnScrollChangeListener }
+            if (y < dp(40)) { travel = 0; return@setOnScrollChangeListener }   // near the search box and undo bar: the preview never pops in or out
             if ((dy > 0) != (travel > 0)) travel = 0
             travel += dy
             // Scrolling either way only hides it; it comes back by pressing a section, changing a setting, tapping the title or reaching the top
@@ -290,6 +290,8 @@ class SettingsActivity : Activity() {
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
             background = SettingsTheme.card(this@SettingsActivity, 12)
             setPadding(dp(14), dp(12), dp(14), dp(12))
+            // Using the search box: the preview steps out of the way (the list is rebuilt while you type)
+            setOnFocusChangeListener { _, has -> if (has) { editing = false; live.hideNow() } }
             setOnEditorActionListener { v, _, _ ->
                 v.clearFocus()
                 (getSystemService(INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)

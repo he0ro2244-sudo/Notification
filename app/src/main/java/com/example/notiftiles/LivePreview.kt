@@ -60,6 +60,12 @@ class LivePreview(private val act: Activity) {
         setMini(false, true)
     }
 
+    /** Hides it at once (the search box was tapped), whatever else is going on. */
+    fun hideNow() {
+        if (!autoShrink() || mode == 0 || mini) return
+        setMini(true, true)
+    }
+
     fun shrink(on: Boolean) {
         val now = android.os.SystemClock.uptimeMillis()
         if (now < settleUntil) return
