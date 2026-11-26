@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.63
+Version 1.1.65
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -246,3 +246,6 @@ Settings > Animation: one section for everything that moves in the panel. For ea
 - **Number boxes on sliders**: every slider in Settings has a box beside it. Type a number to move the slider, or drag the slider to change the number.
 - **8 new themes** (30 in all): Ember, Plum, Olive, Teal, Peach, Paper, Ink and Synthwave. They are at the end of the theme list.
 - **Your emoji icon is shown as you picked it.** Only the mail icon changes while the inbox is empty.
+
+## Ask the helper (1.1.65)
+At the top of Settings, under HELPER, type what you want in a sentence and press *Make this change*. It works without internet and changes the setting straight away. It understands sentences that name the part (text, widget, animations) and what to do with it, such as *make my text a bit bigger*, *I want the widget see-through* or *turn the animations off*. It is a set list of words, so unusual wording may not work; those open the matching Settings in the search box. Examples: *transparent widget*, *solid widget*, *bigger text*, *smaller text*, *animations off*, *animations on*, *dark*, *light*, *random*, or a theme name such as *Ocean*. For anything else it opens the matching Settings in the search box. Undo covers these changes.

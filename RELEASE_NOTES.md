@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.1.65
+- **The helper understands whole sentences** that describe what you are after, not just one word. It looks at what the sentence is about (text, widget, animations) and what to do (bigger, less, off, a theme name). "Make my text a bit bigger", "I want the widget see-through" and "turn the animations off" all work. It is still a set list of words, so unusual wording may not work; those go to the Settings search.
+- **Ask the helper** (top of Settings, a new HELPER group): type what you want in plain words and it makes the change at once, with no internet. For example: "transparent widget", "solid widget", "bigger text", "smaller text", "animations off", "dark", "light", "random", or a theme name such as "Ocean". Anything else opens the matching Settings in the search box. Undo covers these changes.
+
 ## 1.1.63
 - **Search the manual:** a search box at the top of the manual shows only the matching lines.
 - **Number boxes on sliders:** every Settings slider has a box beside it. Type a number or drag the slider.

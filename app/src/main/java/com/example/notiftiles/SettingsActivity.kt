@@ -457,6 +457,20 @@ class SettingsActivity : Activity() {
 
         for (i in topStart until col.childCount) topViews.add(col.getChildAt(i))
 
+        category("✨  HELPER", "Type what you want to change. Works offline.")
+        section("Ask the helper", "Type a change in plain words, e.g. bigger text, dark theme, transparent widget") {
+            col.addView(hint("Works without internet. It makes changes the app already has. For anything else it shows the matching Settings."))
+            val box = EditText(this)
+            box.hint = "e.g. make the widget more transparent"
+            box.isSingleLine = true
+            col.addView(box, LinearLayout.LayoutParams(MATCH, WRAP))
+            col.addView(smallBtn("Make this change") {
+                val r = Helper.handle(this, box.text.toString())
+                Toast.makeText(this, r.message, Toast.LENGTH_LONG).show()
+                if (r.changed) rebuild() else searchBox.setText(r.search)
+            })
+        }
+
         category("🎨  LOOK", "Colours, fonts, text sizes, shapes and borders")
         section("Themes & accent colour", "Ready-made looks, accent colour, auto day / night") {
         // ---- Themes
