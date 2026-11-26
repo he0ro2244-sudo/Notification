@@ -1,5 +1,8 @@
 # Release notes
 
+## Unreleased
+- **8 new themes** (30 in all): Ember, Plum, Olive, Teal, Peach, Paper, Ink and Synthwave. They are added at the end of the list, so a saved day / night theme still points to the same theme.
+
 ## 1.1.61
 - **No word "Note":** when you pick an emoji for the Notes button, the widget and the panel show just the emoji (no "Note" next to it). With the normal icon it still says "+ Note".
 - **Many more emoji to choose from:** every emoji list (Notes, Mic, Reset, Clear all, Pencil, Gear, Inbox) grew from about 30 to 80-100, shown 6 per row. Tapping one pops it up before it is chosen. Many of the new ones also change shape when the icon is "alive" (💡 becomes ✨, 🚀 gets a flame, 🎧 plays notes...).

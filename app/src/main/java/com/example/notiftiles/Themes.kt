@@ -62,7 +62,24 @@ object Themes {
             icon = c(0xFFF472B6), font = "cursive", shape = 3, circle = c(0xFF4A1230), bw = 1, bc = c(0xFFF472B6),
             emoji = listOf("📝", "🎤", "🔄", "🗑️", "✏️")),
         Theme("Graphite", c(0xFF18181B), c(0xFF000000), 55, c(0xFF18181B), 93, c(0xFFFB923C),
-            icon = c(0xFFFB923C), font = "sans-serif-medium", shape = 1, circle = c(0xFF27272A), bw = 1, bc = c(0xFFFB923C))
+            icon = c(0xFFFB923C), font = "sans-serif-medium", shape = 1, circle = c(0xFF27272A), bw = 1, bc = c(0xFFFB923C)),
+        // New themes go at the end, so the saved day / night choices above keep pointing to the same themes
+        Theme("Ember", c(0xFF2A1208), c(0xFF000000), 55, c(0xFF2A1208), 93, c(0xFFF97316),
+            icon = c(0xFFFDBA74), font = "sans-serif-medium", shape = 2, circle = c(0xFF3F1C0E), bw = 1, bc = c(0xFFF97316)),
+        Theme("Plum", c(0xFF1F1030), c(0xFF0A0415), 55, c(0xFF1F1030), 92, c(0xFFC084FC),
+            icon = c(0xFFC084FC), font = "serif", shape = 4, circle = c(0xFF2E1846), bw = 1, bc = c(0xFFC084FC)),
+        Theme("Olive", c(0xFF1F2414), c(0xFF0B0D06), 50, c(0xFF1F2414), 92, c(0xFFA3B18A),
+            icon = c(0xFFA3B18A), font = "sans-serif-condensed", shape = 1, circle = c(0xFF2C331D), bw = 1, bc = c(0xFFA3B18A)),
+        Theme("Teal", c(0xFF0D2F2F), c(0xFF031414), 50, c(0xFF0D2F2F), 92, c(0xFF2DD4BF),
+            icon = c(0xFF5EEAD4), font = "sans-serif", shape = 4, circle = c(0xFF154848), bw = 1, bc = c(0xFF2DD4BF)),
+        Theme("Peach", c(0xFFFFF4EC), c(0xFF000000), 30, c(0xFFFFF4EC), 93, c(0xFFF08A5D),
+            icon = c(0xFFF08A5D), font = "sans-serif-light", shape = 0, circle = c(0xFFFFE3D1), bw = 1, bc = c(0xFFF08A5D)),
+        Theme("Paper", c(0xFFFAF7F0), c(0xFF000000), 30, c(0xFFFAF7F0), 94, c(0xFF8B5E34),
+            icon = c(0xFF8B5E34), font = "serif", shape = 1, circle = c(0xFFEFE8DA), bw = 1, bc = c(0xFF8B5E34)),
+        Theme("Ink", c(0xFFFFFFFF), c(0xFF000000), 30, c(0xFFFFFFFF), 95, c(0xFF111111),
+            icon = c(0xFF111111), font = "sans-serif-medium", shape = 2, circle = c(0xFFEDEDED), bw = 1, bc = c(0xFF111111)),
+        Theme("Synthwave", c(0xFF1B0B2E), c(0xFF0A0214), 55, c(0xFF1B0B2E), 94, c(0xFFFFE066),
+            icon = c(0xFFFF6AD5), font = "sans-serif-black", shape = 7, circle = c(0xFF2A1248), bw = 2, bc = c(0xFFFF6AD5))
     )
 
     fun apply(c: Context, t: Theme) {

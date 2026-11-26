@@ -45,7 +45,7 @@ Press and hold any item and drag it anywhere. It stays exactly where you drop it
 - **Space between the parts**: a slider (0-30 dp) under Merge into one shape. More space makes each part bigger, so it is easier to tap the clock, weather or date on its own.
 
 ### Themes
-Pick a ready-made look (colours, icons, font, shape, borders) straight from the pencil, or tap Random. There are 22 themes. Undo is in the same menu.
+Pick a ready-made look (colours, icons, font, shape, borders) straight from the pencil, or tap Random. There are 30 themes. Undo is in the same menu.
 
 ### Emoji icons
 Put an emoji on the Notes, Mic, Reset (refresh), Clear all and Pencil buttons. Choose one from the list or type your own. *Normal icon* goes back to the built-in one. The same screen is in Settings > LOOK > Themes & accent colour.
