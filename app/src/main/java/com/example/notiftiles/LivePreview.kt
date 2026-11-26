@@ -53,6 +53,13 @@ class LivePreview(private val act: Activity) {
     /** True while the preview is resizing: the scroll listener must not react to scroll changes caused by the resize. */
     fun isSettling(): Boolean = android.os.SystemClock.uptimeMillis() < settleUntil
 
+    /** Brings the preview back on request (a tap on the screen title or the top edge), even while it is still settling. */
+    fun reveal() {
+        if (mode == 0 || (!mini && frac == 0f)) return
+        holdUntil = android.os.SystemClock.uptimeMillis() + 4000
+        setMini(false, true)
+    }
+
     fun shrink(on: Boolean) {
         val now = android.os.SystemClock.uptimeMillis()
         if (now < settleUntil) return
@@ -130,6 +137,7 @@ class LivePreview(private val act: Activity) {
             v.setPadding(0, b.top, 0, b.bottom)
             insets
         }
+        root.setOnClickListener { reveal() }   // the empty strip at the very top
         bar.textSize = 13f
         bar.setPadding(dp(16f), dp(8f), dp(16f), dp(8f))
         bar.setBackgroundColor(0x24808080)

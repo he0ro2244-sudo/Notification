@@ -112,6 +112,15 @@ class SettingsActivity : Activity() {
             if (travel > dp(90) && y > dp(120)) { live.shrink(true); travel = 0 }
             else if (travel < -dp(60)) { live.shrink(false); travel = 0 }
         }
+        // Tap the screen title (above the undo bar) to bring a hidden preview back
+        window.decorView.post {
+            fun inScroll(v: android.view.View): Boolean { var p: android.view.ViewParent? = v.parent; while (p != null) { if (p === scroll) return true; p = p.parent }; return false }
+            fun find(v: android.view.View) {
+                if (v is TextView && v.text?.toString() == "Look & colors" && !inScroll(v)) { v.setOnClickListener { live.reveal() }; return }
+                if (v is ViewGroup) for (i in 0 until v.childCount) find(v.getChildAt(i))
+            }
+            find(window.decorView)
+        }
         openSections.addAll(keepOpen)
         keepOpen = emptySet()
         build()
