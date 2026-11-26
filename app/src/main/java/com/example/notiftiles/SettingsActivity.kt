@@ -61,6 +61,31 @@ class SettingsActivity : Activity() {
         c(0xFF84CC16), c(0xFF6366F1), c(0xFFFFD700), c(0xFFFFFFFF)
     )
 
+    // The Settings screen's own look (light / dark / AMOLED / your colours): see SettingsTheme
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(SettingsTheme.wrap(newBase))
+    }
+
+    private lateinit var screenView: View
+    private companion object {
+        // Changing the look recreates the screen; these keep the open groups and the scroll place across that
+        var keepOpen: Set<String> = emptySet()
+        var keepScroll: Int = 0
+    }
+
+    /** Re-creates the screen so a new day / night look or background takes hold, keeping the open groups and the place. */
+    private fun restyle() {
+        keepOpen = HashSet(openSections)
+        keepScroll = scroll.scrollY
+        recreate()
+    }
+
+    private fun applyTheme() {
+        SettingsTheme.applyWindow(this, screenView)
+        SettingsTheme.applyTree(this, col)
+        if (::undoBar.isInitialized) SettingsTheme.applyTree(this, undoBar.view)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         scroll = ScrollView(this)
@@ -70,12 +95,26 @@ class SettingsActivity : Activity() {
         scroll.addView(col)
         live = LivePreview(this)
         val screen = live.wrap(scroll)
+        screenView = screen
         tracker = ChangeTracker(this, Prefs.SCOPE_SETTINGS) { if (::undoBar.isInitialized) undoBar.refresh() }
         undoBar = UndoBar(this, Prefs.SCOPE_SETTINGS, tracker) { applyLook(); rebuild() }
         UndoBar.pin(screen, undoBar)
         setContentView(screen)
+        // Scroll down: the live preview shrinks so it stays in view; scroll back up (or to the top): it grows again
+        var travel = 0
+        scroll.setOnScrollChangeListener { _, _, y, _, oldY ->
+            val dy = y - oldY
+            if (y < dp(40)) { travel = 0; live.shrink(false); return@setOnScrollChangeListener }
+            if ((dy > 0) != (travel > 0)) travel = 0
+            travel += dy
+            if (travel > dp(90)) live.shrink(true) else if (travel < -dp(60)) live.shrink(false)
+        }
+        openSections.addAll(keepOpen)
+        keepOpen = emptySet()
         build()
         applyFilter()
+        applyTheme()
+        if (keepScroll > 0) { val y = keepScroll; keepScroll = 0; scroll.post { scroll.scrollTo(0, y) } }
     }
 
     // Settings' own undo list (the pencil screens keep a separate one): every change made here can be taken back one step at a time
@@ -145,6 +184,7 @@ class SettingsActivity : Activity() {
         col.removeAllViews()
         build()
         applyFilter()
+        applyTheme()
         scroll.post { scroll.scrollTo(0, y) }
     }
 
@@ -219,7 +259,7 @@ class SettingsActivity : Activity() {
             isSingleLine = true
             inputType = android.text.InputType.TYPE_CLASS_TEXT
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
-            background = rounded(0x1F808080, 12)
+            background = SettingsTheme.card(this@SettingsActivity, 12)
             setPadding(dp(14), dp(12), dp(14), dp(12))
             setOnEditorActionListener { v, _, _ ->
                 v.clearFocus()
@@ -307,7 +347,7 @@ class SettingsActivity : Activity() {
         h.text = sb
         h.textSize = 17f
         h.setPadding(dp(14), dp(14), dp(14), dp(14))
-        h.background = rounded(0x1F808080, 12)
+        h.background = SettingsTheme.card(this, 12)
         h.setOnClickListener {
             if (query.isNotBlank()) return@setOnClickListener
             if (open) openSections.remove(name) else {
@@ -425,6 +465,33 @@ class SettingsActivity : Activity() {
             })
         }
 
+        }
+
+        section("Settings screen look", "Make this screen your own: light / dark, colours, text size, font") {
+        col.addView(hint("This changes only the Settings screen (not the panel or the widget). Auto = as your phone draws it. Pick a mode, then change any colour on top of it."))
+        col.addView(title("Mode", 16f, 12))
+        col.addView(choiceRow(listOf(
+            SettingsTheme.MODE_PHONE.toString() to "Follow phone", SettingsTheme.MODE_LIGHT.toString() to "Light",
+            SettingsTheme.MODE_DARK.toString() to "Dark", SettingsTheme.MODE_AMOLED.toString() to "AMOLED black",
+            SettingsTheme.MODE_PANEL.toString() to "Match my panel theme"
+        ), SettingsTheme.mode(this).toString(), false) { SettingsTheme.setMode(this, it.toInt()); restyle() })
+        col.addView(title("Colours", 16f, 16))
+        col.addView(colorRow("Background", SettingsTheme.bgOwn(this)) { SettingsTheme.setBg(this, it); restyle() })
+        col.addView(colorRow("Text", SettingsTheme.textOwn(this)) { SettingsTheme.setText(this, it); rebuild() })
+        col.addView(colorRow("Buttons, switches and sliders", SettingsTheme.accentOwn(this)) { SettingsTheme.setAccent(this, it); rebuild() })
+        col.addView(colorRow("Section bars and search box", SettingsTheme.cardOwn(this)) { SettingsTheme.setCard(this, it); rebuild() })
+        col.addView(title("Text size", 16f, 16))
+        col.addView(choiceRow(listOf("85" to "Small", "100" to "Normal", "115" to "Large", "130" to "Extra large", "145" to "Huge"),
+            SettingsTheme.size(this).let { s -> listOf(85, 100, 115, 130, 145).minByOrNull { Math.abs(it - s) }.toString() }, false) {
+            SettingsTheme.setSize(this, it.toInt()); rebuild()
+        })
+        col.addView(title("Font", 16f, 16))
+        col.addView(choiceRow(listOf("" to "Phone default") + Look.FONTS, SettingsTheme.font(this), true) { SettingsTheme.setFont(this, it); rebuild() })
+        col.addView(title("Corners of section bars", 16f, 16))
+        col.addView(choiceRow(listOf("0" to "Square", "6" to "Slight", "-1" to "Normal", "18" to "Round", "30" to "Pill"),
+            SettingsTheme.radius(this).toString(), false) { SettingsTheme.setRadius(this, it.toInt()); rebuild() })
+        col.addView(toggleRaw("Shrink the live preview while I scroll down the settings", live.autoShrink()) { live.setAutoShrink(it) })
+        col.addView(smallBtn("Reset the Settings screen look") { SettingsTheme.reset(this); restyle() })
         }
 
         section("Backgrounds & pictures", "Panel and widget backgrounds, photos, fast-dial strip") {

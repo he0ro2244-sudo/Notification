@@ -1,5 +1,18 @@
 # Release notes
 
+## 1.1.52
+- **The live preview shrinks while you scroll the settings.** Scroll down and the preview at the top becomes a small strip (still showing what your changes do); scroll back up, or to the top, and it grows again. Switch it off with "Shrink the live preview while I scroll down the settings" in Settings > LOOK > Settings screen look. Tapping the grey bar still changes the preview size.
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
+## 1.1.51
+- **Settings screen look (Settings > LOOK > Settings screen look):** make the Settings screen itself your own, separate from the panel and widget themes.
+  - **Mode:** Follow phone (as before), Light, Dark, AMOLED black, or Match my panel theme.
+  - **Colours** on top of any mode: background, text, buttons / switches / sliders, section bars and search box. Auto = as the phone draws it.
+  - **Text size** (Small to Huge), **Font** (the same list as the widget fonts) and **Corners** of the section bars (Square to Pill).
+  - **Reset the Settings screen look** puts it back. Reset in the pencil menu does not touch it.
+- Changing the mode or the background re-creates the screen (your open groups and place are kept).
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
 ## 1.1.50
 - **Pinned pic (new shortcut):** in the shortcuts row, tap the Add circle (or Pick in Settings) and choose **Pinned pic**. Pick a picture and give it a name. The circle shows a small round copy of it; press it and the picture opens full screen (tap to close, pinch to zoom). The picture is copied into the app, so it still works if you move or delete the original. Clearing or changing the circle removes the stored copy.
 - **Animation picker (Settings > Animation > Open the animation picker):** a panel like the keyboard's emoji panel. Tabs along the bottom (Panel, Touch, Messages, Notes), a grid of styles above; tap one to choose it and see it play in the live preview. The old list of choices is still there and works as before.

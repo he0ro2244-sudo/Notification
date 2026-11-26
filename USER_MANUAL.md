@@ -68,6 +68,7 @@ Open it with the gear on the widget or from the Notif Tiles app (Look & colors).
 - **Accent colour**: colour of buttons and the count badge.
 - **Icons & Clear all colour**: mic, settings and refresh icons. A colour picked for one part under "Text colour per part" still wins.
 - **Auto theme (day / night)**: switches theme by itself at the times you set, one small alarm per change.
+- **Settings screen look**: the Settings screen has its own look, apart from the panel and widget. Pick Follow phone, Light, Dark, AMOLED black or Match my panel theme, then set your own background, text, button / switch and section-bar colours, text size, font and corner roundness. Reset puts it back. The live preview at the top shrinks while you scroll down the settings and grows again when you scroll up; a switch in the same section turns that off.
 
 ### Backgrounds & pictures
 Background of the control panel, the shadow behind it and the home-screen widget. Pick a photo from your gallery and lower the **Picture strength** to let the colour show through. The fast-dial strip has its own colour and opacity.
