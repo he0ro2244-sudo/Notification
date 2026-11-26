@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.71
+Version 1.1.72
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -255,3 +255,6 @@ In the HELPER box at the top of Settings you can also say: *row gap 10*, *free g
 
 ## Speak, undo, and follow-up sentences (1.1.71)
 Press *🎤 Speak a change* to say it instead of typing; the words go into the box and you press *Make this change*. Say *undo* or *redo* to take back or repeat the last change. After a change, *it* and *that* mean that setting: *make it bigger*, *change it to red*. Order inside a row: *move the clock before the weather*. Free places: *move the clock left* nudges it (after you have dragged it once in Move).
+
+## Smarter helper (1.1.72)
+The helper understands many ways of saying the same thing, such as *colour* or *color*, *font* or *text*, *space* or *gap*, and small typos. It only picks short setting names. If the setting is in a closed section, it opens that section, scrolls to the setting and highlights it.

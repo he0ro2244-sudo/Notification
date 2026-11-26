@@ -485,12 +485,16 @@ class SettingsActivity : Activity() {
                     return@smallBtn
                 }
                 // Every text on the Settings screen, so the helper can find any setting by its name
-                val labels = ArrayList<String>()
-                fun collect(v: View) {
-                    if (v is TextView && v !is EditText && v.text.isNotBlank() && v.text.length < 160) labels.add(v.text.toString())
-                    if (v is ViewGroup) for (i in 0 until v.childCount) collect(v.getChildAt(i))
+                var labels = collectLabels()
+                // A setting in a closed section is not on the screen yet: open the section it belongs to
+                val probe = Helper.parseSentence(input)?.second ?: input
+                if (Helper.bestLabel(probe, labels) == null) {
+                    val sec = openSectionFor(input)
+                    if (sec != null) {
+                        rebuild(sec)
+                        labels = collectLabels()
+                    }
                 }
-                collect(col)
                 // Layout sentences: gaps, sizes, rows, merging, show / hide
                 val lay = LayoutHelper.handle(this, input)
                 if (lay != null) {
@@ -524,8 +528,8 @@ class SettingsActivity : Activity() {
                             Toast.makeText(this, "Changed: $row", Toast.LENGTH_LONG).show()
                             rebuild()
                         } else {
-                            Toast.makeText(this, note ?: "Shown below: $row. Change it there.", Toast.LENGTH_LONG).show()
-                            searchBox.setText(row)
+                            val shown = revealRow(row)
+                            Toast.makeText(this, note ?: (if (shown) "Found \"$row\" and highlighted it." else "I found \"$row\" but could not show it."), Toast.LENGTH_LONG).show()
                         }
                     }
                     else -> {
@@ -1578,6 +1582,36 @@ class SettingsActivity : Activity() {
         val switch: android.widget.CompoundButton?, val number: EditText?,
         val choices: List<Button>, val swatches: List<TextView>
     )
+
+    /** Every text on the Settings screen (short ones are what the helper looks at). */
+    private fun collectLabels(v: View = col, out: MutableList<String> = ArrayList()): List<String> {
+        if (v is TextView && v !is EditText && v.text.isNotBlank() && v.text.length < 160) out.add(v.text.toString())
+        if (v is ViewGroup) for (i in 0 until v.childCount) collectLabels(v.getChildAt(i), out)
+        return out
+    }
+
+    /** Opens the section whose name shares words with [text]. Returns its name, or null when none fits or it is open already. */
+    private fun openSectionFor(text: String): String? {
+        val skip = setOf("the", "and", "for", "with", "set", "change", "make", "move", "turn", "show", "hide", "this", "that", "its",
+            "your", "all", "from", "into", "bigger", "smaller", "increase", "decrease", "please", "want", "can")
+        val keys = text.lowercase().split(Regex("[^a-z]+")).filter { it.length >= 3 && it !in skip }.map { it.removeSuffix("s") }
+        if (keys.isEmpty()) return null
+        val best = allSections.maxByOrNull { name -> keys.count { name.lowercase().contains(it) } } ?: return null
+        if (keys.none { best.lowercase().contains(it) } || best in openSections) return null
+        openSections.add(best)
+        return best
+    }
+
+    /** Scrolls to the row called [label] and highlights it for a moment. Returns false when it is not on the screen. */
+    private fun revealRow(label: String): Boolean {
+        val lbl = findLabel(col, label) ?: return false
+        lbl.post {
+            lbl.requestRectangleOnScreen(android.graphics.Rect(0, 0, lbl.width, lbl.height), true)
+            lbl.setBackgroundColor(0x55FFEB3B)
+            lbl.postDelayed({ lbl.setBackgroundColor(0) }, 2000)
+        }
+        return true
+    }
 
     /** Opens the phone's speech input; the words go into the helper box. */
     private fun startVoice() {

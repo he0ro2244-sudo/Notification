@@ -120,22 +120,83 @@ object Helper {
     private fun redraw(c: Context) = TilesWidget.rebuildAll(c.applicationContext)
 
     /** The label of the Settings row that best matches the words of [t] (from [labels], the texts on the Settings screen), or null. */
+    /** Words that mean the same thing in a sentence and in a setting name. */
+    private val SYN = mapOf(
+        "color" to listOf("colour"), "colors" to listOf("colour"), "colours" to listOf("colour"),
+        "font" to listOf("text"), "letters" to listOf("text"), "writing" to listOf("text"),
+        "picture" to listOf("image", "photo", "pic"), "photo" to listOf("picture"), "pic" to listOf("picture"),
+        "space" to listOf("gap", "spacing"), "spacing" to listOf("gap"),
+        "width" to listOf("width"), "height" to listOf("height"), "size" to listOf("size"),
+        "transparent" to listOf("opacity"), "transparency" to listOf("opacity"), "opacity" to listOf("opacity"),
+        "animation" to listOf("animation", "motion"), "motion" to listOf("animation"),
+        "mail" to listOf("inbox"), "inbox" to listOf("inbox"), "message" to listOf("message"),
+        "clock" to listOf("clock", "time"), "time" to listOf("clock", "time"),
+        "background" to listOf("background", "backdrop"), "backdrop" to listOf("background"),
+        "accent" to listOf("accent"), "button" to listOf("button"), "buttons" to listOf("button"),
+        "theme" to listOf("theme", "look"), "look" to listOf("look"),
+        "shortcut" to listOf("shortcut", "fast", "dial"), "dial" to listOf("dial", "fast"), "circle" to listOf("circle", "dial"),
+        "shape" to listOf("shape", "square", "round"),
+        "shadow" to listOf("shadow", "scrim"), "panel" to listOf("panel", "sheet"),
+        "notes" to listOf("note"), "note" to listOf("note"), "mic" to listOf("mic", "recorder"),
+        "weather" to listOf("weather"), "date" to listOf("date"), "title" to listOf("title")
+    )
+
+    /** A simple plural / verb ending removed: "shortcuts" -> "shortcut", "colouring" -> "colour". */
+    private fun stem(w: String): String = when {
+        w.length > 5 && w.endsWith("ing") -> w.dropLast(3)
+        w.length > 4 && w.endsWith("ed") -> w.dropLast(2)
+        w.length > 3 && w.endsWith("s") -> w.dropLast(1)
+        else -> w
+    }
+
+    /** True when the two words are the same, or differ by a letter or two (longer words allow more). */
+    private fun near(a: String, b: String): Boolean {
+        if (a == b) return true
+        val max = if (a.length >= 8) 2 else if (a.length >= 5) 1 else 0
+        if (max == 0 || Math.abs(a.length - b.length) > max) return false
+        val d = Array(a.length + 1) { IntArray(b.length + 1) }
+        for (i in 0..a.length) d[i][0] = i
+        for (j in 0..b.length) d[0][j] = j
+        for (i in 1..a.length) for (j in 1..b.length) {
+            val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+            d[i][j] = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
+        }
+        return d[a.length][b.length] <= max
+    }
+
+    private fun wordMatches(key: String, labelWords: List<String>): Boolean = labelWords.any { lw ->
+        lw == key || (key.length >= 4 && lw.startsWith(key)) || (lw.length >= 4 && key.startsWith(lw)) || near(lw, key)
+    }
+
+    /**
+     * The label of the setting that best matches the words of [t], from [labels] (the texts on the Settings screen), or null.
+     * Only short setting names are candidates: section descriptions and sentences are skipped.
+     */
     fun bestLabel(t: String, labels: List<String>): String? {
-        val keys = t.split(Regex("[^a-z]+")).filter { it.length >= 3 && it !in STOP }
+        val keys = LinkedHashSet<String>()
+        for (w in t.split(Regex("[^a-z]+")).filter { it.length >= 3 && it !in STOP }) {
+            val st = stem(w)
+            keys.add(st)
+            SYN[w]?.let { keys.addAll(it) }
+            SYN[st]?.let { keys.addAll(it) }
+        }
         if (keys.isEmpty()) return null
         var best: String? = null
         var bestScore = 0
         for (raw in labels) {
-            val l = raw.lowercase()
-            val score = keys.count { l.contains(it) }
+            val line = raw.lineSequence().firstOrNull()?.trim() ?: continue
+            if (line.isEmpty() || line.length > 40 || line.contains(".") || line.contains(":")) continue
+            if (line.startsWith("▸") || line.startsWith("▾")) continue
+            val lw = line.lowercase().split(Regex("[^a-z]+")).filter { it.length >= 2 }.map { stem(it) }
+            val score = keys.count { wordMatches(it, lw) }
             if (score == 0) continue
             val b = best
-            if (score > bestScore || (score == bestScore && b != null && raw.length < b.length)) {
-                best = raw
+            if (score > bestScore || (score == bestScore && b != null && line.length < b.length)) {
+                best = line
                 bestScore = score
             }
         }
-        return best?.lineSequence()?.first()?.trim()
+        return best
     }
 
     fun handle(c: Context, input: String, labels: List<String> = emptyList()): Result {

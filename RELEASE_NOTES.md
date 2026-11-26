@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.72
+- **Better helper matching:** it understands more ways of saying the same thing (colour and color, font and text, space and gap, transparent and opacity, plurals and small typos). It only picks short setting names, never section descriptions.
+- **Closed sections open by themselves:** if the setting is in a section that is closed, the helper opens that section first.
+- **Shows the row:** it scrolls to the setting and highlights it, instead of filling the search box. It only says "found" when the setting is really on the screen.
+
 ## 1.1.71
 - **Speak a change:** the "🎤 Speak a change" button puts what you say into the helper box.
 - **Undo and redo by sentence:** say "undo" or "redo".
