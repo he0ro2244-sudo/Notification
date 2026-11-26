@@ -109,8 +109,8 @@ class SettingsActivity : Activity() {
             if (y < dp(40)) { travel = 0; live.shrink(false); return@setOnScrollChangeListener }
             if ((dy > 0) != (travel > 0)) travel = 0
             travel += dy
-            if (travel > dp(90) && y > dp(120)) { live.shrink(true); travel = 0 }
-            else if (travel < -dp(60)) { live.shrink(false); travel = 0 }
+            // Scrolling either way only hides it; it comes back by pressing a section, changing a setting, tapping the title or reaching the top
+            if (kotlin.math.abs(travel) > dp(90) && y > dp(120)) { live.shrink(true); travel = 0 }
         }
         // Tap the screen title (above the undo bar) to bring a hidden preview back
         window.decorView.post {

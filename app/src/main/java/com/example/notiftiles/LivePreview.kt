@@ -56,7 +56,7 @@ class LivePreview(private val act: Activity) {
     /** Brings the preview back on request (a tap on the screen title or the top edge), even while it is still settling. */
     fun reveal() {
         if (mode == 0 || (!mini && frac == 0f)) return
-        holdUntil = android.os.SystemClock.uptimeMillis() + 4000
+        holdUntil = android.os.SystemClock.uptimeMillis() + 800   // just long enough for the list to settle; the next scroll hides it again
         setMini(false, true)
     }
 
