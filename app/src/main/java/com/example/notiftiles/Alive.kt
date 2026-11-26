@@ -43,6 +43,38 @@ object Alive {
         "⭐" to listOf("⭐", "🌟", "✨", "🌟"), "🌟" to listOf("🌟", "✨", "⭐", "✨"),
         "❤️" to listOf("❤️", "💖", "❤️", "💗"), "🔥" to listOf("🔥", "💥", "🔥", "✨"),
         "✨" to listOf("✨", "💫", "⭐", "💫")
+    ) + mapOf(
+        "📌" to listOf("📌", "📍"), "📍" to listOf("📍", "📌"), "💡" to listOf("💡", "✨", "💡", "🌟"),
+        "🔖" to listOf("🔖", "🏷️"), "🧾" to listOf("🧾", "📝"), "📜" to listOf("📜", "📃"),
+        "📃" to listOf("📃", "📄", "📃", "✍️"), "📄" to listOf("📄", "📃", "📄", "✍️"), "🖋️" to listOf("🖋️", "✒️", "🖋️", "✍️"),
+        "🎯" to listOf("🎯", "💥", "🎯", "✨"), "🧠" to listOf("🧠", "💡", "🧠", "✨"), "🌈" to listOf("🌈", "☀️", "🌈", "✨"),
+        "🚀" to listOf("🚀", "💨", "🚀", "🔥"), "💎" to listOf("💎", "✨", "💎", "💠"), "🍀" to listOf("🍀", "☘️", "🍀", "✨"),
+        "⚡" to listOf("⚡", "💥", "⚡", "✨"), "🌀" to listOf("🌀", "🌪️", "🌀", "💫"), "🎈" to listOf("🎈", "🎉", "🎈", "🎊"),
+        "🎉" to listOf("🎉", "🎊", "🎉", "✨"), "🎊" to listOf("🎊", "🎉", "🎊", "✨"),
+        "🎧" to listOf("🎧", "🎵", "🎧", "🎶"), "🎵" to listOf("🎵", "🎶"), "🎶" to listOf("🎶", "🎵"),
+        "📢" to listOf("📢", "📣", "📢", "🔊"), "📣" to listOf("📣", "📢"), "🔊" to listOf("🔊", "🔉", "🔈", "🔉"),
+        "🗣️" to listOf("🗣️", "💬", "🗣️", "🔊"), "📻" to listOf("📻", "🎵"), "🎬" to listOf("🎬", "🎞️"),
+        "🛡️" to listOf("🛡️", "✨"), "🧭" to listOf("🧭", "🗺️"), "🔑" to listOf("🔑", "🗝️"), "🗝️" to listOf("🗝️", "🔑"),
+        "🎨" to listOf("🎨", "🖌️", "🎨", "🖍️"), "🖌️" to listOf("🖌️", "🎨"), "🖍️" to listOf("🖍️", "🎨"),
+        "🧪" to listOf("🧪", "🫧", "🧪", "⚗️"), "🔮" to listOf("🔮", "✨", "🔮", "💫"), "🦄" to listOf("🦄", "🌈", "🦄", "✨"),
+        "🌸" to listOf("🌸", "🌺", "🌸", "🌼"), "🌺" to listOf("🌺", "🌸"), "🌻" to listOf("🌻", "🌼"),
+        "🕊️" to listOf("🕊️", "🦋"), "🦋" to listOf("🦋", "🌸"), "🐝" to listOf("🐝", "🍯"),
+        "📧" to listOf("📧", "📨", "📩"), "📮" to listOf("📮", "📬"), "📡" to listOf("📡", "🛰️"),
+        "🧲" to listOf("🧲", "✨"), "🌐" to listOf("🌐", "🌍", "🌎", "🌏"), "🎡" to listOf("🎡", "🎢", "🎠", "🎢"),
+        "🔬" to listOf("🔬", "🔭"), "💣" to listOf("💣", "💥"), "🌪️" to listOf("🌪️", "🌀"),
+        "🙈" to listOf("🙈", "🙉", "🙊", "🙉"), "🏁" to listOf("🏁", "🚩"), "☑️" to listOf("☑️", "✅"),
+        "✅" to listOf("✅", "☑️"), "✔️" to listOf("✔️", "✅"), "⏳" to listOf("⏳", "⌛"), "⌛" to listOf("⌛", "⏳"),
+        "🕐" to listOf("🕐", "🕑", "🕒", "🕓"), "🌊" to listOf("🌊", "💧", "🌊", "🫧"), "🆕" to listOf("🆕", "✨"),
+        "💫" to listOf("💫", "✨", "⭐", "✨"), "💥" to listOf("💥", "✨", "💥", "🔥"), "💨" to listOf("💨", "🌬️", "💨", "✨"),
+        "🌬️" to listOf("🌬️", "💨"), "🫧" to listOf("🫧", "💧", "🫧", "✨"), "🪣" to listOf("🪣", "💦", "🪣", "✨"),
+        "🚿" to listOf("🚿", "💦", "🚿", "🫧"), "🛁" to listOf("🛁", "🫧"), "💖" to listOf("💖", "💗", "💖", "💞"),
+        "💜" to listOf("💜", "💖"), "💙" to listOf("💙", "💎"), "💚" to listOf("💚", "🍀"), "💛" to listOf("💛", "⭐"),
+        "🧡" to listOf("🧡", "🔥"), "🤩" to listOf("🤩", "😍", "🤩", "✨"), "😎" to listOf("😎", "🤓", "😎", "😏"),
+        "🥳" to listOf("🥳", "🎉", "🥳", "🎊"), "😊" to listOf("😊", "😄", "😊", "😁"), "🐱" to listOf("🐱", "😺", "🐱", "😸"),
+        "🐼" to listOf("🐼", "🎋"), "🦊" to listOf("🦊", "🍂"), "🏆" to listOf("🏆", "🥇", "🏆", "✨"),
+        "👑" to listOf("👑", "✨", "👑", "💎"), "🎁" to listOf("🎁", "🎀", "🎁", "✨"), "🔥" to listOf("🔥", "💥", "🔥", "✨"),
+        "🔍" to listOf("🔍", "🔎"), "🔎" to listOf("🔎", "🔍"), "📊" to listOf("📊", "📈"), "📈" to listOf("📈", "📊"),
+        "📚" to listOf("📚", "📖"), "📖" to listOf("📖", "📚"), "📅" to listOf("📅", "📆"), "📆" to listOf("📆", "📅")
     )
     fun has(e: String): Boolean = e.isNotEmpty() && (FRAMES[e]?.size ?: 0) > 1
     fun sw(e: String, f: Int): String = FRAMES[e]?.let { it[f % it.size] } ?: e

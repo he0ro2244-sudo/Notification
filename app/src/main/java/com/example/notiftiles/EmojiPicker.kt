@@ -15,7 +15,7 @@ object EmojiPicker {
     class Slot(val key: String, val label: String, val builtIn: String, val choices: List<String>)
 
     val SLOTS = listOf(
-        Slot("note", "Notes (+ Note)", "+", Look.EMOJI_NOTE),
+        Slot("note", "Notes button (emoji only, no word)", "+ Note", Look.EMOJI_NOTE),
         Slot("mic", "Mic (voice recorder)", "mic icon", Look.EMOJI_MIC),
         Slot("reset", "Reset / refresh", "↻ icon", Look.EMOJI_RESET),
         Slot("clear", "Clear all", "none", Look.EMOJI_CLEAR),
@@ -65,17 +65,23 @@ object EmojiPicker {
         while (i < s.choices.size) {
             val row = LinearLayout(act)
             row.orientation = LinearLayout.HORIZONTAL
-            for (k in i until minOf(i + 5, s.choices.size)) {
+            for (k in i until minOf(i + 6, s.choices.size)) {
                 val e = s.choices[k]
                 val tv = TextView(act)
                 tv.text = e
-                tv.textSize = 28f
+                tv.textSize = 26f
                 tv.gravity = Gravity.CENTER
-                tv.setOnClickListener { choose(e) }
+                tv.setOnClickListener {
+                    // a little pop before the choice is made
+                    it.animate().cancel()
+                    it.animate().scaleX(1.7f).scaleY(1.7f).rotation(14f).setDuration(150)
+                        .setInterpolator(android.view.animation.OvershootInterpolator(2.5f))
+                        .withEndAction { choose(e) }.start()
+                }
                 row.addView(tv, LinearLayout.LayoutParams(0, (56 * d).toInt(), 1f))
             }
             box.addView(row, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            i += 5
+            i += 6
         }
 
         val own = EditText(act)

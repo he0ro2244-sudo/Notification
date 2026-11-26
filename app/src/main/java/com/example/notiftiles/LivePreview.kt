@@ -277,7 +277,7 @@ class LivePreview(private val act: Activity) {
                 for (i in 0 until 3) {
                     val tile = View(act).apply { background = cardView.background.constantState?.newDrawable()?.mutate() ; alpha = 0f }
                     colv.addView(tile, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(24f)).apply { setMargins(0, dp(3f), 0, dp(3f)) })
-                    FxStyles.listIn(act, tile, style, T(i * 110L))
+                    FxStyles.listIn(act, tile, style, T(i * 110L), i)
                 }
             } else {
                 put(icon, dp(60f), dp(60f))
@@ -293,7 +293,7 @@ class LivePreview(private val act: Activity) {
                 card.post {
                     card.pivotX = card.width * 0.5f; card.pivotY = card.height * 0.5f
                     when (s) {
-                        "flip", "drop", "unfold" -> FxStyles.open(act, card, s)
+                        "flip", "drop", "unfold", "swing", "tiltup", "burst" -> FxStyles.open(act, card, s)
                         "slide" -> { card.translationY = dp(40f).toFloat(); card.alpha = 0f; card.animate().translationY(0f).alpha(1f).setDuration(T(380)).setInterpolator(fso).start() }
                         "circle" -> { try { android.view.ViewAnimationUtils.createCircularReveal(card, card.width / 2, card.height / 2, 0f, card.width * 0.6f).setDuration(T(420)).start() } catch (e: Exception) { } }
                         "zoom" -> { card.scaleX = 0.9f; card.scaleY = 0.9f; card.alpha = 0f; box.setBackgroundColor(0x44000000); card.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(T(400)).setInterpolator(android.view.animation.DecelerateInterpolator(1.6f)).start() }

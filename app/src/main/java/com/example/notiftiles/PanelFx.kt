@@ -642,7 +642,7 @@ object PanelFx {
             val delay = t(c, 40L + i * 55L)
             v.animate().cancel()
             v.alpha = 0f
-            if (FxStyles.listIn(c, v, style, delay)) continue
+            if (FxStyles.listIn(c, v, style, delay, i)) continue
             if (style == "fade") {
                 v.animate().alpha(1f).setStartDelay(delay).setDuration(t(c, 260)).start()
             } else {

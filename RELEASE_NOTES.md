@@ -1,5 +1,16 @@
 # Release notes
 
+## 1.1.61
+- **No word "Note":** when you pick an emoji for the Notes button, the widget and the panel show just the emoji (no "Note" next to it). With the normal icon it still says "+ Note".
+- **Many more emoji to choose from:** every emoji list (Notes, Mic, Reset, Clear all, Pencil, Gear, Inbox) grew from about 30 to 80-100, shown 6 per row. Tapping one pops it up before it is chosen. Many of the new ones also change shape when the icon is "alive" (💡 becomes ✨, 🚀 gets a flame, 🎧 plays notes...).
+- **New animation styles** (added after the old ones, nothing you chose changes; pick them in Settings > Animation or the animation picker):
+  - Panel open/close: Swing down like a door, Rise and tilt up (3D), Burst out with a pop.
+  - Gear: Wind up, spin and grow; Jelly squash and spin. Refresh: Spiral in and out; Wind back, then swirl.
+  - Mic: Heartbeat; Jump and shake. Inbox title and count badge: Heartbeat; Wiggle and shine.
+  - New message tile: Spin in; Swing in from the side. Touch: Jelly; Lift up.
+  - Tiles appear: Wave in from both sides; Flip in one by one; Bounce up one by one.
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
 ## 1.1.53
 - **Live preview, smaller and smarter:** while you scroll down the settings the whole top part (the grey bar too) shrinks to a small strip. When you stop and change a setting, the preview grows back by itself so you can see the change; it stays big for a moment, then shrinks again the next time you scroll down. Scrolling back up also brings it back.
 - Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
