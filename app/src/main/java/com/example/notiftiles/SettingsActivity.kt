@@ -458,16 +458,40 @@ class SettingsActivity : Activity() {
         for (i in topStart until col.childCount) topViews.add(col.getChildAt(i))
 
         category("✨  HELPER", "Type what you want to change. Works offline.")
-        section("Ask the helper", "Type a change in plain words, e.g. bigger text, dark theme, transparent widget") {
-            col.addView(hint("Works without internet. It makes changes the app already has. For anything else it shows the matching Settings."))
+        section("Ask the helper", "Type a change or a setting name in plain words") {
+            col.addView(hint("Works without internet. It makes the changes it knows, and for any other setting it opens the one with the closest name."))
             val box = EditText(this)
             box.hint = "e.g. make the widget more transparent"
             box.isSingleLine = true
             col.addView(box, LinearLayout.LayoutParams(MATCH, WRAP))
             col.addView(smallBtn("Make this change") {
-                val r = Helper.handle(this, box.text.toString())
-                Toast.makeText(this, r.message, Toast.LENGTH_LONG).show()
-                if (r.changed) rebuild() else searchBox.setText(r.search)
+                val input = box.text.toString()
+                // Every text on the Settings screen, so the helper can find any setting by its name
+                val labels = ArrayList<String>()
+                fun collect(v: View) {
+                    if (v is TextView && v !is EditText && v.text.isNotBlank() && v.text.length < 160) labels.add(v.text.toString())
+                    if (v is ViewGroup) for (i in 0 until v.childCount) collect(v.getChildAt(i))
+                }
+                collect(col)
+                val r = Helper.handle(this, input, labels)
+                val slot = r.openSlot
+                val row = r.rowLabel
+                when {
+                    slot != null -> EmojiPicker.pick(this, EmojiPicker.SLOTS.first { it.key == slot }) { applyLook(); rebuild() }
+                    row != null -> {
+                        if (changeRow(row, input)) {
+                            Toast.makeText(this, "Changed: $row", Toast.LENGTH_LONG).show()
+                            rebuild()
+                        } else {
+                            Toast.makeText(this, "Shown below: $row. Change it there.", Toast.LENGTH_LONG).show()
+                            searchBox.setText(row)
+                        }
+                    }
+                    else -> {
+                        Toast.makeText(this, r.message, Toast.LENGTH_LONG).show()
+                        if (r.changed) rebuild() else searchBox.setText(r.search)
+                    }
+                }
             })
         }
 
@@ -1505,6 +1529,51 @@ class SettingsActivity : Activity() {
             row.addView(b)
         }
         return hs
+    }
+
+    /** The view whose first line of text is [label] (a setting's name on the Settings screen), or null. */
+    private fun findLabel(v: View, label: String): View? {
+        if (v is TextView && v !is EditText && v.text.lineSequence().firstOrNull()?.trim() == label) return v
+        if (v is ViewGroup) for (i in 0 until v.childCount) findLabel(v.getChildAt(i), label)?.let { return it }
+        return null
+    }
+
+    /** The controls (switches, sliders, number boxes, buttons) under [v], in order. */
+    private fun controls(v: View, out: MutableList<View>) {
+        if (v is android.widget.CompoundButton || v is SeekBar || v is EditText || v is Button) { out.add(v); return }
+        if (v is ViewGroup) for (i in 0 until v.childCount) controls(v.getChildAt(i), out)
+    }
+
+    /**
+     * Changes the setting named [label] the way [input] asks, as if its control were tapped: a switch turns on or off,
+     * a number box takes the number in the sentence. Returns false when there is no such control (the row is then shown instead).
+     */
+    private fun changeRow(label: String, input: String): Boolean {
+        val lbl = findLabel(col, label) ?: return false
+        var scope: View = lbl
+        for (level in 0 until 4) {
+            val p = scope.parent as? ViewGroup ?: break
+            val found = ArrayList<View>()
+            controls(p, found)
+            if (found.isNotEmpty() && found.size <= 8) {
+                for (ctl in found) {
+                    if (ctl is android.widget.CompoundButton) {
+                        ctl.isChecked = Helper.onOffIn(input) ?: !ctl.isChecked
+                        return true
+                    }
+                }
+                for (ctl in found) {
+                    if (ctl is EditText && (ctl.inputType and android.text.InputType.TYPE_CLASS_NUMBER) != 0) {
+                        val n = Helper.numberIn(input) ?: return false
+                        ctl.setText(n.toString())
+                        return true
+                    }
+                }
+                return false
+            }
+            scope = p
+        }
+        return false
     }
 
     private fun seekRange(label: String, value: Int, min: Int, max: Int, unit: String, onChange: (Int) -> Unit): View {

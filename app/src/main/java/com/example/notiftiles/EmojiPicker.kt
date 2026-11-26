@@ -46,7 +46,7 @@ object EmojiPicker {
             .show()
     }
 
-    private fun pick(act: Activity, s: Slot, onDone: () -> Unit) {
+    fun pick(act: Activity, s: Slot, onDone: () -> Unit) {
         val d = act.resources.displayMetrics.density
         val box = LinearLayout(act)
         box.orientation = LinearLayout.VERTICAL

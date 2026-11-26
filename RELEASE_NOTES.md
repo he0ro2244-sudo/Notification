@@ -1,6 +1,13 @@
 # Release notes
 
-## 1.1.65
+## 1.1.68
+- **The helper changes a setting directly when it can:** for a setting named in your sentence, a switch is turned on or off ("turn on the clock", "hide the weather") and a number box takes the number you say ("gap 12"). When it cannot, it shows the setting and says where it is. Choice lists such as fonts are only shown for now.
+
+## 1.1.67
+- **The helper finds any setting by name:** for a sentence it cannot turn into a change, it opens the Settings row whose name matches the words best (for example "where do I change the clock"). It still changes only the values it knows; the others open their setting so you can change it there.
+
+## 1.1.66
+- **The helper changes icons:** "change the inbox icon to 📬" sets that emoji. Without an emoji ("change the notes icon"), it opens the emoji list for that icon. Inbox, notes, mic, refresh, pencil and gear are understood; "normal icon" puts the standard one back.
 - **The helper understands whole sentences** that describe what you are after, not just one word. It looks at what the sentence is about (text, widget, animations) and what to do (bigger, less, off, a theme name). "Make my text a bit bigger", "I want the widget see-through" and "turn the animations off" all work. It is still a set list of words, so unusual wording may not work; those go to the Settings search.
 - **Ask the helper** (top of Settings, a new HELPER group): type what you want in plain words and it makes the change at once, with no internet. For example: "transparent widget", "solid widget", "bigger text", "smaller text", "animations off", "dark", "light", "random", or a theme name such as "Ocean". Anything else opens the matching Settings in the search box. Undo covers these changes.
 

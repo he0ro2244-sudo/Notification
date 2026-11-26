@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.65
+Version 1.1.68
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -248,4 +248,4 @@ Settings > Animation: one section for everything that moves in the panel. For ea
 - **Your emoji icon is shown as you picked it.** Only the mail icon changes while the inbox is empty.
 
 ## Ask the helper (1.1.65)
-At the top of Settings, under HELPER, type what you want in a sentence and press *Make this change*. It works without internet and changes the setting straight away. It understands sentences that name the part (text, widget, animations) and what to do with it, such as *make my text a bit bigger*, *I want the widget see-through* or *turn the animations off*. It is a set list of words, so unusual wording may not work; those open the matching Settings in the search box. Examples: *transparent widget*, *solid widget*, *bigger text*, *smaller text*, *animations off*, *animations on*, *dark*, *light*, *random*, or a theme name such as *Ocean*. For anything else it opens the matching Settings in the search box. Undo covers these changes.
+At the top of Settings, under HELPER, type what you want in a sentence and press *Make this change*. It works without internet and changes the setting straight away. It understands sentences that name the part (text, widget, animations) and what to do with it, such as *make my text a bit bigger*, *I want the widget see-through* or *turn the animations off*. It can also change an icon: *change the inbox icon to 📬* sets that emoji, and *change the notes icon* opens the emoji list for it. It is a set list of words, so unusual wording may not work; those open the matching Settings in the search box. Examples: *transparent widget*, *solid widget*, *bigger text*, *smaller text*, *animations off*, *animations on*, *dark*, *light*, *random*, or a theme name such as *Ocean*. For any other setting, it finds the one whose name matches your words best. A switch in that setting is turned on or off, and a number box takes the number you say (*gap 12*). Otherwise it shows the setting and says where it is. Choice lists such as fonts are only shown for now. Undo covers these changes.
