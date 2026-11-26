@@ -1,6 +1,7 @@
 # Release notes
 
 ## Unreleased
+- **Your emoji icon is shown as you picked it.** While the inbox was empty, some emoji (📝, 🎙️, 🧹, 📥 and others) were swapped for another one; now only 📬 → 📭 changes. Set a separate emoji under "when empty" to change it.
 - **8 new themes** (30 in all): Ember, Plum, Olive, Teal, Peach, Paper, Ink and Synthwave. They are added at the end of the list, so a saved day / night theme still points to the same theme.
 
 ## 1.1.61
