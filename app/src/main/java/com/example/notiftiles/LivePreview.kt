@@ -36,18 +36,68 @@ class LivePreview(private val act: Activity) {
     // Shrinks while the settings list is scrolled down, so the preview stays in view without taking the screen
     private var mini = false
     fun autoShrink(): Boolean = prefs.getBoolean("ui_preview_mini", true)
-    fun setAutoShrink(v: Boolean) { prefs.edit().putBoolean("ui_preview_mini", v).apply(); if (!v) shrink(false) }
+    fun setAutoShrink(v: Boolean) { prefs.edit().putBoolean("ui_preview_mini", v).apply(); if (!v) setMini(false, true) }
 
-    /** Makes the preview small ([on]) or normal again. It only redraws when the state really changes. */
-    private var holdUntil = 0L   // after it grew because of a change, it stays big for a moment so it does not jump back at once
+    /** Makes the preview small ([on]) or normal again, with a short animation. Ignored while a change is still settling. */
+    private var holdUntil = 0L     // after it grew because of a change, it stays big for a moment so it does not jump back at once
+    private var settleUntil = 0L   // while it animates (and a moment after) scroll events are ignored: they come from the resize itself
+    private var frac = if (mini) 1f else 0f   // 0 = full size, 1 = small strip
+    private var animator: ValueAnimator? = null
+    private var barH = 0
+    private var contentView: View? = null
+    private var fullH = 0
+    private var miniH = 0
+    private var sFull = 1f
+    private var sMini = 0.26f
+
+    /** True while the preview is resizing: the scroll listener must not react to scroll changes caused by the resize. */
+    fun isSettling(): Boolean = android.os.SystemClock.uptimeMillis() < settleUntil
+
     fun shrink(on: Boolean) {
-        if (on && android.os.SystemClock.uptimeMillis() < holdUntil) return
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now < settleUntil) return
+        if (on && now < holdUntil) return
         val want = on && autoShrink() && mode != 0
         if (want == mini) return
+        setMini(want, true)
+    }
+
+    private fun setMini(want: Boolean, animate: Boolean) {
         mini = want
         updateBar()
-        handler.removeCallbacks(again)
-        handler.post { render() }   // not inside the scroll callback
+        animator?.cancel()
+        val target = if (want) 1f else 0f
+        if (!animate || contentView == null) { applyFrac(target); return }
+        settleUntil = android.os.SystemClock.uptimeMillis() + 200 + 250
+        animator = ValueAnimator.ofFloat(frac, target).apply {
+            duration = 200
+            interpolator = android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f)
+            addUpdateListener { applyFrac(it.animatedValue as Float) }
+            start()
+        }
+    }
+
+    /** Sets how small the preview is (0..1) by scaling the already drawn widget: no rebuild, so nothing flashes. */
+    private fun applyFrac(f: Float) {
+        frac = f
+        if (barH == 0) {
+            bar.measure(View.MeasureSpec.makeMeasureSpec(dm.widthPixels, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
+            barH = bar.measuredHeight
+        }
+        val bl = bar.layoutParams as LinearLayout.LayoutParams
+        if (mode == 0) {
+            bl.height = ViewGroup.LayoutParams.WRAP_CONTENT; bar.alpha = 1f; bar.visibility = View.VISIBLE
+        } else {
+            bl.height = (barH * (1f - f)).toInt(); bar.alpha = 1f - f
+            bar.visibility = if (f >= 1f) View.GONE else View.VISIBLE
+        }
+        bar.layoutParams = bl
+        val v = contentView ?: return
+        val s = sFull + (sMini - sFull) * f
+        v.scaleX = s; v.scaleY = s
+        val bp = box.layoutParams
+        bp.height = (fullH + (miniH - fullH) * f).toInt()
+        box.layoutParams = bp
     }
     private val root = LinearLayout(act)
     private val bar = TextView(act)
@@ -56,10 +106,16 @@ class LivePreview(private val act: Activity) {
         override fun onInterceptTouchEvent(ev: MotionEvent): Boolean = true
     }
     private val again = Runnable { render() }
+    // Keys the app itself writes in the background (weather refresh, location): they must not grow the preview
+    private val quietKeys = setOf("w_try", "w_time", "w_gaptime", "w_apptime", "w_temp", "w_code", "w_off", "w_gap", "w_day",
+        "w_apptemp", "w_appcode", "w_has", "w_city", "w_lat", "w_lon", "note_app")
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         if (key != null && key.startsWith("ui_")) return@OnSharedPreferenceChangeListener
-        // Something was changed while the preview was small: it grows so the change can be seen
-        if (mini) { mini = false; holdUntil = android.os.SystemClock.uptimeMillis() + 2500; updateBar() }
+        // Something was changed while the preview was small: it grows so the change can be seen (not for background writes)
+        if (mini && (key == null || key !in quietKeys)) {
+            holdUntil = android.os.SystemClock.uptimeMillis() + 2500
+            setMini(false, true)
+        }
         refreshSoon()
     }
 
@@ -106,7 +162,6 @@ class LivePreview(private val act: Activity) {
 
     private fun updateBar() {
         val name = when (mode) { 0 -> "off"; 1 -> "small"; 2 -> "medium"; else -> "full size" }
-        bar.visibility = if (mini) View.GONE else View.VISIBLE   // small = just the strip
         bar.text = if (mode == 0) "Live preview: off  (tap to show it)"
         else if (mini) "Live preview: shrunk while you scroll  (tap to change the size)"
         else "Live preview: $name  (tap to change the size)"
@@ -124,9 +179,11 @@ class LivePreview(private val act: Activity) {
     fun render() {
         if (demoing) return
         box.removeAllViews()
+        contentView = null
         updateBar()
         if (mode == 0) {
             box.visibility = View.GONE
+            applyFrac(0f)
             return
         }
         box.visibility = View.VISIBLE
@@ -134,6 +191,7 @@ class LivePreview(private val act: Activity) {
         val ids = mgr.getAppWidgetIds(ComponentName(act, TilesWidget::class.java))
         if (ids.isEmpty()) {
             note("Add the NotifTiles widget to your home screen to see a live preview here.")
+            applyFrac(frac)
             return
         }
         try {
@@ -145,19 +203,22 @@ class LivePreview(private val act: Activity) {
             val hMax = opt.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
             val hMin = opt.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
             val heightDp = (if (hMax > 0) hMax else hMin).coerceAtLeast(260)
-            val s = if (mini) 0.26f else when (mode) { 1 -> 0.5f; 2 -> 0.75f; else -> 1f }
+            sFull = when (mode) { 1 -> 0.5f; 2 -> 0.75f; else -> 1f }
+            sMini = 0.26f
             view.findViewById<View>(R.id.grid)?.visibility = View.INVISIBLE
             view.pivotX = dp(widthDp.toFloat()) / 2f
             view.pivotY = 0f
-            view.scaleX = s
-            view.scaleY = s
             box.addView(view, FrameLayout.LayoutParams(dp(widthDp.toFloat()), dp(heightDp.toFloat()), Gravity.CENTER_HORIZONTAL))
+            contentView = view
             // Never take more than about a third of the screen: a tall widget is cropped, its top part is what you edit
-            val cap = if (mini) dp(96f) else Math.round(dm.heightPixels * 0.36f)
-            box.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, minOf(dp(heightDp * s), cap))
+            fullH = minOf(dp(heightDp * sFull), Math.round(dm.heightPixels * 0.36f))
+            miniH = minOf(dp(heightDp * sMini), dp(96f))
+            box.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, fullH)
+            applyFrac(frac)   // keeps a running shrink/grow going instead of jumping
         } catch (e: Throwable) {
             android.util.Log.e("NotifTilesPreview", "Could not draw the live preview", e)
             note("The preview could not be drawn here.")
+            applyFrac(frac)
         }
     }
 
@@ -172,6 +233,7 @@ class LivePreview(private val act: Activity) {
         val fso = android.view.animation.PathInterpolator(0.4f, 0f, 0.2f, 1f)
         handler.removeCallbacks(endDemo); handler.removeCallbacks(again)
         demoing = true
+        contentView = null
         box.removeAllViews()
         box.visibility = View.VISIBLE
         val h = dp(120f)

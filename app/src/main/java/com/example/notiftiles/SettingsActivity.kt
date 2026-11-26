@@ -103,11 +103,14 @@ class SettingsActivity : Activity() {
         // Scroll down: the live preview shrinks so it stays in view; scroll back up (or to the top): it grows again
         var travel = 0
         scroll.setOnScrollChangeListener { _, _, y, _, oldY ->
+            // The preview resizing moves the list too (it is clamped at the bottom): that is not the finger, so it is ignored
+            if (live.isSettling()) { travel = 0; return@setOnScrollChangeListener }
             val dy = y - oldY
             if (y < dp(40)) { travel = 0; live.shrink(false); return@setOnScrollChangeListener }
             if ((dy > 0) != (travel > 0)) travel = 0
             travel += dy
-            if (travel > dp(90)) live.shrink(true) else if (travel < -dp(60)) live.shrink(false)
+            if (travel > dp(90) && y > dp(120)) { live.shrink(true); travel = 0 }
+            else if (travel < -dp(60)) { live.shrink(false); travel = 0 }
         }
         openSections.addAll(keepOpen)
         keepOpen = emptySet()
