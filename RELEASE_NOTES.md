@@ -1,5 +1,12 @@
 # Release notes
 
+## 1.1.77
+- When the helper does not know a word, it now compares the letters of what you typed with the Settings names and picks the closest one, even with several letters wrong ("fonst siz" finds Font size). No extra model file is needed, so the app stays small.
+
+## 1.1.76
+- "Move the mic icon after the notes icon" now works in the free layout too. In free layout the rows are ignored, so the icon is placed next to the other icon.
+- When the order cannot be changed, the helper now says so instead of claiming it moved.
+
 ## 1.1.75
 - The helper now also understands words that sound the same when spelled wrong ("colur", "incres", "hide" typed "hid"). It picks the closest known word, so a typo gets the best match rather than the first one found.
 - The helper knows every command word, colour, icon name and setting word when correcting typing, not just the core list.

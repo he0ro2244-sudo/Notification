@@ -263,7 +263,41 @@ object Helper {
                 bestScore = score
             }
         }
-        return best
+        return best ?: similarLabel(t, labels)
+    }
+
+    /** Letter triples of a word, with a space at each end: "font" -> "  f", " fo", "fon", "ont", "nt ". */
+    private fun triples(w: String): Set<String> {
+        val p = " $w "
+        return (0..p.length - 3).map { p.substring(it, it + 3) }.toSet()
+    }
+
+    /** How alike two words look, 0 to 1, from the letter triples they share (spelling mistakes keep most of them). */
+    private fun alike(a: String, b: String): Double {
+        val ta = triples(a)
+        val tb = triples(b)
+        return 2.0 * ta.intersect(tb).size / (ta.size + tb.size)
+    }
+
+    /**
+     * The setting whose words look most like the words of [t], even when spelled quite wrong ("fonst siz" -> "Font size").
+     * Each typed word is matched to its closest word in the setting name; the average must be high enough.
+     */
+    private fun similarLabel(t: String, labels: List<String>): String? {
+        val words = t.split(Regex("[^a-z]+")).filter { it.length >= 3 && it !in STOP }
+        if (words.isEmpty()) return null
+        var best: String? = null
+        var bestScore = 0.0
+        for (raw in labels) {
+            val line = raw.lineSequence().firstOrNull()?.trim() ?: continue
+            if (line.isEmpty() || line.length > 40 || line.contains(".") || line.contains(":")) continue
+            if (line.startsWith("▸") || line.startsWith("▾")) continue
+            val lw = line.lowercase().split(Regex("[^a-z]+")).filter { it.length >= 2 }
+            if (lw.isEmpty()) continue
+            val score = words.sumOf { w -> lw.maxOf { alike(w, it) } } / words.size
+            if (score > bestScore) { best = line; bestScore = score }
+        }
+        return if (bestScore >= 0.6) best else null
     }
 
     fun handle(c: Context, input: String, labels: List<String> = emptyList()): Result {

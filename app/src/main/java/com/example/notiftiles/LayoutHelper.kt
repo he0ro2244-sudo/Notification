@@ -90,12 +90,24 @@ object LayoutHelper {
             val x = pair[0]
             val y = pair[1]
             val before = words.contains("before") || words.contains("left")
+            // Free layout ignores the rows: each item sits at its own saved place, so the place is changed instead
+            if (Prefs.freeOn(c)) {
+                val pos = Prefs.freePos(c).toMutableMap()
+                val py = pos[y] ?: return Helper.Result("${cap(y)} has no free place yet. Drag it once in Move, then say this again.", false, "")
+                val step = 34f
+                val nx = if (before) (py.x - step).coerceAtLeast(0f) else py.x + step
+                pos[x] = Prefs.FreePos(nx, py.y, pos[x]?.w ?: 0f)
+                Prefs.setFreePos(c, pos)
+                redraw(c)
+                return Helper.Result("${cap(x)} placed ${if (before) "before" else "after"} ${cap(y)} in the free layout. Drag it to fine-tune.", true, "")
+            }
             val rows = Prefs.rows(c)
             val top = (rows["top"] ?: emptyList()).filter { it != x }.toMutableList()
             val head = (rows["head"] ?: emptyList()).filter { it != x }.toMutableList()
             val list = if (top.contains(y)) top else head
-            val at = list.indexOf(y) + (if (before) 0 else 1)
-            list.add(at.coerceIn(0, list.size), x)
+            val yAt = list.indexOf(y)
+            if (yAt < 0) return Helper.Result("Could not find ${cap(y)} in the widget rows.", false, "")
+            list.add(yAt + (if (before) 0 else 1), x)
             Prefs.setRows(c, top, head)
             redraw(c)
             return Helper.Result("${cap(x)} moved ${if (before) "before" else "after"} ${cap(y)}.", true, "")
