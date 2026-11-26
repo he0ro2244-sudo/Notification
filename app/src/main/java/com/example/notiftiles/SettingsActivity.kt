@@ -104,7 +104,7 @@ class SettingsActivity : Activity() {
         var travel = 0
         scroll.setOnScrollChangeListener { _, _, y, _, oldY ->
             // The preview resizing moves the list too (it is clamped at the bottom): that is not the finger, so it is ignored
-            if (live.isSettling()) { travel = 0; return@setOnScrollChangeListener }
+            if (live.isSettling() || editing) { travel = 0; return@setOnScrollChangeListener }
             val dy = y - oldY
             if (y < dp(40)) { travel = 0; live.shrink(false); return@setOnScrollChangeListener }
             if ((dy > 0) != (travel > 0)) travel = 0
@@ -191,13 +191,30 @@ class SettingsActivity : Activity() {
         rebuild()
     }
 
-    private fun rebuild() {
+    // True after a section was pressed open: the preview stays visible while you work in it, scrolling does not hide it
+    private var editing = false
+    private val headerViews = HashMap<String, View>()
+
+    /** Rebuilds the list. With [focus] the list scrolls so that section's title is at the top and its options are in view. */
+    private fun rebuild(focus: String? = null) {
         val y = scroll.scrollY
         col.removeAllViews()
+        headerViews.clear()
         build()
         applyFilter()
         applyTheme()
-        scroll.post { scroll.scrollTo(0, y) }
+        if (focus == null) { scroll.post { scroll.scrollTo(0, y) }; return }
+        // After the new list is laid out and before it is drawn: put the pressed title at the top (no jump to the very top)
+        val vto = scroll.viewTreeObserver
+        vto.addOnPreDrawListener(object : android.view.ViewTreeObserver.OnPreDrawListener {
+            override fun onPreDraw(): Boolean {
+                val o = if (scroll.viewTreeObserver.isAlive) scroll.viewTreeObserver else vto
+                o.removeOnPreDrawListener(this)
+                val hv = headerViews[focus]
+                if (hv != null && hv.height > 0) scroll.scrollTo(0, (hv.top - dp(8)).coerceAtLeast(0)) else scroll.scrollTo(0, y)
+                return true
+            }
+        })
     }
 
     private fun refreshWeatherNow() {
@@ -366,9 +383,11 @@ class SettingsActivity : Activity() {
                 if (Prefs.oneSection(this)) openSections.clear()
                 openSections.add(name)
             }
-            live.reveal()   // pressing a section brings the hidden preview back; scrolling hides it again
-            rebuild()
+            editing = openSections.isNotEmpty()
+            if (editing) live.reveal()   // pressing a section brings the preview back and keeps it while you work in the section
+            rebuild(if (open) null else name)
         }
+        headerViews[name] = h
         val lp = LinearLayout.LayoutParams(MATCH, WRAP)
         lp.topMargin = dp(12)
         col.addView(h, lp)
@@ -402,11 +421,11 @@ class SettingsActivity : Activity() {
         val openAll = Button(this)
         openAll.isAllCaps = false
         openAll.text = "Open all sections"
-        openAll.setOnClickListener { openSections.addAll(allSections); rebuild() }
+        openAll.setOnClickListener { openSections.addAll(allSections); editing = false; rebuild() }
         val closeAll = Button(this)
         closeAll.isAllCaps = false
         closeAll.text = "Close all sections"
-        closeAll.setOnClickListener { openSections.clear(); rebuild() }
+        closeAll.setOnClickListener { openSections.clear(); editing = false; rebuild() }
         openRow.addView(openAll, LinearLayout.LayoutParams(0, WRAP, 1f))
         openRow.addView(closeAll, LinearLayout.LayoutParams(0, WRAP, 1f))
         col.addView(openRow)
