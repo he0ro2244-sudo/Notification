@@ -827,7 +827,7 @@ class SettingsActivity : Activity() {
         for ((k, label) in Prefs.SHOW_ITEMS) {
             col.addView(toggleRaw(label, Prefs.showItem(this, k)) { Prefs.setShowItem(this, k, it); applyLook() })
         }
-        col.addView(hint("The mail icon changes with the Inbox (📬 → 📭 while it is empty). Your own emoji is shown as you picked it; set a separate one under "when empty" to change it. How the icons and the panel animate is in the Animation section below."))
+        col.addView(hint("The mail icon changes with the Inbox (📬 → 📭 while it is empty). Your own emoji is shown as you picked it; set a separate one under 'when empty' to change it. How the icons and the panel animate is in the Animation section below."))
         col.addView(title("Only when there are messages", 16f, 16))
         col.addView(hint("A part set here shows while the Inbox has messages and goes away when it is empty (after Clear all, Read all or Mark as read). It comes back with the next message. The count badge already works this way. The Move screen always shows every part, so you can still place it."))
         for ((k, label) in Prefs.HIDE_EMPTY_PARTS) {
