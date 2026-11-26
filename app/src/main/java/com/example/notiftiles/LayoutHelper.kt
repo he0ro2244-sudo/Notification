@@ -29,6 +29,15 @@ object LayoutHelper {
     private val UP = setOf("bigger", "larger", "more", "increase", "wider", "taller", "raise", "up")
     private val DOWN = setOf("smaller", "less", "decrease", "narrower", "shorter", "lower", "down")
 
+    /** Every setting item named in the sentence, in the order said (clock, mic, ...). */
+    fun itemsIn(input: String): List<String> {
+        val seen = LinkedHashSet<String>()
+        for (w in input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }) {
+            itemWord(Helper.canon(w))?.let { seen.add(it) }
+        }
+        return seen.toList()
+    }
+
     /** The setting item named in the sentence (clock, weather, ...), or null. */
     fun itemOf(input: String): String? = input.lowercase().split(Regex("[^a-z]+")).firstNotNullOfOrNull { itemWord(it) }
 

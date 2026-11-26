@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.78
+- New offline understanding model (res/raw/router.json, about 2 MB, no internet). When the helper does not know a sentence, the model reads what it means ("fix the spaces between rows", "the notes icon should go after the mic", "undo that", "make it see through") and rewrites it as a sentence the rules already understand.
+- The model is trained by tools/router/train.py. Run it again after adding phrases.
+- Below half confidence the model says nothing, so the rules and the Settings search take over as before.
+
 ## 1.1.77
 - When the helper does not know a word, it now compares the letters of what you typed with the Settings names and picks the closest one, even with several letters wrong ("fonst siz" finds Font size). No extra model file is needed, so the app stays small.
 

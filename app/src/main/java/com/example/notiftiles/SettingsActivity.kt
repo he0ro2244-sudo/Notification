@@ -473,7 +473,11 @@ class SettingsActivity : Activity() {
             col.addView(smallBtn("Make this change") {
                 val raw = box.text.toString()
                 // "it" and "that" mean the setting changed last
-                val input = lastTarget?.let { t -> raw.replace(Regex("\\b(it|that)\\b", RegexOption.IGNORE_CASE), t) } ?: raw
+                var input = lastTarget?.let { t -> raw.replace(Regex("\\b(it|that)\\b", RegexOption.IGNORE_CASE), t) } ?: raw
+                // Sentences the rules do not know: the offline model works out the meaning and rewrites it as a sentence they know
+                if (Helper.parseSentence(input) == null && Helper.firstEmoji(input) == null && Helper.bestLabel(input, collectLabels()) == null) {
+                    Router.route(this, input)?.let { input = it }
+                }
                 val inWords = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }
                 if (Helper.wordIn(inWords, "undo", "redo")) {
                     val undoIt = Helper.wordIn(inWords, "undo")
