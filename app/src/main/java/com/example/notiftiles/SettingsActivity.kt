@@ -366,6 +366,7 @@ class SettingsActivity : Activity() {
                 if (Prefs.oneSection(this)) openSections.clear()
                 openSections.add(name)
             }
+            live.reveal()   // pressing a section brings the hidden preview back; scrolling hides it again
             rebuild()
         }
         val lp = LinearLayout.LayoutParams(MATCH, WRAP)
