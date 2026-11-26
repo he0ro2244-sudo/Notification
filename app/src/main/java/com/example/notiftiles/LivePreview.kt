@@ -39,7 +39,9 @@ class LivePreview(private val act: Activity) {
     fun setAutoShrink(v: Boolean) { prefs.edit().putBoolean("ui_preview_mini", v).apply(); if (!v) shrink(false) }
 
     /** Makes the preview small ([on]) or normal again. It only redraws when the state really changes. */
+    private var holdUntil = 0L   // after it grew because of a change, it stays big for a moment so it does not jump back at once
     fun shrink(on: Boolean) {
+        if (on && android.os.SystemClock.uptimeMillis() < holdUntil) return
         val want = on && autoShrink() && mode != 0
         if (want == mini) return
         mini = want
@@ -55,7 +57,10 @@ class LivePreview(private val act: Activity) {
     }
     private val again = Runnable { render() }
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key != "ui_preview") refreshSoon()
+        if (key != null && key.startsWith("ui_")) return@OnSharedPreferenceChangeListener
+        // Something was changed while the preview was small: it grows so the change can be seen
+        if (mini) { mini = false; holdUntil = android.os.SystemClock.uptimeMillis() + 2500; updateBar() }
+        refreshSoon()
     }
 
     /** Puts the preview above [scroll] and returns the screen to show. It also takes care of the system bars. */
@@ -101,6 +106,7 @@ class LivePreview(private val act: Activity) {
 
     private fun updateBar() {
         val name = when (mode) { 0 -> "off"; 1 -> "small"; 2 -> "medium"; else -> "full size" }
+        bar.visibility = if (mini) View.GONE else View.VISIBLE   // small = just the strip
         bar.text = if (mode == 0) "Live preview: off  (tap to show it)"
         else if (mini) "Live preview: shrunk while you scroll  (tap to change the size)"
         else "Live preview: $name  (tap to change the size)"
@@ -139,7 +145,7 @@ class LivePreview(private val act: Activity) {
             val hMax = opt.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0)
             val hMin = opt.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0)
             val heightDp = (if (hMax > 0) hMax else hMin).coerceAtLeast(260)
-            val s = if (mini) 0.3f else when (mode) { 1 -> 0.5f; 2 -> 0.75f; else -> 1f }
+            val s = if (mini) 0.26f else when (mode) { 1 -> 0.5f; 2 -> 0.75f; else -> 1f }
             view.findViewById<View>(R.id.grid)?.visibility = View.INVISIBLE
             view.pivotX = dp(widthDp.toFloat()) / 2f
             view.pivotY = 0f
@@ -147,7 +153,7 @@ class LivePreview(private val act: Activity) {
             view.scaleY = s
             box.addView(view, FrameLayout.LayoutParams(dp(widthDp.toFloat()), dp(heightDp.toFloat()), Gravity.CENTER_HORIZONTAL))
             // Never take more than about a third of the screen: a tall widget is cropped, its top part is what you edit
-            val cap = if (mini) dp(120f) else Math.round(dm.heightPixels * 0.36f)
+            val cap = if (mini) dp(96f) else Math.round(dm.heightPixels * 0.36f)
             box.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, minOf(dp(heightDp * s), cap))
         } catch (e: Throwable) {
             android.util.Log.e("NotifTilesPreview", "Could not draw the live preview", e)

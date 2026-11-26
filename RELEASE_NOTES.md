@@ -1,5 +1,9 @@
 # Release notes
 
+## 1.1.53
+- **Live preview, smaller and smarter:** while you scroll down the settings the whole top part (the grey bar too) shrinks to a small strip. When you stop and change a setting, the preview grows back by itself so you can see the change; it stays big for a moment, then shrinks again the next time you scroll down. Scrolling back up also brings it back.
+- Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
+
 ## 1.1.52
 - **The live preview shrinks while you scroll the settings.** Scroll down and the preview at the top becomes a small strip (still showing what your changes do); scroll back up, or to the top, and it grows again. Switch it off with "Shrink the live preview while I scroll down the settings" in Settings > LOOK > Settings screen look. Tapping the grey bar still changes the preview size.
 - Not compiled here (no Android SDK in the build environment): please let the GitHub build run and try it.
