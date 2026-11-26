@@ -76,6 +76,7 @@ object Helper {
      */
     fun parseSentence(input: String): Triple<String, String, String>? {
         val t = input.lowercase().replace(Regex("[^a-z0-9 ]+"), " ").replace(Regex("\\s+"), " ").trim()
+            .split(" ").filter { it.isNotEmpty() }.joinToString(" ") { canon(it) }
         fun clean(s: String): String = s.split(" ").filter { it.isNotEmpty() && it !in ARTICLES }.joinToString(" ")
         Regex("^(?:make|match)\\s+(.+?)\\s+(?:like|same as|as)\\s+(.+)$").find(t)?.let {
             return Triple("copy", clean(it.groupValues[1]), clean(it.groupValues[2]))
@@ -115,7 +116,68 @@ object Helper {
         listOf("reset", "delete", "clear", "remove", "forget", "restore", "rebuild", "logout", "sign", "backup", "import", "export", "erase", "undo")
             .any { label.lowercase().contains(it) }
 
-    private fun hasAny(words: List<String>, set: Set<String>): Boolean = words.any { set.contains(it) }
+    private fun hasAny(words: List<String>, set: Set<String>): Boolean = words.any { w -> set.any { s -> w == s || (s.length >= 4 && near(w, s)) } }
+
+    /** True when one of [keys] is in [words], allowing a small spelling mistake. */
+    fun wordIn(words: List<String>, vararg keys: String): Boolean = words.any { w -> keys.any { k -> w == k || (k.length >= 4 && near(w, k)) } }
+
+    /** The command word a typed word stands for: itself, or the closest known word, when it is a letter or two wrong or sounds the same. */
+    fun canon(w: String): String {
+        if (w.length < 4 || w in BIG_VOCAB) return w
+        var best: String? = null
+        var bestD = Int.MAX_VALUE
+        for (v in BIG_VOCAB) {
+            if (v.length < 4 || !near(w, v)) continue
+            val d = lev(w, v)
+            if (d < bestD) { bestD = d; best = v }
+        }
+        if (best != null) return best
+        // Sounds the same ("colur" -> "colour", "incres" -> "increase")
+        val key = soundKey(w)
+        if (key.length >= 3) BIG_VOCAB.firstOrNull { v -> v.length >= 4 && soundKey(v) == key }?.let { return it }
+        return w
+    }
+
+    /** Plain edit distance between two words. */
+    private fun lev(a: String, b: String): Int {
+        val d = Array(a.length + 1) { IntArray(b.length + 1) }
+        for (i in 0..a.length) d[i][0] = i
+        for (j in 0..b.length) d[0][j] = j
+        for (i in 1..a.length) for (j in 1..b.length) {
+            val cost = if (a[i - 1] == b[j - 1]) 0 else 1
+            d[i][j] = minOf(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost)
+        }
+        return d[a.length][b.length]
+    }
+
+    /** A rough spelling-by-sound key: words that sound alike get the same key. */
+    private fun soundKey(w: String): String {
+        var s = w.lowercase().filter { it in 'a'..'z' }
+        s = s.replace("ph", "f").replace("ck", "k").replace("qu", "kw").replace("x", "ks")
+            .replace(Regex("c(?=[eiy])"), "s").replace("c", "k")
+            .replace(Regex("(.)\\1+"), "\$1")
+        if (s.length > 3 && s.endsWith("e")) s = s.dropLast(1)
+        if (s.isEmpty()) return s
+        return s.first() + s.drop(1).filter { it !in "aeiouy" }
+    }
+
+    /** Every word the helper knows, longer than two letters. Used to correct typed words. */
+    private val BIG_VOCAB: List<String> by lazy {
+        (VOCAB + BIGGER + SMALLER + OFF + ON + DARK + LIGHT + SEE_THROUGH + SOLID + WIDGET + TEXT + ANIM + ICON_WORDS +
+            CHANGE_WORDS + RESET + COLOURS.keys + SLOT_WORDS.map { it.first } + SYN.keys)
+            .filter { it.length >= 3 }.distinct().toList()
+    }
+
+    private val VOCAB = linkedSetOf(
+        "move", "put", "merge", "combine", "unmerge", "split", "separate", "gap", "spacing", "space", "between", "free",
+        "width", "wide", "wider", "narrower", "height", "tall", "taller", "shorter", "bigger", "smaller", "larger", "more", "less",
+        "increase", "decrease", "raise", "lower", "top", "bottom", "under", "below", "inbox", "first", "start", "hide", "show",
+        "before", "after", "left", "right", "up", "down", "undo", "redo", "change", "set", "make", "turn", "switch", "on", "off",
+        "to", "into", "as", "with", "like", "same", "of", "transparent", "solid", "opaque", "text", "font", "size", "animation",
+        "animations", "dark", "light", "random", "icon", "icons", "picture", "emoji", "normal", "default", "reset", "clock",
+        "weather", "date", "maps", "title", "count", "mic", "note", "clear", "edit", "gear", "setting", "settings", "colour",
+        "color", "accent", "theme", "widget", "background", "fast", "dial", "shortcut", "shape", "opacity", "through", "night", "day"
+    )
 
     private fun redraw(c: Context) = TilesWidget.rebuildAll(c.applicationContext)
 
@@ -150,9 +212,14 @@ object Helper {
     }
 
     /** True when the two words are the same, or differ by a letter or two (longer words allow more). */
-    private fun near(a: String, b: String): Boolean {
+    fun near(a: String, b: String): Boolean {
         if (a == b) return true
-        val max = if (a.length >= 8) 2 else if (a.length >= 5) 1 else 0
+        // Two letters swapped next to each other ("chnage" for "change") count as one mistake
+        if (a.length == b.length && a.length >= 4) {
+            val diff = (a.indices).filter { a[it] != b[it] }
+            if (diff.size == 2 && diff[1] == diff[0] + 1 && a[diff[0]] == b[diff[1]] && a[diff[1]] == b[diff[0]]) return true
+        }
+        val max = if (a.length >= 8) 2 else if (a.length >= 4) 1 else 0
         if (max == 0 || Math.abs(a.length - b.length) > max) return false
         val d = Array(a.length + 1) { IntArray(b.length + 1) }
         for (i in 0..a.length) d[i][0] = i
@@ -204,10 +271,10 @@ object Helper {
         if (t.isEmpty()) return Result("Type what you want to change, for example: make the widget more transparent.", false, "")
         // Words, with "see-through" and "see through" both read as "see" + "through"
         val words = t.replace("see-through", "seethrough").replace("see through", "seethrough")
-            .split(Regex("[^a-z]+")).filter { it.isNotEmpty() }.map { if (it == "seethrough") "transparent" else it }
+            .split(Regex("[^a-z]+")).filter { it.isNotEmpty() }.map { if (it == "seethrough") "transparent" else canon(it) }
 
         // A theme by its name (whole word, so "think" does not pick Ink)
-        val named = Themes.LIST.drop(1).firstOrNull { th -> words.contains(th.name.lowercase()) }
+        val named = Themes.LIST.drop(1).firstOrNull { th -> wordIn(words, th.name.lowercase()) && th.name.length >= 4 }
         if (named != null) {
             Themes.apply(c, named)
             redraw(c)

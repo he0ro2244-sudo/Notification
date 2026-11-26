@@ -475,8 +475,8 @@ class SettingsActivity : Activity() {
                 // "it" and "that" mean the setting changed last
                 val input = lastTarget?.let { t -> raw.replace(Regex("\\b(it|that)\\b", RegexOption.IGNORE_CASE), t) } ?: raw
                 val inWords = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }
-                if (inWords.contains("undo") || inWords.contains("redo")) {
-                    val undoIt = inWords.contains("undo")
+                if (Helper.wordIn(inWords, "undo", "redo")) {
+                    val undoIt = Helper.wordIn(inWords, "undo")
                     tracker.flush()
                     val ok = if (undoIt) tracker.undo(1) else tracker.redo(1)
                     applyLook()

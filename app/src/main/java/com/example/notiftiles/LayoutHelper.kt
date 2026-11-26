@@ -18,15 +18,19 @@ object LayoutHelper {
         "note" to "note", "notes" to "note",
         "clear" to "clear",
         "edit" to "edit", "pencil" to "edit",
-        "gear" to "gear", "settings" to "gear"
+        "gear" to "gear", "settings" to "gear", "setting" to "gear", "cog" to "gear"
     )
+    /** The item a word names, also for its plural ("clocks" -> clock). */
+    private fun itemWord(w: String): String? = ITEM_WORDS[w] ?: ITEM_WORDS[w.removeSuffix("s")]
+        ?: ITEM_WORDS.keys.firstOrNull { k -> k.length >= 4 && Helper.near(w, k) }?.let { ITEM_WORDS[it] }
+
     private val MERGEABLE = setOf("clock", "weather", "date")
     private val TOP_ITEMS = setOf("clock", "weather", "date", "maps")
     private val UP = setOf("bigger", "larger", "more", "increase", "wider", "taller", "raise", "up")
     private val DOWN = setOf("smaller", "less", "decrease", "narrower", "shorter", "lower", "down")
 
     /** The setting item named in the sentence (clock, weather, ...), or null. */
-    fun itemOf(input: String): String? = input.lowercase().split(Regex("[^a-z]+")).firstNotNullOfOrNull { ITEM_WORDS[it] }
+    fun itemOf(input: String): String? = input.lowercase().split(Regex("[^a-z]+")).firstNotNullOfOrNull { itemWord(it) }
 
     private fun cap(s: String): String = s.replaceFirstChar { it.uppercase() }
 
@@ -42,9 +46,9 @@ object LayoutHelper {
 
     /** Handles a layout sentence. Returns null when the sentence is not about the layout. */
     fun handle(c: Context, input: String): Helper.Result? {
-        val words = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }
+        val words = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }.map { Helper.canon(it) }
         val n = Helper.numberIn(input)
-        val item = words.firstNotNullOfOrNull { ITEM_WORDS[it] }
+        val item = words.firstNotNullOfOrNull { itemWord(it) }
         val up = words.any { it in UP }
         val down = words.any { it in DOWN }
 
@@ -57,7 +61,7 @@ object LayoutHelper {
 
         // Merge two or more of clock, weather and date
         if (words.contains("merge") || words.contains("combine")) {
-            val parts = words.mapNotNull { ITEM_WORDS[it] }.filter { it in MERGEABLE }.distinct()
+            val parts = words.mapNotNull { itemWord(it) }.filter { it in MERGEABLE }.distinct()
             if (parts.size < 2) return Helper.Result("Name two of clock, weather or date to merge, for example: merge the clock and the date.", false, "")
             Prefs.setMerged(c, parts.toSet())
             redraw(c)
@@ -81,7 +85,7 @@ object LayoutHelper {
         if (item == null) return null
 
         // Order inside a row: "move the clock before the weather", "after", "left of", "right of"
-        val pair = words.mapNotNull { ITEM_WORDS[it] }.distinct()
+        val pair = words.mapNotNull { itemWord(it) }.distinct()
         if (pair.size >= 2 && !words.contains("top") && (words.contains("before") || words.contains("after") || words.contains("left") || words.contains("right"))) {
             val x = pair[0]
             val y = pair[1]

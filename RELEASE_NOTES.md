@@ -1,5 +1,17 @@
 # Release notes
 
+## 1.1.75
+- The helper now also understands words that sound the same when spelled wrong ("colur", "incres", "hide" typed "hid"). It picks the closest known word, so a typo gets the best match rather than the first one found.
+- The helper knows every command word, colour, icon name and setting word when correcting typing, not just the core list.
+
+## 1.1.74
+- The offline helper now forgives spelling mistakes. Typos like "chnage", "invox", "setting" or "backgrnd" still find the right command. Short words stay exact so small words are not misread.
+- A swapped pair of letters next to each other counts as one mistake.
+- Theme names, undo/redo, layout sentences (move, merge, gap, width, height, show, hide) and settings names all use the same tolerant matching.
+
+## 1.1.73
+- **"Setting" means the gear:** "move the mic icon after the setting icon" works. Item names also match their plurals.
+
 ## 1.1.72
 - **Better helper matching:** it understands more ways of saying the same thing (colour and color, font and text, space and gap, transparent and opacity, plurals and small typos). It only picks short setting names, never section descriptions.
 - **Closed sections open by themselves:** if the setting is in a section that is closed, the helper opens that section first.
