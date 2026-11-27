@@ -303,6 +303,41 @@ object Helper {
         return if (bestScore >= 0.6) best else null
     }
 
+    /** Setting words that a 3-letter typo may be meant for. */
+    private val SHORT_FIX = listOf("size", "text", "font", "gap", "dial", "icon", "clock", "date", "mic", "note", "gear", "mail",
+        "inbox", "width", "height", "title", "count", "colour", "color", "wide", "tall", "shape", "theme", "fast", "border")
+
+    /**
+     * Corrects spelling mistakes in a whole typed sentence before the rules read it. A word the helper does not know is
+     * changed to its one clearly closest known word (a word from a setting name on the screen, or the helper's own words).
+     * Known words, short words, and words with two equally close matches are left exactly as typed.
+     */
+    fun fixTypos(input: String, labels: List<String>): String {
+        val known = LinkedHashSet<String>()
+        for (raw in labels) {
+            for (w in raw.lowercase().split(Regex("[^a-z]+"))) if (w.length >= 3) known.add(w)
+        }
+        known.addAll(BIG_VOCAB)
+        val candidates = known.filter { it.length >= 4 }
+        return Regex("[A-Za-z]+").replace(input) { m ->
+            val w = m.value.lowercase()
+            if (w in known) return@replace m.value
+            if (w.length == 3) {
+                // Short words are only fixed against the setting words that matter ("siz" -> "size"), never against ordinary words
+                val close = SHORT_FIX.filter { lev(w, it) <= 1 }
+                return@replace if (close.size == 1) close[0] else m.value
+            }
+            if (w.length < 4) return@replace m.value
+            // One letter wrong in a short word, up to two in a longer one ("dial" / "dail", "transparnt" / "transparent")
+            val max = if (w.length >= 7) 2 else 1
+            val close = candidates.filter { near(w, it) || lev(w, it) <= max }
+            if (close.isEmpty()) return@replace m.value
+            val best = close.minOf { lev(w, it) }
+            val top = close.filter { lev(w, it) == best }
+            if (top.size == 1) top[0] else m.value
+        }
+    }
+
     fun handle(c: Context, input: String, labels: List<String> = emptyList()): Result {
         val t = input.lowercase().trim()
         if (t.isEmpty()) return Result("Type what you want to change, for example: make the widget more transparent.", false, "")

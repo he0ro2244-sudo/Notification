@@ -1,5 +1,10 @@
 # Release notes
 
+## 1.1.88
+Everything below is added; nothing old was removed or changed.
+- **The helper fixes spelling mistakes in the whole sentence.** When the helper does not understand a sentence, it tries again with each word it does not know changed to its one clearly closest known word (a setting name on the screen, or the helper's own words). Sentences it already understands are not changed. Known words are never changed, and a word with two equally close matches is left as typed. Short typos such as *"siz"* are fixed only against setting words, so ordinary words are not changed.
+- **Teach the helper your own words.** *"learn make it pop means make the widget more solid"* saves the phrase; later, typing *"make it pop"* runs that command. *"when I say calm mode do ..."* works the same way. *"forget <words>"* removes one, and *"my words"* lists them all. Taught words are stored on this phone only.
+
 ## 1.1.81
 Everything below is added; nothing old was removed or changed.
 - **Where to? icon (the pin) can now be changed.** Settings > Where to? > **Where to? icon (the pin)** > *Change the Where to? icon*: the Google Maps icon from the phone (as before, still the default), the built-in red pin, an emoji (24 to choose from, or type your own), or your own picture from the gallery. It is also in the emoji list (**Where to? icon (the pin)**), and the helper can do it: *"change the pin icon to a car"*, *"use the red pin"*, *"use the Maps icon again"*, *"pin icon from my gallery"*, *"change the pin icon"* (opens the list).

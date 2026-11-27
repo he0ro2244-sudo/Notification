@@ -1833,6 +1833,9 @@ class SettingsActivity : Activity() {
         }
         // "it" and "that" mean the setting changed last
         var input = lastTarget?.let { t -> raw.replace(Regex("\\b(it|that)\\b", RegexOption.IGNORE_CASE), t) } ?: raw
+        // Words you taught the helper: "learn X means Y" saves it, and typing X later runs Y
+        Teach.handle(this, input)?.let { msg -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show(); return }
+        Teach.lookup(this, input)?.let { input = it }
         // Things the helper DOES: tidy the rows, add / change / remove fast dials and shortcuts, add a note
         // (the rules first, then the offline model's idea of what was meant)
         val act = HelperActions.handle(this, input) ?: Router.intent(this, input)?.let { HelperActions.handle(this, input, it) }
@@ -1896,7 +1899,15 @@ class SettingsActivity : Activity() {
             }
             note = res.second
         }
-        val r = Helper.handle(this, input, labels)
+        var r = Helper.handle(this, input, labels)
+        // Only when nothing above understood the sentence: try again with the spelling mistakes fixed
+        if (!r.changed && r.openSlot == null && r.rowLabel == null) {
+            val fixed = Helper.fixTypos(input, labels)
+            if (fixed != input) {
+                val r2 = Helper.handle(this, fixed, labels)
+                if (r2.changed || r2.openSlot != null || r2.rowLabel != null) r = r2
+            }
+        }
         val slot = r.openSlot
         val row = r.rowLabel
         when {
