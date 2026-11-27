@@ -14,6 +14,65 @@ import android.widget.TextView
 object EmojiPicker {
     class Slot(val key: String, val label: String, val builtIn: String, val choices: List<String>)
 
+    /** Emoji offered for the Where to? icon. */
+    val PIN_CHOICES = listOf(
+        "📍", "📌", "🗺️", "🧭", "🚗", "🚕", "🏠", "🏁", "🚩", "🎯", "🌍", "🛰️",
+        "⭐", "❤️", "🔥", "🚀", "✈️", "🚌", "🚲", "🅿️", "🧳", "🏖️", "🏔️", "☕"
+    )
+
+    /** The Where to? icon: the Google Maps icon, the red pin, an emoji or your own picture. [onPicture] opens the gallery; [onDone] runs after a change. */
+    fun pickPin(act: Activity, onPicture: () -> Unit, onDone: () -> Unit) {
+        val mode = Prefs.pinMode(act)
+        fun mark(m: Int) = if (mode == m) "✓  " else ""
+        val emoji = Prefs.emojiOf(act, "pin")
+        val items = arrayOf(
+            mark(0) + "Google Maps icon (the normal one)",
+            mark(1) + "Red pin",
+            mark(2) + "An emoji" + (if (emoji.isEmpty()) "" else "     $emoji"),
+            mark(3) + "My own picture"
+        )
+        AlertDialog.Builder(act)
+            .setTitle("Where to? icon")
+            .setItems(items) { _, i ->
+                when (i) {
+                    0, 1 -> {
+                        Prefs.setPinMode(act, i)
+                        TilesWidget.rebuildAll(act.applicationContext)
+                        onDone()
+                    }
+                    2 -> pick(act, SLOTS.first { it.key == "pin" }, onDone)
+                    else -> onPicture()
+                }
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
+    val PIC_CHOICES = listOf(
+        "✏️", "📝", "🖊️", "📷", "🖼️", "📸", "📌", "📎", "⭐", "❤️", "🔥", "💡",
+        "🎯", "📍", "🏠", "🚗", "🎵", "🎮", "📚", "🧾", "🔑", "💬", "🔔", "🛒"
+    )
+
+    /** What the circle of a pinned-picture shortcut shows: the picture itself or an emoji. Tapping it opens the picture either way. */
+    fun pickQuickPic(act: Activity, slot: Int, onDone: () -> Unit) {
+        val emoji = Prefs.quickPicEmoji(act, slot)
+        val items = arrayOf(
+            (if (emoji.isEmpty()) "✓  " else "") + "The picture itself",
+            (if (emoji.isNotEmpty()) "✓  " else "") + "An emoji" + (if (emoji.isEmpty()) "" else "     $emoji")
+        )
+        AlertDialog.Builder(act)
+            .setTitle("Circle icon (tapping still opens the picture)")
+            .setItems(items) { _, i ->
+                if (i == 0) {
+                    Prefs.setEmojiOf(act, "qpic$slot", "")
+                    TilesWidget.rebuildAll(act.applicationContext)
+                    onDone()
+                } else pick(act, Slot("qpic$slot", "Shortcut ${slot + 1} icon  (Normal icon = the picture)", "the picture", PIC_CHOICES), onDone)
+            }
+            .setNegativeButton("Close", null)
+            .show()
+    }
+
     val SLOTS = listOf(
         Slot("note", "Notes button (emoji only, no word)", "+ Note", Look.EMOJI_NOTE),
         Slot("mic", "Mic (voice recorder)", "mic icon", Look.EMOJI_MIC),
@@ -21,6 +80,7 @@ object EmojiPicker {
         Slot("clear", "Clear all", "none", Look.EMOJI_CLEAR),
         Slot("edit", "Pencil", "✎", Look.EMOJI_EDIT),
         Slot("gear", "Settings (gear)", "gear icon", Look.EMOJI_GEAR),
+        Slot("pin", "Where to? icon (the pin)", "Google Maps icon", PIN_CHOICES),
         Slot("inbox", "Inbox title", "none", Look.EMOJI_INBOX),
         // The same places while the inbox is empty ("same" = the icon above stays; 📬 turns into 📭 by itself)
         Slot("inbox_e", "Inbox title when empty", "automatic (📬 → 📭)", listOf("📭", "📪") + Look.EMOJI_INBOX),

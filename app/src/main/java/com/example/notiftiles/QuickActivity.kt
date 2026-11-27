@@ -677,6 +677,7 @@ class QuickActivity : Activity() {
             return
         }
         Prefs.setQuick(this, slot, q)
+        Prefs.setEmojiOf(this, "qpic$slot", "")
         Prefs.setQuickOn(this, true)
         PinnedPic.cleanUp(this)
         // Free layout: the next empty + circle would appear by itself and crowd the row, so it stays hidden

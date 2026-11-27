@@ -166,6 +166,7 @@ The blue mic at the start of the Inbox row starts recording. While recording the
 - "Learn the red button", the position sliders and "Check recorder entry points" help when your recorder app is different.
 
 ### Where to? (maps & location)
+- **Where to? icon (the pin)** (1.1.81): the Google Maps icon from your phone (the normal one), the red pin, an emoji, or your own picture from the gallery. *Change the Where to? icon* opens the list. The helper can do it too: *change the pin icon to a car*, *use the red pin*, *use the Maps icon again*.
 - **Travel mode** used when you search, and **Drive: start navigation straight away**.
 - **Turn on Location when I open it** and **Switch Location off again when navigation ends** (and "...even if Location was already on before").
 - **Where to? goes straight to the Google Maps search screen**: with the helper ON it taps Maps' search bar for you, so you get Maps' own suggestions, Home, Work and Recent.
@@ -267,3 +268,14 @@ In the HELPER box at the top of Settings, type or say a sentence. Everything it 
 - **Quick note**: *add a note buy milk*.
 - **Any setting by its name** (79 of them, all in the panel and widget): *dial size 50*, *text size bigger*, *turn the panel border off*, *make the accent red*, *panel background colour black*, *widget background colour #224466*, *make the widget more transparent*. Numbers stay inside the Settings slider's range. Colours take a name, a #RRGGBB code or *default*.
 - The helper's offline model is bigger (about 6.5 MB) and fixes spelling before it reads you. If it is not sure it does nothing and the Settings search takes over. Fast-dial and shortcut changes are not part of Undo.
+
+## Helper understands more (1.1.81)
+The helper now puts what you say into plainer words before it reads it, so more sentences work. Everything that worked before is the same.
+- **Several changes at once**: *make the text bigger and turn animations off*.
+- **Polite or chatty**: *hey, could you please make the widget more transparent, thanks*, *I want the text bigger*, *where is the font size*.
+- **Feelings**: *the text is too small*, *I can't read anything* (bigger text); *too bright*, *my eyes hurt* (dark look); *too dark* (light look); *the widget hides my wallpaper* (transparent); *I can't see the widget* (solid); *the animations are annoying* (animations off); *animations too fast* (slower); *it's boring*, *surprise me* (random theme); *too crowded* (more gap between rows); *too much space* (less); *it's messy* (tidy the rows).
+- **Other words**: *speed dial*, *wallpaper*, *night mode*, *day mode*, *cog wheel*, *crank up*, *tone down*, *zoom in*.
+- **Numbers in words**: *set the dial size to fifty*, *widget opacity to half*, *text size 50 percent*.
+- **Wishes**: *I like blue* or *make it purple* (accent colour), *get rid of the clock*, *I don't need the shortcuts* (hide), *bring back the clock* (show), *go back* or *oops* (undo).
+- **The Where to? icon**: *change the pin icon to a car*.
+A command still means what it says: *make the text small* makes it smaller; *the text is too small* makes it bigger.

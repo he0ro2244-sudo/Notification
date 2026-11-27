@@ -1,5 +1,20 @@
 # Release notes
 
+## 1.1.81
+Everything below is added; nothing old was removed or changed.
+- **Where to? icon (the pin) can now be changed.** Settings > Where to? > **Where to? icon (the pin)** > *Change the Where to? icon*: the Google Maps icon from the phone (as before, still the default), the built-in red pin, an emoji (24 to choose from, or type your own), or your own picture from the gallery. It is also in the emoji list (**Where to? icon (the pin)**), and the helper can do it: *"change the pin icon to a car"*, *"use the red pin"*, *"use the Maps icon again"*, *"pin icon from my gallery"*, *"change the pin icon"* (opens the list).
+- **The helper understands more sentences.** A new step (Understand.kt) puts what you said into plainer words BEFORE the older rules and the offline model read it, so everything that worked still works the same:
+  - Several changes in one sentence: *"make the text bigger and turn animations off"*, *"add shortcut Chrome and hide the clock"*. A note keeps all of its text.
+  - Politeness and filler are dropped: *"hey, could you please make the widget more transparent, thanks"*, *"I want the text bigger"*, *"how do I change the accent colour"*, *"where is the font size"*.
+  - Feelings become changes: *"the text is too small"* / *"I can't read anything"* (bigger text), *"too bright"* / *"my eyes hurt"* (dark look), *"too dark"* (light look), *"the widget hides my wallpaper"* (transparent), *"I can't see the widget"* (solid), *"the animations are annoying"* (animations off), *"animations too fast"* (slower), *"it's boring"* / *"surprise me"* (random theme), *"too crowded"* (more row gap), *"too much space"* (less), *"it's messy"* (tidy the rows). A command still means what it says: *"make the text small"* still makes it smaller.
+  - Other words for the same thing: *speed dial*, *wallpaper*, *night mode*, *day mode*, *cog wheel*, *crank up*, *tone down*, *zoom in*.
+  - Numbers in words: *"set the dial size to fifty"*, *"widget opacity to half"*, *"text size 50 percent"*.
+  - Everyday wishes: *"I like blue"* / *"make it purple"* (accent colour), *"get rid of the clock"*, *"I don't need the shortcuts"* (hide), *"bring back the clock"* (show), *"go back"* / *"oops"* (undo).
+  - Small spelling mistakes in these words are forgiven (*"transparant"*, *"anoying"*).
+  - The Settings search ignores more filler words (where, find, open, need, just ...).
+  - *"help"* lists all of this.
+- Not changed: the offline model (res/raw/router.json) is the same file. The new step only rewrites sentences before it, so it needed no retraining.
+
 ## 1.1.80
 Everything below is added; nothing old was removed or changed. Everything the helper does can still be done by hand on the normal screens.
 - **Tidy rows by sentence.** *"tidy the spaces between rows"*, *"fix the spaces between rows"*, *"put tidy spaces between rows"*. In the free layout this is the pencil's **Fix layout** (the same space between every two rows); *"space the items evenly"* is Tidy up: align and space evenly, and *"pack the items closer"* is Tidy up: pack items closer. In the normal rows layout the rows share one gap, so it is set to the designed 6. The helper opens Move for a moment and it closes by itself.

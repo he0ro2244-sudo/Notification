@@ -99,6 +99,7 @@ object PinnedPic {
     fun cleanUp(c: Context) {
         val used = HashSet<String>()
         for (i in 0 until Prefs.QUICK_SLOTS) Prefs.quick(c, i)?.let { if (it.type == "pic") used.add(it.target) }
+        Prefs.pinPic(c)?.let { used.add(it) }   // the picture chosen for the Where to? pin
         dir(c).listFiles()?.forEach { f ->
             val id = f.name.removeSuffix(".jpg")
             if (id !in used) delete(c, id)

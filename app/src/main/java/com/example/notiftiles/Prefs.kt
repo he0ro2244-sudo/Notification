@@ -121,7 +121,9 @@ object Prefs {
     fun removeAppShortcut(c: Context, pkg: String, i: Int) =
         putAppShortcuts(c, pkg, appShortcuts(c, pkg).filterIndexed { k, _ -> k != i })
 
-    fun clearQuick(c: Context, i: Int) = sp(c).edit().remove("quick_$i").apply()
+    fun clearQuick(c: Context, i: Int) = sp(c).edit().remove("quick_$i").remove("look_emoji_qpic$i").apply()
+    /** Emoji shown in the circle of a pinned-picture shortcut (empty = show the picture itself). Tapping still opens the picture. */
+    fun quickPicEmoji(c: Context, i: Int): String = emojiOf(c, "qpic$i")
 
     // ---- Fast dial (5 slots) ----
     const val DIAL_SLOTS = 5
@@ -982,6 +984,9 @@ object Prefs {
     fun dialAdd(c: Context): Boolean = sp(c).getBoolean("lay_dial_add", true)
     fun setDialAdd(c: Context, v: Boolean) { sp(c).edit().putBoolean("lay_dial_add", v).apply(); markTidy(c, v) }
     fun quickAdd(c: Context): Boolean = sp(c).getBoolean("lay_quick_add", true)
+    /** Pinned pictures sit inside the circle/shape like app icons (true), or fill the whole shape (false). */
+    fun picInside(c: Context): Boolean = sp(c).getBoolean("lay_pic_inside", true)
+    fun setPicInside(c: Context, v: Boolean) { sp(c).edit().putBoolean("lay_pic_inside", v).apply() }
     /** After a shortcut is chosen in the free layout, hide the + circle so no new item appears and crowds the row. */
     fun keepPlusHidden(c: Context): Boolean = sp(c).getBoolean("keep_plus_hidden", true)
     fun setKeepPlusHidden(c: Context, v: Boolean) = sp(c).edit().putBoolean("keep_plus_hidden", v).apply()
@@ -1273,7 +1278,23 @@ object Prefs {
     fun animSpeed(c: Context): Int = sp(c).getInt("anim_speed", 1)
     fun setAnimSpeed(c: Context, v: Int) = sp(c).edit().putInt("anim_speed", v).apply()
 
-    fun setEmojiOf(c: Context, k: String, v: String) = sp(c).edit().putString("look_emoji_$k", v.trim().take(8)).apply()
+    fun setEmojiOf(c: Context, k: String, v: String) {
+        val t = v.trim().take(8)
+        val e = sp(c).edit().putString("look_emoji_$k", t)
+        // Choosing an emoji for the Where to? pin also switches the pin to "emoji" (and "Normal icon" switches it back to the Maps icon)
+        if (k == "pin") e.putInt("look_pin_mode", if (t.isEmpty()) 0 else 2)
+        e.apply()
+    }
+
+    // ---- Where to? icon (the pin): 0 = the Google Maps icon from this phone (as before), 1 = the built-in red pin, 2 = an emoji (slot "pin"), 3 = my own picture ----
+    fun pinMode(c: Context): Int = sp(c).getInt("look_pin_mode", 0).coerceIn(0, 3)
+    fun setPinMode(c: Context, v: Int) = sp(c).edit().putInt("look_pin_mode", v.coerceIn(0, 3)).apply()
+    /** The id of the picture chosen for the pin (kept by PinnedPic), or null when none is set or the file is gone. */
+    fun pinPic(c: Context): String? {
+        val id = sp(c).getString("look_pin_pic", "") ?: ""
+        return if (id.isNotEmpty() && PinnedPic.file(c, id).exists()) id else null
+    }
+    fun setPinPic(c: Context, id: String) = sp(c).edit().putString("look_pin_pic", id).apply()
     // Message tiles in the panel: corner roundness (-1 = as designed), border style (0 solid, 1 dashed, 2 dotted),
     // own fill colour (0 = each app's colour) and how solid the fill is (100 = as designed)
     fun tileRadius(c: Context): Int = sp(c).getInt("look_tile_radius", -1)

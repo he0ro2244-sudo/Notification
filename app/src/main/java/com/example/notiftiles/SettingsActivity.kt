@@ -34,6 +34,7 @@ class SettingsActivity : Activity() {
     /** What the helper changed last, so "it" and "that" can mean it. */
     private var lastTarget: String? = null
     private val REQ_VOICE = 4711
+    private val REQ_PIN_PIC = 4712
     private lateinit var live: LivePreview
     private var scrimView: View? = null
     private var sheetView: View? = null
@@ -471,92 +472,8 @@ class SettingsActivity : Activity() {
             col.addView(box, LinearLayout.LayoutParams(MATCH, WRAP))
             col.addView(smallBtn("🎤 Speak a change") { startVoice() })
             col.addView(smallBtn("Make this change") {
-                val raw = box.text.toString()
-                // "it" and "that" mean the setting changed last
-                var input = lastTarget?.let { t -> raw.replace(Regex("\\b(it|that)\\b", RegexOption.IGNORE_CASE), t) } ?: raw
-                // Things the helper DOES: tidy the rows, add / change / remove fast dials and shortcuts, add a note
-                // (the rules first, then the offline model's idea of what was meant)
-                val act = HelperActions.handle(this, input) ?: Router.intent(this, input)?.let { HelperActions.handle(this, input, it) }
-                if (act != null) {
-                    Toast.makeText(this, act.message, Toast.LENGTH_LONG).show()
-                    if (act.changed) { applyLook(); rebuild() }
-                    return@smallBtn
-                }
-                // Sentences the rules do not know: the offline model works out the meaning and rewrites it as a sentence they know
-                if (Helper.parseSentence(input) == null && Helper.firstEmoji(input) == null && Helper.bestLabel(input, collectLabels()) == null) {
-                    Router.route(this, input)?.let { input = it }
-                }
-                val inWords = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }
-                if (Helper.wordIn(inWords, "undo", "redo")) {
-                    val undoIt = Helper.wordIn(inWords, "undo")
-                    tracker.flush()
-                    val ok = if (undoIt) tracker.undo(1) else tracker.redo(1)
-                    applyLook()
-                    rebuild()
-                    Toast.makeText(this, if (ok) (if (undoIt) "Undone." else "Redone.") else (if (undoIt) "Nothing to undo." else "Nothing to redo."), Toast.LENGTH_SHORT).show()
-                    return@smallBtn
-                }
-                // Every text on the Settings screen, so the helper can find any setting by its name
-                var labels = collectLabels()
-                // A setting in a closed section is not on the screen yet: open the section it belongs to
-                val probe = Helper.parseSentence(input)?.second ?: input
-                if (Helper.bestLabel(probe, labels) == null) {
-                    val sec = openSectionFor(input)
-                    if (sec != null) {
-                        rebuild(sec)
-                        labels = collectLabels()
-                    }
-                }
-                // Layout sentences: gaps, sizes, rows, merging, show / hide
-                val lay = LayoutHelper.handle(this, input)
-                if (lay != null) {
-                    Toast.makeText(this, lay.message, Toast.LENGTH_LONG).show()
-                    if (lay.changed) {
-                        LayoutHelper.itemOf(input)?.let { lastTarget = it }
-                        rebuild()
-                    }
-                    return@smallBtn
-                }
-                // Any setting by its name: "dial size 50", "panel border off", "accent red", "make the widget more transparent"
-                val ctl = HelperControl.handle(this, input)
-                if (ctl != null) {
-                    Toast.makeText(this, ctl.message, Toast.LENGTH_LONG).show()
-                    if (ctl.changed) { applyLook(); rebuild() }
-                    return@smallBtn
-                }
-                // "change X to Y", "match X with Y", "turn X on": done on the screen's own controls first
-                var note: String? = null
-                val cmd = Helper.parseSentence(input)
-                if (cmd != null && Helper.firstEmoji(input) == null) {
-                    val res = sentenceCommand(cmd.first, cmd.second, cmd.third, labels)
-                    if (res.first) {
-                        lastTarget = cmd.second
-                        Toast.makeText(this, res.second, Toast.LENGTH_LONG).show()
-                        rebuild()
-                        return@smallBtn
-                    }
-                    note = res.second
-                }
-                val r = Helper.handle(this, input, labels)
-                val slot = r.openSlot
-                val row = r.rowLabel
-                when {
-                    slot != null -> EmojiPicker.pick(this, EmojiPicker.SLOTS.first { it.key == slot }) { applyLook(); rebuild() }
-                    row != null -> {
-                        if (changeRow(row, input)) {
-                            Toast.makeText(this, "Changed: $row", Toast.LENGTH_LONG).show()
-                            rebuild()
-                        } else {
-                            val shown = revealRow(row)
-                            Toast.makeText(this, note ?: (if (shown) "Found \"$row\" and highlighted it." else "I found \"$row\" but could not show it."), Toast.LENGTH_LONG).show()
-                        }
-                    }
-                    else -> {
-                        val text = if (r.changed) r.message else (note ?: r.message)
-                        Toast.makeText(this, text, Toast.LENGTH_LONG).show()
-                        if (r.changed) rebuild() else searchBox.setText(r.search)
-                    }
-                }
+                // One sentence can hold several changes: "make the text bigger and turn animations off"
+                for (part in Understand.parts(box.text.toString())) runHelper(part)
             })
         }
 
@@ -1004,6 +921,7 @@ class SettingsActivity : Activity() {
         col.addView(hint("A second row of circles under the fast dial. Each circle can open an app, one screen (activity) inside an app, or a shortcut an app offers (like a direct WhatsApp chat). Tap the Add circle on the widget, or use Pick here. Circle size, colour, shape and names follow the fast-dial settings."))
         col.addView(toggleRaw("Show the shortcuts row", Prefs.quickOn(this)) { Prefs.setQuickOn(this, it); applyLook() })
         col.addView(toggleRaw("Show the + (Add) circle in the shortcuts row", Prefs.quickAdd(this)) { Prefs.setQuickAdd(this, it); applyLook() })
+        col.addView(toggleRaw("Pinned pictures sit inside the circle like other icons (off = picture fills the whole circle)", Prefs.picInside(this)) { Prefs.setPicInside(this, it); applyLook() })
         col.addView(toggleRaw("Free layout: after I choose a shortcut, hide the + circle (so no new item appears)", Prefs.keepPlusHidden(this)) { Prefs.setKeepPlusHidden(this, it) })
         for (i in 0 until Prefs.QUICK_SLOTS) {
             val q = Prefs.quick(this, i)
@@ -1021,6 +939,13 @@ class SettingsActivity : Activity() {
                 startActivity(Intent(this, QuickActivity::class.java).putExtra("slot", i).putExtra("pick", true))
             }
             row.addView(ch)
+            if (q != null && q.type == "pic") {
+                val ic = Button(this)
+                ic.isAllCaps = false
+                ic.text = "Icon"
+                ic.setOnClickListener { EmojiPicker.pickQuickPic(this, i) { applyLook(); rebuild() } }
+                row.addView(ic)
+            }
             if (q != null) {
                 val cl = Button(this)
                 cl.isAllCaps = false
@@ -1351,6 +1276,15 @@ class SettingsActivity : Activity() {
         }
 
         section("Where to? (maps & location)", "Maps search, navigation and Location switching") {
+        // ---- The icon of the Where to? box
+        col.addView(title("Where to? icon (the pin)", 16f, 12))
+        col.addView(hint("Now: " + when (Prefs.pinMode(this)) {
+            1 -> "red pin"
+            2 -> "emoji " + Prefs.emojiOf(this, "pin")
+            3 -> if (Prefs.pinPic(this) != null) "my own picture" else "my own picture (not found, red pin shown)"
+            else -> "Google Maps icon"
+        }))
+        col.addView(smallBtn("Change the Where to? icon") { EmojiPicker.pickPin(this, { pickPinPicture() }) { applyLook(); rebuild() } })
         // ---- "Where to?" search
         col.addView(title("\"Where to?\" search", 16f, 20))
         col.addView(hint("Travel mode used when you search"))
@@ -1878,6 +1812,112 @@ class SettingsActivity : Activity() {
         return box
     }
 
+    /**
+     * Runs one sentence typed into "Ask the helper". [said] is first put into plainer words by [Understand] (politeness, complaints such as
+     * "the text is too small", number words), then tried against the Where to? icon, the helper's actions, the offline model and the setting rules in turn.
+     */
+    private fun runHelper(said: String) {
+        val raw = Understand.rewrite(said)
+        // The Where to? icon (the pin)
+        val pin = Understand.pinIcon(this, raw)
+        if (pin != null) {
+            when (pin.openSlot) {
+                "pin" -> EmojiPicker.pickPin(this, { pickPinPicture() }) { applyLook(); rebuild() }
+                "pin_pic" -> pickPinPicture()
+                else -> {
+                    Toast.makeText(this, pin.message, Toast.LENGTH_LONG).show()
+                    if (pin.changed) { applyLook(); rebuild() }
+                }
+            }
+            return
+        }
+        // "it" and "that" mean the setting changed last
+        var input = lastTarget?.let { t -> raw.replace(Regex("\\b(it|that)\\b", RegexOption.IGNORE_CASE), t) } ?: raw
+        // Things the helper DOES: tidy the rows, add / change / remove fast dials and shortcuts, add a note
+        // (the rules first, then the offline model's idea of what was meant)
+        val act = HelperActions.handle(this, input) ?: Router.intent(this, input)?.let { HelperActions.handle(this, input, it) }
+        if (act != null) {
+            Toast.makeText(this, act.message, Toast.LENGTH_LONG).show()
+            if (act.changed) { applyLook(); rebuild() }
+            return
+        }
+        // Sentences the rules do not know: the offline model works out the meaning and rewrites it as a sentence they know
+        if (Helper.parseSentence(input) == null && Helper.firstEmoji(input) == null && Helper.bestLabel(input, collectLabels()) == null) {
+            Router.route(this, input)?.let { input = it }
+        }
+        val inWords = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }
+        if (Helper.wordIn(inWords, "undo", "redo")) {
+            val undoIt = Helper.wordIn(inWords, "undo")
+            tracker.flush()
+            val ok = if (undoIt) tracker.undo(1) else tracker.redo(1)
+            applyLook()
+            rebuild()
+            Toast.makeText(this, if (ok) (if (undoIt) "Undone." else "Redone.") else (if (undoIt) "Nothing to undo." else "Nothing to redo."), Toast.LENGTH_SHORT).show()
+            return
+        }
+        // Every text on the Settings screen, so the helper can find any setting by its name
+        var labels = collectLabels()
+        // A setting in a closed section is not on the screen yet: open the section it belongs to
+        val probe = Helper.parseSentence(input)?.second ?: input
+        if (Helper.bestLabel(probe, labels) == null) {
+            val sec = openSectionFor(input)
+            if (sec != null) {
+                rebuild(sec)
+                labels = collectLabels()
+            }
+        }
+        // Layout sentences: gaps, sizes, rows, merging, show / hide
+        val lay = LayoutHelper.handle(this, input)
+        if (lay != null) {
+            Toast.makeText(this, lay.message, Toast.LENGTH_LONG).show()
+            if (lay.changed) {
+                LayoutHelper.itemOf(input)?.let { lastTarget = it }
+                rebuild()
+            }
+            return
+        }
+        // Any setting by its name: "dial size 50", "panel border off", "accent red", "make the widget more transparent"
+        val ctl = HelperControl.handle(this, input)
+        if (ctl != null) {
+            Toast.makeText(this, ctl.message, Toast.LENGTH_LONG).show()
+            if (ctl.changed) { applyLook(); rebuild() }
+            return
+        }
+        // "change X to Y", "match X with Y", "turn X on": done on the screen's own controls first
+        var note: String? = null
+        val cmd = Helper.parseSentence(input)
+        if (cmd != null && Helper.firstEmoji(input) == null) {
+            val res = sentenceCommand(cmd.first, cmd.second, cmd.third, labels)
+            if (res.first) {
+                lastTarget = cmd.second
+                Toast.makeText(this, res.second, Toast.LENGTH_LONG).show()
+                rebuild()
+                return
+            }
+            note = res.second
+        }
+        val r = Helper.handle(this, input, labels)
+        val slot = r.openSlot
+        val row = r.rowLabel
+        when {
+            slot != null -> EmojiPicker.pick(this, EmojiPicker.SLOTS.first { it.key == slot }) { applyLook(); rebuild() }
+            row != null -> {
+                if (changeRow(row, input)) {
+                    Toast.makeText(this, "Changed: $row", Toast.LENGTH_LONG).show()
+                    rebuild()
+                } else {
+                    val shown = revealRow(row)
+                    Toast.makeText(this, note ?: (if (shown) "Found \"$row\" and highlighted it." else "I found \"$row\" but could not show it."), Toast.LENGTH_LONG).show()
+                }
+            }
+            else -> {
+                val text = if (r.changed) r.message else (note ?: r.message)
+                Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+                if (r.changed) rebuild() else searchBox.setText(r.search)
+            }
+        }
+    }
+
     private fun imageRow(label: String, kind: String): View {
         val box = LinearLayout(this)
         box.orientation = LinearLayout.VERTICAL
@@ -1906,6 +1946,16 @@ class SettingsActivity : Activity() {
             box.addView(seekRange("Picture strength", Prefs.imgAlpha(this, kind), 10, 100, "%") { Prefs.setImgAlpha(this, kind, it) })
         }
         return box
+    }
+
+    /** Opens the gallery to choose the picture for the Where to? icon. */
+    private fun pickPinPicture() {
+        try {
+            val i = Intent(Intent.ACTION_GET_CONTENT).setType("image/*")
+            startActivityForResult(Intent.createChooser(i, "Choose the Where to? icon"), REQ_PIN_PIC)
+        } catch (e: Exception) {
+            Toast.makeText(this, "No gallery app found", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun pickImage(kind: String) {
@@ -1950,6 +2000,22 @@ class SettingsActivity : Activity() {
                 }
                 runOnUiThread {
                     Toast.makeText(this, if (n >= 0) "Restored $n settings" else "That file is not a Notif Tiles backup", Toast.LENGTH_LONG).show()
+                    applyLook()
+                    rebuild()
+                }
+            }.start()
+        }
+        if (requestCode == REQ_PIN_PIC && resultCode == RESULT_OK && uri != null) {
+            Thread {
+                val id = PinnedPic.save(applicationContext, uri)
+                if (id != null) {
+                    Prefs.setPinPic(applicationContext, id)
+                    Prefs.setPinMode(applicationContext, 3)
+                    PinnedPic.cleanUp(applicationContext)
+                    TilesWidget.rebuildAll(applicationContext)
+                }
+                runOnUiThread {
+                    Toast.makeText(this, if (id != null) "Where to? icon set" else "Could not use that picture", Toast.LENGTH_SHORT).show()
                     applyLook()
                     rebuild()
                 }

@@ -403,9 +403,40 @@ class TilesWidget : AppWidgetProvider() {
             if (key == "maps" && Prefs.whereWidth(ctx) > 0) R.layout.item_free_where else ITEM_LAYOUT.getValue(key)
 
         // Show the real Google Maps icon from this phone; the built-in red pin stays if Maps isn't installed.
+        // Settings > Where to? > Where to? icon can change it: the Maps icon (normal), the red pin, an emoji or your own picture.
         private fun mapsIcon(rv: RemoteViews, ctx: Context) {
-            val bmp = appIconBitmap(ctx, "com.google.android.apps.maps") ?: return // keep the default pin
+            val bmp: android.graphics.Bitmap? = when (Prefs.pinMode(ctx)) {
+                1 -> null
+                2 -> Prefs.emojiOf(ctx, "pin").let { if (it.isEmpty()) null else emojiBitmap(it) }
+                3 -> Prefs.pinPic(ctx)?.let { PinnedPic.thumb(ctx, it) }
+                else -> appIconBitmap(ctx, "com.google.android.apps.maps")
+            }
+            if (bmp == null) {
+                // the built-in red pin (also the fallback when Maps is not installed or the picture is gone)
+                for (pin in W_PIN) rv.setImageViewResource(pin, R.drawable.ic_pin)
+                return
+            }
             for (pin in W_PIN) rv.setImageViewBitmap(pin, bmp)
+        }
+
+        private val emojiCache = HashMap<String, android.graphics.Bitmap>()
+
+        /** An emoji drawn as a small picture, so it can stand in the widget's icon. */
+        private fun emojiBitmap(e: String): android.graphics.Bitmap {
+            synchronized(emojiCache) { emojiCache[e]?.let { return it } }
+            val size = 96
+            val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+            val cv = android.graphics.Canvas(bmp)
+            val p = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+            p.textSize = size * 0.78f
+            p.textAlign = android.graphics.Paint.Align.CENTER
+            val fm = p.fontMetrics
+            cv.drawText(e, size / 2f, size / 2f - (fm.ascent + fm.descent) / 2f, p)
+            synchronized(emojiCache) {
+                if (emojiCache.size > 12) emojiCache.clear()
+                emojiCache[e] = bmp
+            }
+            return bmp
         }
 
         private fun txt(rv: RemoteViews, ctx: Context, id: Int, text: String, baseSp: Float, bold: Boolean) =
@@ -815,8 +846,9 @@ class TilesWidget : AppWidgetProvider() {
                     val bgc = if (dc != 0) dc else st.bg(dark)
                     val letterC = Prefs.partColor(ctx, "dialletter")
                     val fgc = if (letterC != 0) letterC else if (dc != 0) Look.contrast(dc) else st.fg(dark)
-                    val icon = if (q == null) null else if (q.type == "pic") PinnedPic.thumb(ctx, q.target) else appIconBitmap(ctx, q.pkg)
-                    val isPic = q?.type == "pic"
+                    val picEmoji = if (q?.type == "pic") Prefs.quickPicEmoji(ctx, i) else ""
+                    val icon = if (q == null) null else if (picEmoji.isNotEmpty()) emojiBitmap(picEmoji) else if (q.type == "pic") PinnedPic.thumb(ctx, q.target) else appIconBitmap(ctx, q.pkg)
+                    val isPic = q?.type == "pic" && picEmoji.isEmpty()
                     val initial = if (q == null) "+" else if (icon != null) "" else q.name.trim().firstOrNull()?.uppercaseChar()?.toString() ?: "•"
                     txt(rv, ctx, Q_CIRCLE[i], initial, 18f * isc(ctx, "q$i") * psc(ctx, "quickletter"), true)
                     rv.setTextColor(Q_CIRCLE[i], fgc)
@@ -826,7 +858,7 @@ class TilesWidget : AppWidgetProvider() {
                     rv.setViewLayoutHeight(Q_CIRCLE[i], qh, TypedValue.COMPLEX_UNIT_DIP)
                     if (icon != null) {
                         rv.setImageViewBitmap(Q_ICON[i], icon)
-                        val iconSize = if (isPic) qm * 0.94f else qm * 0.62f   // a pinned picture fills its circle
+                        val iconSize = if (isPic) (if (Prefs.picInside(ctx)) qm * 0.72f else qm * 0.94f) else qm * 0.62f   // a pinned picture sits inside the shape like other icons (or fills it)
                         rv.setViewLayoutWidth(Q_ICON[i], iconSize, TypedValue.COMPLEX_UNIT_DIP)
                         rv.setViewLayoutHeight(Q_ICON[i], iconSize, TypedValue.COMPLEX_UNIT_DIP)
                         rv.setViewVisibility(Q_ICON[i], View.VISIBLE)

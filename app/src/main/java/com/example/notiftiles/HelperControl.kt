@@ -66,7 +66,9 @@ object HelperControl {
     const val HELP = "I can: change any setting by name (\"dial size 50\", \"turn the panel border off\", \"accent red\"), " +
         "add or remove fast dials (\"add fast dial Mom 0501234567\") and shortcuts (\"add shortcut WhatsApp\"), " +
         "tidy the rows like the pencil's Fix layout (\"tidy the spaces between rows\"), merge, move and resize items, " +
-        "change themes and icons, add a note, and undo or redo."
+        "change themes and icons (also the Where to? pin: \"change the pin icon to a car\"), add a note, and undo or redo. " +
+        "I also understand everyday wishes (\"the text is too small\", \"it is too bright\", \"too crowded\", \"I am bored of this look\") " +
+        "and several changes in one sentence (\"make the text bigger and turn animations off\")."
 
     fun handle(c: Context, input: String): Helper.Result? {
         val raw = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }

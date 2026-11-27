@@ -13,7 +13,10 @@ object Helper {
 
     private val STOP = setOf("make", "the", "more", "less", "and", "with", "for", "can", "you", "want", "change", "set", "please",
         "turn", "off", "on", "do", "its", "this", "that", "how", "some", "bit", "very", "much", "into", "my", "i", "to", "a", "an",
-        "is", "it", "me", "should", "would", "could", "like", "be", "become", "get", "let", "lets", "i'd", "id", "something", "so")
+        "is", "it", "me", "should", "would", "could", "like", "be", "become", "get", "let", "lets", "i'd", "id", "something", "so",
+        // everyday filler, so "where is the font size" or "I need the text bigger" still find the right setting
+        "where", "find", "open", "take", "go", "what", "whats", "need", "wanna", "just", "also", "way", "option", "options", "have", "has",
+        "got", "there", "here", "any", "anything", "thing", "things", "kind", "kinda", "sort", "really", "actually", "maybe")
 
     private val WIDGET = setOf("widget", "widgets", "background", "backdrop", "home", "screen", "box")
     private val TEXT = setOf("text", "texts", "font", "fonts", "writing", "letters", "words", "size", "labels")
