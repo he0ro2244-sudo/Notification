@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="nt_bg">#EEF2F2F5</color>
+    <color name="nt_text">#1B1B1F</color>
+    <color name="nt_sub">#5E5E66</color>
+    <color name="nt_badge">#3B82F6</color>
+    <color name="nt_circle">#FFFFFFFF</color>
+</resources>

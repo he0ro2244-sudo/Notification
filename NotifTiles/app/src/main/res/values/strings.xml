@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_desc">Notification tiles from the apps you choose</string>
+    <string name="rec_tap_desc">Presses the red record button in your phone\'s Recorder after the Notif Tiles mic opens it. It also reads the temperature shown in your phone\'s weather app when you open it, so the widget can show the same number. It only watches the Recorder and weather apps and does nothing else.</string>
+</resources>

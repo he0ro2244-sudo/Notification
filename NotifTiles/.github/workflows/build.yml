@@ -1,0 +1,65 @@
+name: Build APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.7
+      - name: Use my own signing key from GitHub Secrets (only if KEYSTORE_B64 is set)
+        env:
+          KS: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KS" ]; then echo "$KS" | base64 -d > app/notiftiles-debug.keystore; fi
+      - name: Build
+        env:
+          NT_KS_PASS: ${{ secrets.KEYSTORE_PASS }}
+        run: |
+          set -o pipefail
+          gradle assembleDebug --no-daemon --console=plain 2>&1 | tee build.log
+      - name: Unit tests (a failure here does not stop the APK)
+        continue-on-error: true
+        run: gradle testDebugUnitTest --no-daemon --console=plain
+      - name: Smaller, faster release build (a failure here does not stop the debug APK)
+        continue-on-error: true
+        env:
+          NT_KS_PASS: ${{ secrets.KEYSTORE_PASS }}
+        run: gradle assembleRelease --no-daemon --console=plain
+      - name: Show errors in summary
+        if: failure()
+        run: |
+          echo '### Build errors' >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          grep -E '^e: |error:|What went wrong|Execution failed' -A4 build.log | head -80 >> "$GITHUB_STEP_SUMMARY" || true
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: notiftiles-apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+      - name: Publish APK as a release (easy download on the phone)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Notif Tiles build ${{ github.run_number }}
+          prerelease: true
+          body_path: RELEASE_NOTES.md
+          files: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/release/app-release.apk

@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission
+        android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.CREATE_SHORTCUT" />
+        </intent>
+        <package android:name="com.google.android.apps.maps" />
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.CREATE_NOTE" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        <package android:name="com.google.android.keep" />
+        <package android:name="com.samsung.android.app.notes" />
+        <package android:name="com.microsoft.office.onenote" />
+        <package android:name="com.evernote" />
+        <package android:name="com.automattic.simplenote" />
+        <package android:name="md.obsidian" />
+        <intent>
+            <action android:name="android.provider.MediaStore.RECORD_SOUND" />
+        </intent>
+        <package android:name="com.coloros.soundrecorder" />
+        <package android:name="com.oplus.soundrecorder" />
+        <package android:name="com.oneplus.soundrecorder" />
+        <package android:name="com.google.android.apps.recorder" />
+        <package android:name="com.sec.android.app.voicenote" />
+        <package android:name="com.android.soundrecorder" />
+        <package android:name="com.miui.soundrecorder" />
+        <package android:name="com.huawei.soundrecorder" />
+        <package android:name="com.motorola.soundrecorder" />
+        <package android:name="com.sonymobile.androidapp.audiorecorder" />
+        <package android:name="com.nothing.soundrecorder" />
+        <package android:name="com.lge.voicerecorder" />
+    </queries>
+
+    <application
+        android:allowBackup="false"
+        android:icon="@drawable/ic_tiles"
+        android:label="Notif Tiles"
+        android:theme="@style/NtTheme">
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Notif Tiles setup">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".PanelActivity"
+            android:exported="true"
+            android:label="Notif Tiles"
+            android:theme="@style/NtPanelTheme"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".DialActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".QuickActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".PinnedPicActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".EditMenuActivity"
+            android:exported="false"
+            android:label="Pencil"
+            android:theme="@style/NtTheme" />
+
+        <activity
+            android:name=".MoveActivity"
+            android:exported="false"
+            android:label="Move items"
+            android:theme="@style/NtTheme" />
+
+        <activity
+            android:name=".ArrangeActivity"
+            android:exported="false"
+            android:label="Arrange &amp; resize"
+            android:theme="@style/NtTheme" />
+
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="Look &amp; colors"
+            android:theme="@style/NtTheme" />
+
+        <activity
+            android:name=".RecordActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".OpenClockActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".OpenWeatherActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".RefreshActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <activity
+            android:name=".DestinationActivity"
+            android:exported="false"
+            android:windowSoftInputMode="stateVisible|adjustResize"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@style/NtPanelTheme" />
+
+        <receiver
+            android:name=".TilesWidget"
+            android:exported="true"
+            android:label="Notif Tiles">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/tiles_widget_info" />
+        </receiver>
+
+        <service
+            android:name=".RecorderTapService"
+            android:exported="false"
+            android:label="Notif Tiles recorder button"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/recorder_tap_service" />
+        </service>
+
+        <service
+            android:name=".RecordService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+
+        <service
+            android:name=".TilesService"
+            android:exported="true"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <service
+            android:name=".NotifListener"
+            android:exported="true"
+            android:label="Notif Tiles"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>

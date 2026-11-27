@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="nt_orig" type="id" />
+    <item name="nt_press" type="id"/>
+    <item name="nt_grp" type="id" />
+    <item name="nt_alive" type="id" />
+</resources>

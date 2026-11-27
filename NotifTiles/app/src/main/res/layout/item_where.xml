@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wloc"
+    android:layout_width="0dp"
+    android:layout_height="40dp"
+    android:layout_marginStart="8dp"
+    android:layout_weight="1"
+    android:background="@drawable/nt_pill_bg"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="8dp"
+    android:paddingEnd="6dp"
+    android:visibility="gone">
+
+    <ImageView
+        android:id="@+id/wpin"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_pin" />
+
+    <TextView
+        android:id="@+id/ww"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="5dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:text="Where to?"
+        android:textColor="@color/nt_sub"
+        android:textSize="12sp" />
+</LinearLayout>
