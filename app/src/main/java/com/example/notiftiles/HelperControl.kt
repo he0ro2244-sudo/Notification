@@ -137,6 +137,7 @@ Small spelling mistakes are fine, and "make" and "change" mean the same.
 
     fun handle(c: Context, input: String): Helper.Result? {
         if (isHelp(input)) return Helper.Result(HELP, false, "")
+        val raw = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }
         // "make X like Y" is handled by the copy command, not here
         if (Helper.parseSentence(input)?.first == "copy") return null
         val sentence = tokens(input)
