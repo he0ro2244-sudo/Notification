@@ -1,0 +1,64 @@
+# sentence	expected result (what the helper should do)
+dial size 50	Fast-dial circles size is now 50
+make the dial size 50	Fast-dial circles size is now 50
+chnage the dial size to 50	Fast-dial circles size is now 50 (typo tolerance)
+text size bigger	Text size goes up one step
+the text is too small	Text size goes up (feeling rule)
+turn the panel border off	Panel border is off
+turn off the panel border	Panel border is off
+panel border on	Panel border is on
+accent red	Accent colour is red
+make the accent red	Accent colour is red
+make the inbox title colour blue	Text colour: Inbox title is blue
+clock size 120	Clock circle size is 120 (clamped to its range)
+hide the weather circle	Weather circle is hidden
+show the weather circle	Weather circle is shown
+shape rounded square	Shape is Rounded square
+change the shape to round	Shape is Round
+temperature adjust 2	Temperature adjust is 2
+sort order oldest first	Order of the messages is Oldest first
+scroll mode pages	How the tiles scroll is Pages
+widget picture strength 60	Widget picture strength is 60
+empty message wording to Nothing new today	Message when nothing is new is "Nothing new today"
+update word to Updated	Update word is "Updated"
+save this layout as Work	Saved the layout as "Work"
+load layout Work	Loaded the layout "Work" (or lists the saved layouts if missing)
+delete layout Work	Deleted the layout "Work"
+list layouts	Lists the saved layouts
+theme Midnight	Theme set to Midnight
+random theme	Random theme
+reset everything	Asks to confirm, does nothing yet
+confirm reset	Resets everything, only within two minutes of asking
+pin WhatsApp	WhatsApp is pinned to the top
+unpin WhatsApp	WhatsApp is no longer pinned to the top
+mute Gmail	Gmail is muted
+unmute Gmail	Gmail is no longer muted
+quiet hours from 11pm to 7am	Quiet hours are on from 23:00 to 07:00
+quiet hours from 23:00 to 07:00	Quiet hours are on from 23:00 to 07:00
+hide the snooze button	Snooze is hidden under messages
+show the mute button	Mute chat is shown under messages
+move mute to the top	Mute chat is now at place 1 under messages
+add page Work with WhatsApp and Gmail	Page "Work" is ready; My pages is on
+add Gmail to page Work	Gmail is on the page "Work"
+delete page Work	Deleted the page "Work"
+remove the widget picture	The widget picture is removed
+change the panel picture	Opens the picker for the panel picture
+close animation fade	Panel closes uses Fade out
+turn off the mic animation	Mic has no animation
+animations off	Animations are off (existing rule)
+add a note buy milk	Note added: buy milk
+undo	Undo the last change
+add fast dial Mom 0501234567	A fast dial named Mom is added
+add shortcut WhatsApp	WhatsApp shortcut is added
+tidy the spaces between rows	Rows are tidied
+help	Opens the full list in a dialog
+what can you do	Opens the full list in a dialog
+xyzzy plugh	Not understood: shows the closest names, a tip to teach, and logs the sentence
+learn make it pop means make the widget more solid	Saves the taught phrase
+make it pop	Runs the taught phrase: widget more solid
+boost the text	Text size goes up (synonym: boost)
+make the font bigger	Text size goes up (synonym: font)
+letters smaller	Text size goes down (synonym: letters)
+slimmer panel border	Panel border thickness goes down (synonym: slimmer)
+thicker tile border	Tile border thickness goes up (synonym: thicker)
+bg colour blue	Widget background colour is blue (synonym: bg)

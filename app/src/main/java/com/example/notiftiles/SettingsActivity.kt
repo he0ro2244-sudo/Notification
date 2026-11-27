@@ -1834,6 +1834,20 @@ class SettingsActivity : Activity() {
         // "it" and "that" mean the setting changed last
         var input = lastTarget?.let { t -> raw.replace(Regex("\\b(it|that)\\b", RegexOption.IGNORE_CASE), t) } ?: raw
         // Words you taught the helper: "learn X means Y" saves it, and typing X later runs Y
+        // "help": the full list, in a dialog so that nothing is cut off
+        if (HelperControl.isHelp(input)) {
+            android.app.AlertDialog.Builder(this).setTitle("What the helper can do")
+                .setMessage(HelperControl.FULL_HELP).setPositiveButton("OK", null)
+                .setNeutralButton("Sentences it missed") { _, _ ->
+                    val miss = HelperLog.recent(this)
+                    android.app.AlertDialog.Builder(this).setTitle("Sentences it missed")
+                        .setMessage(if (miss.isEmpty()) "Nothing yet." else miss.joinToString("\n"))
+                        .setPositiveButton("OK", null)
+                        .setNeutralButton("Clear") { _, _ -> HelperLog.clear(this) }
+                        .show()
+                }.show()
+            return
+        }
         Teach.handle(this, input)?.let { msg -> Toast.makeText(this, msg, Toast.LENGTH_LONG).show(); return }
         Teach.lookup(this, input)?.let { input = it }
         // Things the helper DOES: tidy the rows, add / change / remove fast dials and shortcuts, add a note
@@ -1842,6 +1856,7 @@ class SettingsActivity : Activity() {
         if (act != null) {
             Toast.makeText(this, act.message, Toast.LENGTH_LONG).show()
             if (act.changed) { applyLook(); rebuild() }
+            act.openSlot?.takeIf { it.startsWith("pic:") }?.let { pickImage(it.removePrefix("pic:")) }
             return
         }
         // Sentences the rules do not know: the offline model works out the meaning and rewrites it as a sentence they know
@@ -1911,6 +1926,7 @@ class SettingsActivity : Activity() {
         val slot = r.openSlot
         val row = r.rowLabel
         when {
+            slot != null && slot.startsWith("pic:") -> pickImage(slot.removePrefix("pic:"))
             slot != null -> EmojiPicker.pick(this, EmojiPicker.SLOTS.first { it.key == slot }) { applyLook(); rebuild() }
             row != null -> {
                 if (changeRow(row, input)) {
@@ -1923,8 +1939,17 @@ class SettingsActivity : Activity() {
             }
             else -> {
                 val text = if (r.changed) r.message else (note ?: r.message)
-                Toast.makeText(this, text, Toast.LENGTH_LONG).show()
-                if (r.changed) rebuild() else searchBox.setText(r.search)
+                if (r.changed) {
+                    Toast.makeText(this, text, Toast.LENGTH_LONG).show()
+                    rebuild()
+                } else {
+                    // Not understood: keep the sentence for review, offer the closest names and a way to teach the helper
+                    HelperLog.add(this, raw)
+                    val close = HelperControl.suggestions(input, labels)
+                    val did = if (close.isNotEmpty()) "\nDid you mean: " + close.joinToString(" / ") + "?" else ""
+                    Toast.makeText(this, text + did + "\nTip: teach me your words with \"learn <your words> means <what to do>\".", Toast.LENGTH_LONG).show()
+                    searchBox.setText(r.search)
+                }
             }
         }
     }

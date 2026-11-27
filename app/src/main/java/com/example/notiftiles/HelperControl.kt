@@ -10,8 +10,10 @@ import android.content.Context
  * a number, a bigger / smaller word, on / off, or a colour. When it is not sure it says nothing and the other helper rules go on.
  */
 object HelperControl {
-    private val UP = setOf("bigger", "larger", "more", "increase", "up", "wider", "taller", "raise", "higher", "grow", "enlarge", "longer", "greater")
-    private val DOWN = setOf("smaller", "less", "decrease", "down", "lower", "shrink", "reduce", "narrower", "shorter", "tiny", "fewer", "thinner")
+    private val UP = setOf("bigger", "larger", "more", "increase", "up", "wider", "taller", "raise", "higher", "grow", "enlarge", "longer", "greater",
+        "boost", "stronger", "thicker", "heavier", "huge", "large", "extra", "expand", "fatter", "deeper")
+    private val DOWN = setOf("smaller", "less", "decrease", "down", "lower", "shrink", "reduce", "narrower", "shorter", "tiny", "fewer", "thinner",
+        "slimmer", "tighter", "little", "cut", "weaker", "lighter", "thin", "compact", "squeeze", "fainter")
     private val TOP = setOf("maximum", "biggest", "largest", "highest", "max", "full")
     private val BOTTOM = setOf("minimum", "smallest", "lowest", "min")
     private val AUTO = setOf("auto", "automatic", "default", "normal", "standard", "original", "reset")
@@ -23,6 +25,11 @@ object HelperControl {
             "centre" -> "center"
             "microphone" -> "mic"
             "transparency" -> "transparent"
+            // Other words people use for the same thing
+            "font", "letter", "letters", "writing" -> "text"
+            "shade", "shading" -> "shadow"
+            "bg", "backdrop", "backdrops" -> "background"
+            "cog" -> "gear"
             else -> s
         }
         if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) s = s.dropLast(1)
@@ -62,19 +69,74 @@ object HelperControl {
         return w ?: String.format("#%06X", argb and 0xFFFFFF)
     }
 
-    /** Short list of what the helper can do. */
-    const val HELP = "I can: change any setting by name (\"dial size 50\", \"turn the panel border off\", \"accent red\"), " +
-        "add or remove fast dials (\"add fast dial Mom 0501234567\") and shortcuts (\"add shortcut WhatsApp\"), " +
-        "tidy the rows like the pencil's Fix layout (\"tidy the spaces between rows\"), merge, move and resize items, " +
-        "change themes and icons (also the Where to? pin: \"change the pin icon to a car\"), add a note, and undo or redo. " +
-        "I also understand everyday wishes (\"the text is too small\", \"it is too bright\", \"too crowded\", \"I am bored of this look\") " +
-        "and several changes in one sentence (\"make the text bigger and turn animations off\")."
+    /** Shown as a short toast when the person types "help" in a sentence the helper cannot use otherwise. */
+    const val HELP = "I can change any setting, the pencil menu and layouts by name. Type \"help\" for the full list of examples."
+
+    /** The full list, shown in a dialog so nothing is cut off. */
+    val FULL_HELP: String = """
+Settings by name
+  "dial size 50", "text size bigger", "turn the panel border off", "accent red"
+  "make the inbox title colour blue", "clock size 120", "hide the weather circle"
+  "shape rounded square", "temperature adjust 2", "sort order oldest first"
+  "widget picture strength 60", "scroll mode pages"
+
+Words on the widget and in messages
+  "empty message wording to Nothing new today", "update word to Updated"
+
+Layouts and themes
+  "save this layout as Work", "load layout Work", "delete layout Work", "list layouts"
+  "theme Midnight", "random theme", "reset everything" (then "confirm reset")
+
+Fast dials and shortcuts
+  "add fast dial Mom 0501234567", "add shortcut WhatsApp", "tidy the spaces between rows"
+
+Apps
+  "pin WhatsApp", "unpin WhatsApp", "mute Gmail", "unmute Gmail"
+
+Quiet hours
+  "quiet hours from 11pm to 7am"
+
+Buttons under messages
+  "hide the snooze button", "show the mute button", "move mute to the top"
+
+My pages
+  "add page Work with WhatsApp and Gmail", "add Gmail to page Work", "delete page Work"
+
+Pictures
+  "remove the widget picture", "change the panel picture" (opens the picker)
+
+Animations
+  "close animation fade", "turn off the mic animation"
+
+Notes, undo and words you taught me
+  "add a note buy milk", "undo", "redo", "learn make it pop means make the widget more solid"
+
+I also understand everyday wishes: "the text is too small", "it is too bright", "too crowded",
+and several changes in one sentence: "make the text bigger and turn animations off".
+Small spelling mistakes are fine, and "make" and "change" mean the same.
+""".trimIndent()
+
+    /** The labels on the screen that share the most words with the sentence: offered when nothing was understood. */
+    fun suggestions(input: String, labels: List<String>, count: Int = 3): List<String> {
+        val words = tokens(input)
+        if (words.isEmpty()) return emptyList()
+        return labels.filter { it.length >= 3 }
+            .map { l -> l to tokens(l).count { lw -> words.any { Helper.near(it, lw) } } }
+            .filter { it.second > 0 }
+            .sortedByDescending { it.second }
+            .map { it.first }
+            .distinct()
+            .take(count)
+    }
+
+    /** True when the person is asking what the helper can do. */
+    fun isHelp(input: String): Boolean {
+        val raw = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }
+        return raw.isNotEmpty() && raw.size <= 4 && (raw.any { it == "help" || Helper.near(it, "help") } || (raw.contains("what") && raw.contains("do")))
+    }
 
     fun handle(c: Context, input: String): Helper.Result? {
-        val raw = input.lowercase().split(Regex("[^a-z]+")).filter { it.isNotEmpty() }
-        if (raw.isNotEmpty() && raw.size <= 4 && (raw.contains("help") || (raw.contains("what") && raw.contains("do")))) {
-            return Helper.Result(HELP, false, "")
-        }
+        if (isHelp(input)) return Helper.Result(HELP, false, "")
         // "make X like Y" is handled by the copy command, not here
         if (Helper.parseSentence(input)?.first == "copy") return null
         val sentence = tokens(input)
@@ -106,6 +168,34 @@ object HelperControl {
                 HelperSettings.setInt(c, e.id, v)
                 TilesWidget.rebuildAll(c.applicationContext)
                 return Helper.Result("$label is now $v.", true, "")
+            }
+            HelperSettings.TEXT -> {
+                // The words after "to", or in quotes: "empty message wording to Nothing new today"
+                val quoted = Regex("\"([^\"]+)\"").find(input)?.groupValues?.get(1)
+                val after = Regex("\\bto\\s+(.+)$", RegexOption.IGNORE_CASE).find(input)?.groupValues?.get(1)
+                    ?.trim()?.trimEnd('.', '!', '?')
+                val value = (quoted ?: after)?.trim()
+                if (value.isNullOrEmpty()) {
+                    // Nothing to type yet: open that row so the person can write it
+                    return Helper.Result("", false, label, null, label)
+                }
+                HelperSettings.setText(c, e.id, value)
+                TilesWidget.rebuildAll(c.applicationContext)
+                return Helper.Result("$label is now \"$value\".", true, "")
+            }
+            HelperSettings.CHOICE -> {
+                // The option whose words all appear in the sentence; the longest name wins ("rounded square" over "square")
+                val sentenceWords = tokens(input)
+                val pick = e.choices.indices
+                    .filter { i -> phraseIn(sentenceWords, e.choices[i]) }
+                    .maxByOrNull { i -> tokens(e.choices[i]).size }
+                if (pick == null) {
+                    // No option named: open the row and let the person choose
+                    return Helper.Result("", false, label, null, label)
+                }
+                HelperSettings.setInt(c, e.id, pick)
+                TilesWidget.rebuildAll(c.applicationContext)
+                return Helper.Result("$label is now ${e.choices[pick]}.", true, "")
             }
             else -> {
                 val argb = parseHex(input) ?: raw.firstNotNullOfOrNull { Helper.colourOf(it) }
