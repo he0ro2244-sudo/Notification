@@ -1,5 +1,20 @@
 # Release notes
 
+## 1.1.80
+Everything below is added; nothing old was removed or changed. Everything the helper does can still be done by hand on the normal screens.
+- **Tidy rows by sentence.** *"tidy the spaces between rows"*, *"fix the spaces between rows"*, *"put tidy spaces between rows"*. In the free layout this is the pencil's **Fix layout** (the same space between every two rows); *"space the items evenly"* is Tidy up: align and space evenly, and *"pack the items closer"* is Tidy up: pack items closer. In the normal rows layout the rows share one gap, so it is set to the designed 6. The helper opens Move for a moment and it closes by itself.
+- **Fast dial by sentence.** *"add fast dial Mom 0501234567"*, *"set dial 2 to Ali 0551234567"*, *"rename dial 3 to Sara"*, *"remove dial 2"*, *"remove fast dial Ali"*, *"hide the fast dial"*, *"show the fast dial"*. A new dial goes in the first empty place unless you name a number.
+- **Shortcuts by sentence.** *"add shortcut WhatsApp"*, *"set shortcut 2 to Camera"*, *"remove shortcut 3"*, *"remove the Instagram shortcut"*, *"show the shortcuts"*, *"hide the shortcuts"*. It finds the app by name, even with a small spelling mistake, and turns the shortcuts row on if it was off. (A screen inside an app, such as Instagram camera, still needs the + in the shortcuts row.)
+- **Quick note by sentence.** *"add a note buy milk"*.
+- **Any setting by its name (79 settings).** *"dial size 50"*, *"text size bigger"*, *"turn the panel border off"*, *"make the accent red"*, *"panel background colour black"*, *"widget background colour #224466"*, *"make the widget more transparent"*, *"ask before calling on"*, *"3D icons off"*, *"loop pages on"*. Numbers stay inside the same range as the Settings slider. Colours take a colour name, a #RRGGBB code, or *default* / *auto*. The list is in tools/helper/gen_settings.py (HelperSettings.kt is made from it).
+- **Say "help"** and the helper lists what it can do.
+- **Bigger offline model** (res/raw/router.json, 2.5 MB to about 6.5 MB): 47 kinds of sentence instead of 35 (fast dial, shortcuts, tidy, notes added), many more ways of saying each one, pairs of words and concept groups (bigger / larger / greater / enlarge mean the same), and a spelling fixer that runs before the model reads a sentence. On sentences worded differently from anything it was taught, it picks the right kind about 79% of the time, and when it is sure enough to act (65% or more) it is wrong about 1 time in 10; below that it says nothing and the rules and the Settings search take over, as before. Actions (fast dial, shortcuts, tidy) need 65% certainty and the layout sentences 60%.
+- The model file is now read piece by piece, so the bigger file does not need a big block of memory. Retrain with tools/router/train.py (arguments: output file, features kept, sentences per phrase), for example: python3 tools/router/train.py app/src/main/res/raw/router.json 40000 40
+- Not changed: fast-dial and shortcut changes are not part of Undo (Undo covers look and layout settings, as before).
+
+## 1.1.79
+- "Remove the word from the notes icon" (or "notes icon without the word") now leaves only the Notes icon, with no word. The model also knows this phrasing, so it no longer hides the Notes button by mistake.
+
 ## 1.1.78
 - New offline understanding model (res/raw/router.json, about 2 MB, no internet). When the helper does not know a sentence, the model reads what it means ("fix the spaces between rows", "the notes icon should go after the mic", "undo that", "make it see through") and rewrites it as a sentence the rules already understand.
 - The model is trained by tools/router/train.py. Run it again after adding phrases.

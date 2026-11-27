@@ -251,7 +251,13 @@ class MoveActivity : Activity() {
             } catch (e: Throwable) {
                 android.util.Log.e("NotifTilesMove", "Could not make the items draggable", e)
             }
-            if (intent.getBooleanExtra("fix_all", false) && !fixAllDone) {
+            if (intent.getIntExtra("tidy_mode", -1) >= 0 && !fixAllDone) {
+                // Asked by the helper: the same as the Tidy up buttons (0 align, 1 align and space evenly, 2 pack closer)
+                fixAllDone = true
+                Prefs.setTidyPending(this, false)
+                val mode = intent.getIntExtra("tidy_mode", 0)
+                holder.postDelayed({ tidy(mode); closeIfAuto() }, 500)
+            } else if (intent.getBooleanExtra("fix_all", false) && !fixAllDone) {
                 fixAllDone = true
                 Prefs.setTidyPending(this, false)
                 holder.postDelayed({ reflowAll(true) }, 500)

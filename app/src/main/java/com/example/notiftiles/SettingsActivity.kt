@@ -474,6 +474,14 @@ class SettingsActivity : Activity() {
                 val raw = box.text.toString()
                 // "it" and "that" mean the setting changed last
                 var input = lastTarget?.let { t -> raw.replace(Regex("\\b(it|that)\\b", RegexOption.IGNORE_CASE), t) } ?: raw
+                // Things the helper DOES: tidy the rows, add / change / remove fast dials and shortcuts, add a note
+                // (the rules first, then the offline model's idea of what was meant)
+                val act = HelperActions.handle(this, input) ?: Router.intent(this, input)?.let { HelperActions.handle(this, input, it) }
+                if (act != null) {
+                    Toast.makeText(this, act.message, Toast.LENGTH_LONG).show()
+                    if (act.changed) { applyLook(); rebuild() }
+                    return@smallBtn
+                }
                 // Sentences the rules do not know: the offline model works out the meaning and rewrites it as a sentence they know
                 if (Helper.parseSentence(input) == null && Helper.firstEmoji(input) == null && Helper.bestLabel(input, collectLabels()) == null) {
                     Router.route(this, input)?.let { input = it }
@@ -507,6 +515,13 @@ class SettingsActivity : Activity() {
                         LayoutHelper.itemOf(input)?.let { lastTarget = it }
                         rebuild()
                     }
+                    return@smallBtn
+                }
+                // Any setting by its name: "dial size 50", "panel border off", "accent red", "make the widget more transparent"
+                val ctl = HelperControl.handle(this, input)
+                if (ctl != null) {
+                    Toast.makeText(this, ctl.message, Toast.LENGTH_LONG).show()
+                    if (ctl.changed) { applyLook(); rebuild() }
                     return@smallBtn
                 }
                 // "change X to Y", "match X with Y", "turn X on": done on the screen's own controls first

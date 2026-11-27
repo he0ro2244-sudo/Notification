@@ -1,5 +1,5 @@
 # Notif Tiles - User Manual
-Version 1.1.78
+Version 1.1.80
 
 Notif Tiles is a home-screen widget that shows your notifications as tiles, together with a clock, weather, date, fast-dial contacts, app shortcuts, quick notes, a voice recorder and a "Where to?" button for Google Maps. Everything can be moved, resized and coloured.
 
@@ -258,3 +258,12 @@ Press *🎤 Speak a change* to say it instead of typing; the words go into the b
 
 ## Smarter helper (1.1.72)
 The helper understands many ways of saying the same thing, such as *colour* or *color*, *font* or *text*, *space* or *gap*, and small typos. It only picks short setting names. If the setting is in a closed section, it opens that section, scrolls to the setting and highlights it.
+
+## Helper does things for you (1.1.80)
+In the HELPER box at the top of Settings, type or say a sentence. Everything it does can also be done by hand; the helper only presses the same buttons. Say *help* to see the list.
+- **Tidy the rows**: *tidy the spaces between rows*, *fix the spaces between rows*. In the free layout this is the pencil's Fix layout (the same space between every two rows). *space the items evenly* and *pack the items closer* are the two Tidy up buttons of Move. In the rows layout the rows share one gap, which is set to 6.
+- **Fast dial**: *add fast dial Mom 0501234567*, *set dial 2 to Ali 0551234567*, *rename dial 3 to Sara*, *remove dial 2*, *hide the fast dial*, *show the fast dial*.
+- **Shortcuts**: *add shortcut WhatsApp*, *set shortcut 2 to Camera*, *remove shortcut 3*, *hide the shortcuts*, *show the shortcuts*. A screen inside an app (such as Instagram camera) is still added with the + in the shortcuts row.
+- **Quick note**: *add a note buy milk*.
+- **Any setting by its name** (79 of them, all in the panel and widget): *dial size 50*, *text size bigger*, *turn the panel border off*, *make the accent red*, *panel background colour black*, *widget background colour #224466*, *make the widget more transparent*. Numbers stay inside the Settings slider's range. Colours take a name, a #RRGGBB code or *default*.
+- The helper's offline model is bigger (about 6.5 MB) and fixes spelling before it reads you. If it is not sure it does nothing and the Settings search takes over. Fast-dial and shortcut changes are not part of Undo.

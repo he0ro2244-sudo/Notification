@@ -361,6 +361,13 @@ object Helper {
             redraw(c)
             return Result("Animations are on.", true, "")
         }
+        // "Remove the word from the notes icon": the Notes button shows its emoji alone, with no word
+        if (hasAny(words, setOf("word", "words", "text", "label")) && hasAny(words, setOf("note", "notes")) &&
+            hasAny(words, setOf("remove", "without", "no", "take", "off", "only", "just", "hide", "drop"))) {
+            if (Prefs.emojiOf(c, "note").isEmpty()) Prefs.setEmojiOf(c, "note", Look.EMOJI_NOTE.first())
+            redraw(c)
+            return Result("The Notes button now shows only its icon, ${Prefs.emojiOf(c, "note")}, with no word.", true, "")
+        }
         // Emoji icon of one place (Inbox, Notes, Mic, Reset, Pencil, Gear)
         val slot = if (t.contains("clear all")) "clear" else SLOT_WORDS.firstOrNull { words.contains(it.first) }?.second
         if (slot != null && (hasAny(words, ICON_WORDS) || hasAny(words, CHANGE_WORDS) || firstEmoji(input) != null)) {
